@@ -1,0 +1,19 @@
+:root {
+  --primary: #6547d9;
+  --primary-deep: #423099;
+  --primary-soft: rgba(101, 71, 217, .11);
+  --border-strong: rgba(101, 71, 217, .34);
+  --shadow: 0 24px 60px rgba(66, 48, 153, .12);
+}
+.brand-mark { display:grid; place-items:center; width:48px; height:48px; border-radius:16px; background:linear-gradient(145deg,#8068ed,#5136b7); color:white; box-shadow:0 8px 20px rgba(81,54,183,.24); }
+.brand-monogram { font-size:25px; font-weight:800; line-height:1; }
+.site-footer { padding:26px 0; border-top:1px solid var(--border); background:rgba(255,255,255,.45); }
+.footer-inner { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.footer-note { color:var(--muted); font-size:.9rem; }
+.site-header .brand { gap:12px; }
+.site-header .brand-copy strong { letter-spacing:.01em; }
+.landing-title { letter-spacing:-.055em; }
+.landing-lead { max-width:680px; }
+.answer-status { min-height:1.5em; margin:12px auto 0; color:var(--muted); text-align:center; }
+.alert-card-featured { background:linear-gradient(135deg,rgba(101,71,217,.08),rgba(255,255,255,.82)); }
+@media (max-width:640px) { .footer-inner { align-items:flex-start; flex-direction:column; } }
