@@ -63,7 +63,19 @@ jobs:
             backend/requirements-test.txt
       - name: Install Python dependencies
         run: python -m pip install -r backend/requirements.txt -r backend/requirements-test.txt
-      - name: Apply migrations
+      - name: Create the original schema with existing document data
+        run: |
+          alembic upgrade 0001_initial
+          python -m backend.tests.integration.seed_legacy
+      - name: Upgrade the existing database
         run: alembic upgrade head
+      - name: Check models match the migrated database
+        run: alembic check
       - name: Check PostgreSQL and pgvector
         run: python -m pytest -q backend/tests/integration
+      - name: Check migration downgrade and upgrade
+        run: |
+          alembic downgrade 0001_initial
+          alembic upgrade head
+          alembic check
+          python -m pytest -q backend/tests/integration/test_postgres.py

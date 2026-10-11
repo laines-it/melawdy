@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: melawdy
+  labels:
+    app.kubernetes.io/part-of: melawdy
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: melawdy-low-priority
+value: -1000
+globalDefault: false
+preemptionPolicy: Never
+description: "MeLawDy yields resources before the existing applications on this shared VPS."

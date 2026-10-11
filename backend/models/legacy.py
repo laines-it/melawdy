@@ -1,13 +1,12 @@
+"""Compatibility with the original UUID document API and its stored data."""
 from datetime import datetime
 from uuid import UUID, uuid4
 
 from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import DateTime, ForeignKey, String, Text, Uuid, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-
-class Base(DeclarativeBase):
-    pass
+from backend.models.base import Base
 
 
 class Document(Base):
@@ -19,7 +18,6 @@ class Document(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-
     chunks: Mapped[list["DocumentChunk"]] = relationship(
         back_populates="document", cascade="all, delete-orphan"
     )
@@ -34,5 +32,4 @@ class DocumentChunk(Base):
     )
     text: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(VECTOR(), nullable=True)
-
     document: Mapped[Document] = relationship(back_populates="chunks")

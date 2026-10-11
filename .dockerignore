@@ -8,3 +8,6 @@ __pycache__
 .pytest_cache
 web
 deploy
+models/**
+output
+.admin-credentials*

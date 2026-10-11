@@ -3,84 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f5f7fe">
-  <meta name="description" content="MeLawDy — пространство для работы с правовой информацией.">
-  <title>MeLawDy — правовой помощник</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/melawdy.css">
+  <title>MeLawDy</title>
 </head>
 <body>
-  <div class="page-shell">
-    <header class="site-header">
-      <div class="container header-inner">
-        <a class="brand" href="/" aria-label="MeLawDy — главная">
-          <span class="brand-mark"><span class="brand-monogram">M</span></span>
-          <span class="brand-copy"><strong>MeLawDy</strong><span>Право — понятным языком</span></span>
-        </a>
-        <button class="menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false" data-menu-toggle><span></span><span></span><span></span></button>
-        <nav class="main-nav" aria-label="Основная навигация" data-main-nav>
-          <a class="nav-link is-active" href="#home">Главная</a>
-          <a class="nav-link" href="#features">Возможности</a>
-          <a class="nav-link" href="#about">О проекте</a>
-        </nav>
-      </div>
-    </header>
-
-    <main class="site-main" id="home">
-      <section class="hero hero-landing">
-        <div class="container landing-wrap">
-          <p class="eyebrow center-eyebrow hero-tagline">Ваш навигатор в мире права</p>
-          <h1 class="landing-title">MeLawDy</h1>
-          <p class="hero-lead landing-lead">Разберитесь в правовом вопросе и найдите уверенный следующий шаг.</p>
-          <form class="landing-search" id="question-form">
-            <label class="search-field landing-search-field">
-              <span class="search-icon" aria-hidden="true"></span>
-              <input id="question" type="search" placeholder="Опишите вашу ситуацию" aria-label="Опишите вашу ситуацию" required>
-            </label>
-            <button type="submit" class="button-primary">Начать разбор</button>
-          </form>
-          <p id="answer-status" class="answer-status" role="status" aria-live="polite"></p>
-          <div class="popular-box">
-            <div class="section-heading compact-heading"><h2>Популярные темы</h2></div>
-            <div class="chips">
-              <button class="chip" type="button" data-question="Трудовые отношения">Трудовые отношения</button>
-              <button class="chip" type="button" data-question="Договоры и сделки">Договоры и сделки</button>
-              <button class="chip" type="button" data-question="Права потребителей">Права потребителей</button>
-              <button class="chip" type="button" data-question="Семейные вопросы">Семейные вопросы</button>
-            </div>
-          </div>
-          <div class="services-grid" id="features">
-            <article class="service-card"><span class="service-icon service-icon-blue">⌕</span><span class="service-copy"><strong>Поиск по сути</strong><small>Сформулируйте вопрос обычными словами</small></span></article>
-            <article class="service-card"><span class="service-icon service-icon-green">§</span><span class="service-copy"><strong>Понятные объяснения</strong><small>Разбирайте сложные термины шаг за шагом</small></span></article>
-            <article class="service-card"><span class="service-icon service-icon-orange">↗</span><span class="service-copy"><strong>Следующий шаг</strong><small>Соберите полезный план действий</small></span></article>
-          </div>
-        </div>
-      </section>
-
-      <section class="content-section">
-        <div class="container"><div class="section-card">
-          <div class="section-heading"><h2>Как работает MeLawDy</h2><a href="#about">О проекте</a></div>
-          <div class="alert-list">
-            <article class="alert-card alert-card-featured"><p class="meta">01 · Ситуация</p><h3>Расскажите, что произошло</h3><p>Опишите вопрос своими словами — начните с обстоятельств, которые кажутся вам важными.</p></article>
-            <article class="alert-card alert-card-compact"><div><p class="meta">02 · Разбор</p><h3>Получите ориентиры</h3><p>MeLawDy поможет структурировать вопрос и понять, что проверить дальше.</p></div></article>
-          </div>
-        </div></div>
-      </section>
-
-      <section class="content-section content-section-last" id="about">
-        <div class="container"><div class="section-card tone-soft">
-          <div class="section-heading"><h2>Право начинается с ясности</h2></div>
-          <div class="feature-grid three-up">
-            <article class="info-card slim-card"><p class="meta">Доступно</p><h3>Без сложных формулировок</h3><p>Задавайте вопрос так, как удобно вам.</p></article>
-            <article class="info-card slim-card"><p class="meta">Структурно</p><h3>Важное — по порядку</h3><p>Разделяйте факты, документы и дальнейшие действия.</p></article>
-            <article class="info-card slim-card"><p class="meta">Ответственно</p><h3>Информация для ориентира</h3><p>Сервис помогает разобраться и не заменяет консультацию юриста.</p></article>
-          </div>
-        </div></div>
-      </section>
-    </main>
-
-    <footer class="site-footer"><div class="container footer-inner"><a class="brand" href="/" aria-label="MeLawDy"><span class="brand-mark"><span class="brand-monogram">M</span></span><span class="brand-copy"><strong>MeLawDy</strong><span>Право — понятным языком</span></span></a><span class="footer-note">© MeLawDy</span></div></footer>
-  </div>
+  <header><h1>MeLawDy</h1><nav><a href="/">Материалы</a> · <a href="/admin.html">Администрирование</a></nav></header>
+  <main>
+    <p id="status" role="status" aria-live="polite"></p>
+    <section>
+      <h2>Статьи</h2>
+      <button id="reload-articles" type="button">Обновить список</button>
+      <ul id="articles"></ul>
+      <button id="more-articles" type="button" hidden>Ещё статьи</button>
+      <article id="article" hidden></article>
+    </section>
+    <section>
+      <h2>Опросы (assessment)</h2>
+      <ul id="surveys"></ul>
+      <button id="more-surveys" type="button" hidden>Ещё опросы</button>
+      <section id="survey" hidden></section>
+    </section>
+  </main>
   <script src="/js/main.js" defer></script>
 </body>
 </html>
