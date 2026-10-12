@@ -22,7 +22,7 @@ docker compose up --build
 
 Nginx передаёт `/api/` в Python API. Все опубликованные порты привязаны к `127.0.0.1` хоста. Для доступа из интернета потребуется отдельная настройка домена, TLS и reverse proxy.
 
-Развёртывание на VPS с доменом `lawmposer.ru`, HTTPS и отдельным namespace существующего k3s описано в [инструкции VPS](deploy/k3s/README.md). Локальный Compose работает независимо от него.
+Развёртывание на VPS с доменом `lawmposer.ru`, HTTPS и отдельным namespace существующего k3s описано в [инструкции VPS](deploy/k3s/README.md). Локальный Compose работает независимо от него. Push в `main` автоматически обновляет VPS после успешных тестов GitHub Actions; текущий SHA сайта доступен в `https://lawmposer.ru/version.json`. Другие ветки публикуются после слияния в `main`.
 
 ## Управление
 

@@ -79,3 +79,26 @@ jobs:
           alembic upgrade head
           alembic check
           python -m pytest -q backend/tests/integration/test_postgres.py
+
+  deploy:
+    name: Deploy main to VPS
+    needs: [unit, postgres-integration]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: melawdy-production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://lawmposer.ru
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build and deploy the tested commit
+        env:
+          DEPLOY_REVISION: ${{ github.sha }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: bash deploy/k3s/publish-release.sh
