@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeLawDy</title>
+</head>
+<body>
+  <header><h1>MeLawDy</h1><nav><a href="/">Материалы</a> · <a href="/admin.html">Администрирование</a></nav></header>
+  <main>
+    <p id="status" role="status" aria-live="polite"></p>
+    <section>
+      <h2>Статьи</h2>
+      <button id="reload-articles" type="button">Обновить список</button>
+      <ul id="articles"></ul>
+      <button id="more-articles" type="button" hidden>Ещё статьи</button>
+      <article id="article" hidden></article>
+    </section>
+    <section>
+      <h2>Опросы (assessment)</h2>
+      <ul id="surveys"></ul>
+      <button id="more-surveys" type="button" hidden>Ещё опросы</button>
+      <section id="survey" hidden></section>
+    </section>
+  </main>
+  <script src="/js/main.js" defer></script>
+</body>
+</html>

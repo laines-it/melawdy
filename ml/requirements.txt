@@ -1,0 +1,2 @@
+# Optional local inference; install the CPU torch wheel first on a VPS.
+sentence-transformers>=3.4,<6

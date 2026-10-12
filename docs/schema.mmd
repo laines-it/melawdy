@@ -1,0 +1,257 @@
+erDiagram
+    USERS {
+        bigint id PK
+        varchar email UK
+        varchar password_hash
+        varchar full_name
+        enum user_type
+        timestamp created_at
+        timestamp updated_at
+        timestamp last_login_at
+        boolean is_active
+    }
+
+    CONTENT_CATEGORIES {
+        bigint id PK
+        bigint parent_id FK
+        varchar name
+        varchar slug UK
+        int sort_order
+    }
+
+    CONTENT_ITEMS {
+        bigint id PK
+        bigint category_id FK
+        enum type
+        varchar title
+        varchar slug UK
+        text summary
+        enum status
+        timestamp published_at
+        bigint created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    CONTENT_ITEM_CHUNKS {
+        bigint id PK
+        bigint content_item_id FK
+        int chunk_index
+        text body
+        tsvector tsv
+        vector embedding
+        timestamp updated_at
+    }
+
+    CONTENT_TAGS {
+        bigint id PK
+        varchar name UK
+        varchar slug UK
+    }
+
+    CONTENT_ITEM_TAGS {
+        bigint content_item_id PK, FK
+        bigint tag_id PK, FK
+    }
+
+    GLOSSARY_TERMS {
+        bigint id PK
+        varchar term UK
+        text definition
+        text full_definition
+        timestamp created_at
+    }
+
+    GLOSSARY_TERM_CONTENT {
+        bigint term_id PK, FK
+        bigint content_item_id PK, FK
+    }
+
+    QA_PAIRS {
+        bigint id PK
+        text question
+        text answer
+        bigint category_id FK
+        bigint content_item_id FK
+        int sort_order
+    }
+
+    ASSESSMENT_SURVEYS {
+        bigint id PK
+        varchar title
+        int version
+        boolean is_active
+        timestamp created_at
+    }
+
+    ASSESSMENT_QUESTIONS {
+        bigint id PK
+        bigint survey_id FK
+        text text
+        enum question_type
+        int sort_order
+        boolean is_required
+    }
+
+    ASSESSMENT_OPTIONS {
+        bigint id PK
+        bigint question_id FK
+        varchar text
+        varchar value
+        int sort_order
+    }
+
+    ASSESSMENT_RESULTS {
+        bigint id PK
+        varchar code UK
+        varchar title
+        text description
+        bigint recommended_content_id FK
+        bigint recommended_document_template_id FK
+    }
+
+    ASSESSMENT_RESULT_RULES {
+        bigint id PK
+        bigint survey_id FK
+        bigint result_id FK
+        jsonb condition_json
+        int priority
+    }
+
+    USER_ASSESSMENTS {
+        bigint id PK
+        bigint user_id FK
+        bigint survey_id FK
+        bigint result_id FK
+        jsonb answers_json
+        timestamp created_at
+    }
+
+    MKTU_CLASSES {
+        bigint id PK
+        int class_number UK
+        varchar title
+        text description
+    }
+
+    APPLICATION_TYPES {
+        bigint id PK
+        varchar code UK
+        varchar name
+        text description
+    }
+
+    FEE_RATES {
+        bigint id PK
+        bigint application_type_id FK
+        bigint mktu_class_id FK
+        boolean is_urgent
+        numeric amount
+        varchar currency
+        date valid_from
+        date valid_to
+        text legal_basis
+    }
+
+    FEE_CALCULATIONS {
+        bigint id PK
+        bigint user_id FK
+        bigint application_type_id FK
+        boolean is_urgent
+        numeric total_amount
+        varchar currency
+        jsonb input_json
+        jsonb breakdown_json
+        timestamp created_at
+    }
+
+    FEE_CALCULATION_CLASSES {
+        bigint calculation_id PK, FK
+        bigint mktu_class_id PK, FK
+    }
+
+    DOCUMENT_TEMPLATES {
+        bigint id PK
+        enum document_type
+        varchar title
+        varchar slug UK
+        text description
+        text body
+        varchar file_path
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    USER_DOCUMENTS {
+        bigint id PK
+        bigint user_id FK
+        bigint template_id FK
+        enum document_type
+        varchar title
+        enum status
+        jsonb content_json
+        varchar file_path
+        date due_date
+        enum deadline_status
+        boolean reminder_sent
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    DOCUMENT_STATUS_HISTORY {
+        bigint id PK
+        bigint document_id FK
+        enum old_status
+        enum new_status
+        text comment
+        bigint changed_by FK
+        timestamp changed_at
+    }
+
+    REQUEST_HISTORY {
+        bigint id PK
+        bigint user_id FK
+        varchar request_type
+        jsonb request_params
+        text response_summary
+        timestamp created_at
+    }
+
+    %% Контент
+    CONTENT_CATEGORIES ||--o{ CONTENT_CATEGORIES : "parent"
+    CONTENT_CATEGORIES ||--o{ CONTENT_ITEMS : "содержит"
+    CONTENT_CATEGORIES ||--o{ QA_PAIRS : "рубрика"
+    CONTENT_ITEMS ||--o{ CONTENT_ITEM_CHUNKS : "чанки"
+    CONTENT_ITEMS ||--o{ CONTENT_ITEM_TAGS : "теги"
+    CONTENT_TAGS ||--o{ CONTENT_ITEM_TAGS : "теги"
+    CONTENT_ITEMS ||--o{ GLOSSARY_TERM_CONTENT : "термины"
+    GLOSSARY_TERMS ||--o{ GLOSSARY_TERM_CONTENT : "термины"
+    CONTENT_ITEMS ||--o{ QA_PAIRS : "связанная статья"
+    USERS ||--o{ CONTENT_ITEMS : "автор"
+
+    %% Опросник
+    ASSESSMENT_SURVEYS ||--o{ ASSESSMENT_QUESTIONS : "вопросы"
+    ASSESSMENT_QUESTIONS ||--o{ ASSESSMENT_OPTIONS : "варианты"
+    ASSESSMENT_SURVEYS ||--o{ ASSESSMENT_RESULT_RULES : "правила"
+    ASSESSMENT_RESULTS ||--o{ ASSESSMENT_RESULT_RULES : "результат"
+    ASSESSMENT_RESULTS ||--o{ CONTENT_ITEMS : "рекомендация"
+    ASSESSMENT_RESULTS ||--o{ DOCUMENT_TEMPLATES : "рекомендованный шаблон"
+    USERS ||--o{ USER_ASSESSMENTS : "проходит"
+    ASSESSMENT_SURVEYS ||--o{ USER_ASSESSMENTS : "опрос"
+    ASSESSMENT_RESULTS ||--o{ USER_ASSESSMENTS : "итог"
+
+    %% Калькулятор пошлин
+    APPLICATION_TYPES ||--o{ FEE_RATES : "ставки"
+    MKTU_CLASSES ||--o{ FEE_RATES : "ставки"
+    USERS ||--o{ FEE_CALCULATIONS : "расчёты"
+    APPLICATION_TYPES ||--o{ FEE_CALCULATIONS : "тип заявки"
+    FEE_CALCULATIONS ||--o{ FEE_CALCULATION_CLASSES : "классы"
+    MKTU_CLASSES ||--o{ FEE_CALCULATION_CLASSES : "классы"
+
+    %% Личный кабинет
+    USERS ||--o{ USER_DOCUMENTS : "документы"
+    DOCUMENT_TEMPLATES ||--o{ USER_DOCUMENTS : "по шаблону"
+    USER_DOCUMENTS ||--o{ DOCUMENT_STATUS_HISTORY : "история статусов"
+    USERS ||--o{ DOCUMENT_STATUS_HISTORY : "изменил"
+    USERS ||--o{ REQUEST_HISTORY : "запросы"

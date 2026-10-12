@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeLawDy — администрирование</title>
+</head>
+<body>
+  <header><h1>MeLawDy — администрирование</h1><a href="/">На сайт</a></header>
+  <main>
+    <p id="status" role="status" aria-live="polite"></p>
+    <section id="login-section">
+      <h2>Вход администратора</h2>
+      <form id="login-form">
+        <p><label>Email или логин <input name="email" type="text" autocomplete="username" required></label></p>
+        <p><label>Пароль <input name="password" type="password" autocomplete="current-password" required></label></p>
+        <button type="submit">Войти</button>
+      </form>
+    </section>
+    <section id="workspace" hidden>
+      <p><span id="current-user"></span> <button id="logout" type="button">Выйти</button></p>
+      <p><label>Раздел <select id="resource-select"></select></label></p>
+      <p>Для assessment сначала создайте опрос, затем вопросы и варианты ответов. Результаты и правила добавляются отдельно.</p>
+      <p>Статьи в статусе draft сохраняются как черновики. Статус published публикует материал; пустая дата означает публикацию сейчас.</p>
+      <h2 id="resource-title"></h2>
+      <button id="new-record" type="button">Новая запись</button>
+      <h3 id="form-title">Новая запись</h3>
+      <form id="record-form">
+        <div id="fields"></div>
+        <p><button id="save-record" type="submit">Сохранить</button> <button id="cancel-edit" type="button">Сбросить форму</button></p>
+      </form>
+      <h3>Записи</h3>
+      <button id="refresh-list" type="button">Обновить список</button>
+      <table>
+        <thead><tr><th>ID</th><th>Запись</th><th>Действия</th></tr></thead>
+        <tbody id="records"></tbody>
+      </table>
+      <p><button id="previous-page" type="button">Назад</button> <span id="page-status"></span> <button id="next-page" type="button">Далее</button></p>
+    </section>
+  </main>
+  <script src="/js/admin.js" defer></script>
+</body>
+</html>

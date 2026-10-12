@@ -1,0 +1,11 @@
+# Optional CPU inference using a model downloaded into ./models on the host.
+services:
+  api:
+    build:
+      args:
+        INSTALL_EMBEDDINGS: "true"
+    environment:
+      EMBEDDING_MODEL_PATH: /models/bge-m3-russian-legal
+      EMBEDDING_DEVICE: cpu
+    volumes:
+      - ./models:/models:ro

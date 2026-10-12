@@ -1,0 +1,228 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+data:
+  01-melawdy.sql: |
+    \getenv app_password MELAWDY_APP_PASSWORD
+    CREATE ROLE melawdy_app WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD :'app_password';
+    ALTER DATABASE melawdy OWNER TO melawdy_app;
+    CREATE EXTENSION IF NOT EXISTS vector;
+    ALTER SCHEMA public OWNER TO melawdy_app;
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  clusterIP: None
+  selector:
+    app: melawdy-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: melawdy-postgres
+  template:
+    metadata:
+      labels:
+        app: melawdy-postgres
+        app.kubernetes.io/part-of: melawdy
+    spec:
+      priorityClassName: melawdy-low-priority
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: postgres
+          image: melawdy-postgres
+          imagePullPolicy: Never
+          args: ["postgres", "-c", "shared_buffers=16MB", "-c", "work_mem=2MB", "-c", "maintenance_work_mem=32MB", "-c", "max_connections=20", "-c", "max_parallel_workers=0"]
+          env:
+            - name: POSTGRES_DB
+              value: melawdy
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: melawdy-secrets, key: postgres-root-password}
+            - name: MELAWDY_APP_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: melawdy-secrets, key: postgres-app-password}
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - containerPort: 5432
+          resources:
+            requests: {cpu: 25m, memory: 48Mi}
+            limits: {cpu: 500m, memory: 128Mi}
+          startupProbe:
+            exec: {command: ["pg_isready", "-U", "postgres", "-d", "melawdy"]}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            exec: {command: ["pg_isready", "-U", "postgres", "-d", "melawdy"]}
+            periodSeconds: 10
+          livenessProbe:
+            exec: {command: ["pg_isready", "-U", "postgres", "-d", "melawdy"]}
+            periodSeconds: 20
+            failureThreshold: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: init
+          configMap: {name: postgres-init}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: melawdy-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: melawdy-api
+  template:
+    metadata:
+      labels:
+        app: melawdy-api
+        app.kubernetes.io/part-of: melawdy
+    spec:
+      priorityClassName: melawdy-low-priority
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: api
+          image: melawdy-api
+          imagePullPolicy: Never
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          env:
+            - {name: POSTGRES_HOST, value: postgres}
+            - {name: POSTGRES_DB, value: melawdy}
+            - {name: POSTGRES_USER, value: melawdy_app}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: melawdy-secrets, key: postgres-app-password}
+            - {name: ADMIN_EMAIL, value: admin}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: melawdy-secrets, key: admin-password}
+            - {name: SESSION_COOKIE_SECURE, value: "true"}
+          ports:
+            - containerPort: 8000
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          startupProbe:
+            httpGet: {path: /healthz, port: 8000}
+            periodSeconds: 5
+            failureThreshold: 60
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet: {path: /readyz, port: 8000}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /healthz, port: 8000}
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 5
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 32Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: melawdy-web
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: melawdy-web
+  template:
+    metadata:
+      labels:
+        app: melawdy-web
+        app.kubernetes.io/part-of: melawdy
+    spec:
+      priorityClassName: melawdy-low-priority
+      automountServiceAccountToken: false
+      containers:
+        - name: web
+          image: melawdy-web
+          imagePullPolicy: Never
+          env:
+            - {name: NGINX_ENTRYPOINT_WORKER_PROCESSES_AUTOTUNE, value: "1"}
+          ports:
+            - containerPort: 80
+          resources:
+            requests: {cpu: 10m, memory: 8Mi}
+            limits: {cpu: 100m, memory: 32Mi}
+          startupProbe:
+            httpGet: {path: /healthz, port: 80}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /healthz, port: 80}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: 80}
+            periodSeconds: 20
+            failureThreshold: 5

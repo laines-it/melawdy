@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+.pwd
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+web
+deploy
+models/**
+output
+.admin-credentials*

@@ -1,0 +1,104 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-test.txt
+      - name: Install Python dependencies
+        run: python -m pip install -r backend/requirements.txt -r backend/requirements-test.txt
+      - name: Run local Python tests
+        run: python -m pytest -q
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: melawdy_test
+          POSTGRES_USER: melawdy_test
+          POSTGRES_PASSWORD: melawdy_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U melawdy_test -d melawdy_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: melawdy_test
+      POSTGRES_USER: melawdy_test
+      POSTGRES_PASSWORD: melawdy_test_password
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-test.txt
+      - name: Install Python dependencies
+        run: python -m pip install -r backend/requirements.txt -r backend/requirements-test.txt
+      - name: Create the original schema with existing document data
+        run: |
+          alembic upgrade 0001_initial
+          python -m backend.tests.integration.seed_legacy
+      - name: Upgrade the existing database
+        run: alembic upgrade head
+      - name: Check models match the migrated database
+        run: alembic check
+      - name: Check PostgreSQL and pgvector
+        run: python -m pytest -q backend/tests/integration
+      - name: Check migration downgrade and upgrade
+        run: |
+          alembic downgrade 0001_initial
+          alembic upgrade head
+          alembic check
+          python -m pytest -q backend/tests/integration/test_postgres.py
+
+  deploy:
+    name: Deploy main to VPS
+    needs: [unit, postgres-integration]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: melawdy-production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://lawmposer.ru
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build and deploy the tested commit
+        env:
+          DEPLOY_REVISION: ${{ github.sha }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: bash deploy/k3s/publish-release.sh
