@@ -1,4 +1,4 @@
-# MeLawDy
+TEST# MeLawDy
 
 Стартовый каркас сайта MeLawDy: статический web, один Python API на FastAPI, PostgreSQL с pgvector и MinIO. Код поиска и ранжирования лежит в `ml/` и вызывается внутри API без отдельного сетевого сервиса.
 
