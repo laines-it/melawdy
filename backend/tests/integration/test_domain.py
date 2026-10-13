@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
 
@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import IntegrityError
 
+from backend import public
 from backend.content_repository import ContentSearchRepository
 from backend.db import SessionLocal, engine
 from backend.models import (
@@ -110,4 +111,34 @@ def test_duplicate_chunk_number_is_rejected() -> None:
         session.add(content)
         with pytest.raises(IntegrityError):
             session.flush()
+        session.rollback()
+
+
+def test_title_search_matches_substrings_case_insensitively_and_hides_unpublished() -> None:
+    token = uuid4().hex
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as session:
+        titles = [f"О {token} Авторском праве", f"{token} авторское право",
+                  f"{token} 100%", f"{token} 1000", f"{token} a_b", f"{token} axb"]
+        published = [ContentItem(
+            title=title, slug=f"{token}-{index}", type=ContentType.ARTICLE,
+            status=ContentStatus.PUBLISHED, published_at=now - timedelta(days=1),
+        ) for index, title in enumerate(titles)]
+        hidden = [ContentItem(
+            title=titles[0], slug=f"{token}-{status.value}", type=ContentType.ARTICLE,
+            status=status, published_at=now - timedelta(days=1),
+        ) for status in [ContentStatus.DRAFT, ContentStatus.ARCHIVED]]
+        hidden.append(ContentItem(
+            title=titles[0], slug=f"{token}-scheduled", type=ContentType.ARTICLE,
+            status=ContentStatus.PUBLISHED, published_at=now + timedelta(days=1),
+        ))
+        session.add_all(published + hidden)
+        session.flush()
+
+        assert public.search_articles(session, f" {token} АВТОРС ") == [
+            str(item.id) for item in published[:2]
+        ]
+        assert public.search_articles(session, f"{token} 100%") == [str(published[2].id)]
+        assert public.search_articles(session, f"{token} a_b") == [str(published[4].id)]
+        assert public.search_articles(session, f"{token} отсутствует") == []
         session.rollback()

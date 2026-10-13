@@ -66,6 +66,30 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     target.hidden = false;
   }
+  const searchResult = document.querySelector("#article-search-result");
+  const searchStatus = document.querySelector("#article-search-status");
+  const searchButton = document.querySelector("#search-articles");
+  document.querySelector("#article-search").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (searchButton.disabled) return;
+    const query = document.querySelector("#article-query").value.trim();
+    searchResult.value = "";
+    if (!query) {
+      searchStatus.textContent = "Введите строку для поиска.";
+      return;
+    }
+    searchButton.disabled = true;
+    searchStatus.textContent = "Поиск…";
+    try {
+      const ids = await api(`articles/search?${new URLSearchParams({ q: query })}`);
+      searchResult.value = ids.join("\n");
+      searchStatus.textContent = ids.length ? `Найдено статей: ${ids.length}.` : "Статьи не найдены.";
+    } catch (error) {
+      searchStatus.textContent = error.message;
+    } finally {
+      searchButton.disabled = false;
+    }
+  });
   document.querySelector("#reload-articles").addEventListener("click", () => load("articles", true).catch(message));
   for (const kind of ["articles", "surveys"]) {
     document.querySelector(`#more-${kind}`).addEventListener("click", () => load(kind).catch(message));

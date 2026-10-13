@@ -10,6 +10,18 @@
   <main>
     <p id="status" role="status" aria-live="polite"></p>
     <section>
+      <h2>Поиск статей</h2>
+      <form id="article-search">
+        <label for="article-query">Строка в названии статьи</label>
+        <input id="article-query" name="q" type="search" maxlength="500" required>
+        <button id="search-articles" type="submit">Найти</button>
+      </form>
+      <p><label for="article-search-result">ID найденных статей</label><br>
+        <textarea id="article-search-result" rows="4" cols="40" readonly></textarea>
+      </p>
+      <p id="article-search-status" role="status" aria-live="polite"></p>
+    </section>
+    <section>
       <h2>Статьи</h2>
       <button id="reload-articles" type="button">Обновить список</button>
       <ul id="articles"></ul>

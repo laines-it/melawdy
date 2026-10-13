@@ -20,6 +20,18 @@ def list_articles(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)
              "summary": item.summary, "published_at": item.published_at} for item in items]
 
 
+@router.get("/articles/search", response_model=list[str])
+def search_articles(session: SessionDep, q: Annotated[str, Query(min_length=1, max_length=500)]) -> list[str]:
+    query = q.strip()
+    if not query:
+        raise HTTPException(422, "Введите строку для поиска")
+    ids = session.scalars(select(ContentItem.id).where(
+        ContentItem.status == ContentStatus.PUBLISHED, ContentItem.published_at <= func.now(),
+        ContentItem.title.icontains(query, autoescape=True)
+    ).order_by(ContentItem.id))
+    return [str(article_id) for article_id in ids]
+
+
 @router.get("/articles/{article_id}")
 def read_article(article_id: int, session: SessionDep) -> dict:
     item = session.scalar(select(ContentItem).options(selectinload(ContentItem.chunks)).where(
