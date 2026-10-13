@@ -12,8 +12,13 @@ from backend.repository import DocumentRepository
 from backend.schemas import AnalyzeRequest, AnalyzeResponse, DocumentCreate, DocumentRead
 from ml.pipeline import analyze
 from backend import admin, auth, public
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from backend.auth import limiter
 
 app = FastAPI(title="MeLawDy API", version="0.1.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(public.router)

@@ -15,3 +15,4 @@ coverage/
 .admin-credentials*
 .~lock.*#
 /web/static/version.json
+.idea/ 

@@ -1,4 +1,3 @@
-"""Create an admin explicitly or bootstrap one from deployment environment variables."""
 import argparse
 import getpass
 import os

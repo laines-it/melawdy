@@ -9,7 +9,7 @@ from backend.models.base import Base, CreatedAt
 if TYPE_CHECKING:
     from backend.models.users import User
 
-
+#переименовать в UserSession?
 class AdminSession(CreatedAt, Base):
     __tablename__ = "admin_sessions"
 
