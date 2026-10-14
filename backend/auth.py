@@ -16,10 +16,6 @@ from backend.config import get_settings
 from backend.db import get_session
 from backend.models import AdminSession, User, UserType
 
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
-limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 COOKIE_NAME = "melawdy_session"
@@ -137,7 +133,6 @@ def start_session(user: User, request: Request, response: Response, session: Ses
 
 
 @router.post("/login")
-@limiter.limit("5/minute")
 def login(payload: LoginInput, request: Request, response: Response, session: SessionDep) -> dict:
     now = datetime.now(timezone.utc)
     user = session.scalar(select(User).where(func.lower(User.email) == payload.email))
