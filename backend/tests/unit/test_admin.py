@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -23,10 +23,15 @@ def request(method="GET", token=None, csrf=None):
         headers.append((b"x-csrf-token", csrf.encode()))
     return Request({"type": "http", "method": method, "path": "/", "headers": headers})
 
+CSRF = "c" * 64
+
+def stored_session(user):
+    return SimpleNamespace(user=user, csrf_token_hash=auth.hash_token(CSRF))
 
 def administrator():
     return User(id=7, email="admin@example.test", full_name="Admin",
-                user_type=UserType.ADMIN, is_active=True)
+                user_type=UserType.ADMIN, is_active=True,
+                failed_login_attemts=0, locked_until=None)
 
 
 def test_password_hash_is_argon2_and_invalid_hash_is_rejected():
@@ -63,7 +68,7 @@ def test_session_requires_active_administrator(state, expected):
 @pytest.mark.parametrize("csrf", [None, "bad", "x" * 64, "я" * 64])
 def test_writes_require_session_bound_csrf_token(csrf):
     session = Mock()
-    session.scalar.return_value = SimpleNamespace(user=administrator())
+    session.scalar.return_value = stored_session(administrator())
     with pytest.raises(HTTPException) as error:
         auth.require_admin(request("POST", "x" * 32, csrf), session)
     assert error.value.status_code == 403
@@ -72,12 +77,13 @@ def test_writes_require_session_bound_csrf_token(csrf):
 def test_valid_session_allows_reads_and_protected_writes():
     user = administrator()
     session = Mock()
-    session.scalar.return_value = SimpleNamespace(user=user)
+    session.scalar.return_value = stored_session(user=user)
     token = "x" * 32
     assert auth.require_admin(request(token=token), session) is user
-    assert auth.require_admin(request("PUT", token, auth.csrf_token(token)), session) is user
-    assert auth.csrf_token(token) != auth.csrf_token("y" * 32)
-
+    assert auth.require_admin(request("PUT", token, CSRF), session) is user
+    with pytest.raises(HTTPException) as error:
+        auth.require_admin(request("PUT", token, "d" * 64), session)
+    assert error.value.status_code == 403
 
 def test_login_stores_only_token_hash_and_sets_private_cookie(monkeypatch):
     user = administrator()
@@ -86,6 +92,7 @@ def test_login_stores_only_token_hash_and_sets_private_cookie(monkeypatch):
     session.scalar.return_value = user
     monkeypatch.setattr(auth, "verify_password", lambda password, hashed: True)
     monkeypatch.setattr(auth.secrets, "token_urlsafe", lambda size: "t" * 32)
+    monkeypatch.setattr(auth.secrets, "token_hex", lambda size: "k" * 64)
     monkeypatch.setattr(auth, "get_settings", lambda: SimpleNamespace(session_hours=8, session_cookie_secure=True))
     response = Response()
     result = auth.login(auth.LoginInput(email=" ADMIN@EXAMPLE.TEST ", password="password"),
@@ -96,7 +103,9 @@ def test_login_stores_only_token_hash_and_sets_private_cookie(monkeypatch):
     assert stored.token_hash != "t" * 32
     assert stored.user_id == user.id
     assert stored.expires_at > datetime.now(timezone.utc)
-    assert result["csrf_token"] == auth.csrf_token("t" * 32)
+    assert stored.csrf_token_hash == auth.hash_token("k" * 64)
+    assert result["csrf_token"] == "k" * 32
+    assert result["csfr_token"] != "t" * 32
     assert "password_hash" not in result["user"]
     cookie = response.headers["set-cookie"].lower()
     assert all(value in cookie for value in ["httponly", "secure", "samesite=strict", "path=/api/"])
@@ -105,14 +114,12 @@ def test_login_stores_only_token_hash_and_sets_private_cookie(monkeypatch):
     session.commit.assert_called_once()
 
 
-@pytest.mark.parametrize("state", ["missing", "wrong-password", "inactive", "nonadmin"])
+@pytest.mark.parametrize("state", ["missing", "wrong-password", "inactive"])
 def test_failed_login_never_creates_session(monkeypatch, state):
     user = administrator()
     user.password_hash = "mocked"
     if state == "inactive":
         user.is_active = False
-    if state == "nonadmin":
-        user.user_type = UserType.INDIVIDUAL
     session = Mock()
     session.scalar.return_value = None if state == "missing" else user
     monkeypatch.setattr(auth, "verify_password", lambda password, hashed: state != "wrong-password")
@@ -120,7 +127,11 @@ def test_failed_login_never_creates_session(monkeypatch, state):
         auth.login(auth.LoginInput(email="admin@example.test", password="password"), request(), Response(), session)
     assert error.value.status_code == 401
     session.add.assert_not_called()
-    session.commit.assert_not_called()
+    if state == "missing":
+        session.commit.assert_not_called()
+    else:
+        assert user.failed_login_attempts == 1
+        session.commit.assert_not_called()
 
 
 def test_logout_revokes_database_session_and_cookie():
@@ -304,3 +315,80 @@ def test_public_query_excludes_drafts_and_scheduled_articles():
     sql = str(statement.compile(compile_kwargs={"literal_binds": True}))
     assert "content_items.status = 'published'" in sql
     assert "content_items.published_at <= now()" in sql
+
+
+def test_regular_user_passes_require_user_but_not_require_admin():
+    user = administrator()
+    user.user_type = UserType.INDIVIDUAL
+    session = Mock()
+    session.scalar.return_value = stored_session(user)
+    assert auth.require_user(request(token="x" * 32), session) is user
+    with pytest.raises(HTTPException) as error:
+        auth.require_admin(request(token="x" * 32), session)
+    assert error.value.status_code == 403
+
+
+def make_user():
+    user = administrator()
+    user.password_hash = "mocked"
+    return user
+
+
+def failed_attempt(monkeypatch, user):
+    session = Mock()
+    session.scalar.return_value = user
+    monkeypatch.setattr(auth, "verify_password", lambda password, hashed: False)
+    with pytest.raises(HTTPException) as error:
+        auth.login(auth.LoginInput(email="admin@example.test", password="password"),
+                   request(), Response(), session)
+    assert error.value.status_code == 401
+
+
+def test_five_failed_logins_lock_the_account(monkeypatch):
+    user = make_user()
+    for _ in range(auth.MAX_FAILED_LOGINS):
+        failed_attempt(monkeypatch, user)
+    assert user.locked_until > datetime.now(timezone.utc)
+
+
+def test_locked_account_rejects_even_the_correct_password(monkeypatch):
+    user = make_user()
+    user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=5)
+    session = Mock()
+    session.scalar.return_value = user
+    monkeypatch.setattr(auth, "verify_password", lambda password, hashed: True)
+    with pytest.raises(HTTPException) as error:
+        auth.login(auth.LoginInput(email="admin@example.test", password="password"),
+                   request(), Response(), session)
+    assert error.value.status_code == 401
+    session.add.assert_not_called()
+
+
+def test_expired_lock_starts_counting_from_zero(monkeypatch):
+    user = make_user()
+    user.failed_login_attempts = auth.MAX_FAILED_LOGINS
+    user.locked_until = datetime.now(timezone.utc) - timedelta(minutes=1)
+    failed_attempt(monkeypatch, user)
+    assert user.failed_login_attempts == 1 and user.locked_until is None
+
+
+def test_successful_login_resets_failure_counter(monkeypatch):
+    user = make_user()
+    user.failed_login_attempts = 3
+    session = Mock()
+    session.scalar.return_value = user
+    monkeypatch.setattr(auth, "verify_password", lambda password, hashed: True)
+    monkeypatch.setattr(auth, "get_settings",
+                        lambda: SimpleNamespace(session_hours=8, session_cookie_secure=False))
+    auth.login(auth.LoginInput(email="admin@example.test", password="password"),
+               request(), Response(), session)
+    assert user.failed_login_attempts == 0 and user.locked_until is None
+
+
+def test_me_issues_a_new_csrf_token_and_never_returns_the_session_cookie():
+    session = Mock()
+    token = "x" * 32
+    result = auth.me(request(token=token), Response(), administrator(), session)
+    assert len(result["csrf_token"]) == 64 and result["csrf_token"] != token
+    session.execute.assert_called_once()
+    session.commit.assert_called_once()

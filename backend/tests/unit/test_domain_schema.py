@@ -9,6 +9,10 @@ from sqlalchemy.orm import configure_mappers
 from backend.models import Base, ContentItem, ContentItemChunk, ContentItemTag, ContentTag
 
 
+SERVICE_COLUMNS = {"users": {"failed_login_attempts", "locked_until"}}
+
+
+
 def test_domain_tables_and_fields_match_the_provided_diagram() -> None:
     diagram = (Path(__file__).resolve().parents[3] / "docs/schema.mmd").read_text()
     entities = re.findall(r"^    ([A-Z_]+) \{\n(.*?)^    \}", diagram, re.M | re.S)
@@ -20,7 +24,7 @@ def test_domain_tables_and_fields_match_the_provided_diagram() -> None:
                      if name not in {"documents", "document_chunks", "admin_sessions"}}
     assert domain_tables.keys() == expected.keys()
     for name, table in domain_tables.items():
-        assert set(table.c.keys()) == expected[name], name
+        assert set(table.c.keys()) - SERVICE_COLUMNS.get(name, set()) == expected[name], name
 
 
 def test_relationships_can_be_used_as_python_objects() -> None:

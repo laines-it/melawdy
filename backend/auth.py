@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pwdlib import PasswordHash
 from pwdlib.exceptions import UnknownHashError
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 
@@ -27,7 +27,7 @@ _dummy_hash = password_hasher.hash(secrets.token_urlsafe(32))
 class LoginInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     email: str = Field(min_length=3, max_length=320)
-    password: str = Field(min_length=1, max_length=1024)
+    password: str = Field(min_length=12, max_length=1024)
 
     @field_validator("email")
     @classmethod
@@ -38,7 +38,7 @@ class LoginInput(BaseModel):
 class RegisterInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     email: str = Field(min_length=3, max_length=320)
-    password: str = Field(min_length=1, max_length=1024)
+    password: str = Field(min_length=12, max_length=1024)
     full_name: str = Field(min_length=1, max_length=255)
     user_type: Literal["individual", "organization", "lawyer"] = "individual"
 
@@ -52,8 +52,8 @@ class RegisterInput(BaseModel):
 
     @field_validator("full_name")
     @classmethod
-    def full_name(cls, value: str):
-        value = value.strip().lower()
+    def clean_name(cls, value: str):
+        value = value.strip()
         if not value:
             raise ValueError("Укажите имя и фамилию")
         return value
@@ -69,8 +69,8 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 #просмотреть работу с токеном и поправить
-def csrf_token(token: str) -> str:
-    return hmac.new(token.encode(), b"melawdy-csrf", hashlib.sha256).hexdigest()
+# def csrf_token(token: str) -> str:
+#     return hmac.new(token.encode(), b"melawdy-csrf", hashlib.sha256).hexdigest()
 
 
 def verify_password(password: str, password_hash: str) -> bool:
@@ -80,9 +80,9 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-def session_response(user: User, token: str) -> dict:
+def session_response(user: User, csrf: str) -> dict:
     return {"user": {"id": user.id, "email": user.email, "full_name": user.full_name,
-                     "user_type": user.user_type}, "csrf_token": csrf_token(token)}
+                     "user_type": user.user_type}, "csrf_token": csrf}
 
 
 def require_user(request: Request, session: SessionDep) -> User:
@@ -97,7 +97,7 @@ def require_user(request: Request, session: SessionDep) -> User:
         raise HTTPException(401, "Сессия истекла. Войдите заново")
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         supplied = request.headers.get("x-csrf-token", "")
-        if len(supplied) != 64 or not supplied.isascii() or not hmac.compare_digest(supplied, csrf_token(token)):
+        if len(supplied) != 64 or not supplied.isascii() or not hmac.compare_digest(hash_token(supplied), stored.csrf_token_hash):
             raise HTTPException(403, "Обновите страницу и повторите действие")
     return stored.user
 
@@ -117,19 +117,24 @@ def start_session(user: User, request: Request, response: Response, session: Ses
     now = datetime.now(timezone.utc)
     settings = get_settings()
     token = secrets.token_urlsafe(32)
+    csrf = secrets.token_hex(32)
     previous = request.cookies.get(COOKIE_NAME)
     if previous:
         session.execute(delete(AdminSession).where(AdminSession.token_hash == hash_token(previous)))
     session.execute(delete(AdminSession).where(AdminSession.expires_at <= now))
-    session.add(AdminSession(token_hash=hash_token(token), user_id=user.id,
-                             expires_at=now + timedelta(hours=settings.session_hours)))
+    session.add(AdminSession(
+        token_hash=hash_token(token),
+        user_id=user.id,
+        expires_at=now + timedelta(hours=settings.session_hours),
+        csrf_token_hash=hash_token(csrf)
+    ))
     user.last_login_at = now
     session.commit()
     response.set_cookie(COOKIE_NAME, token, max_age=settings.session_hours * 3600,
                         httponly=True, secure=settings.session_cookie_secure,
                         samesite="strict", path="/api/")
     response.headers["Cache-Control"] = "no-store"
-    return session_response(user, token)
+    return session_response(user, csrf)
 
 
 @router.post("/login")
@@ -152,7 +157,7 @@ def login(payload: LoginInput, request: Request, response: Response, session: Se
 
     user.failed_login_attempts = 0
     user.locked_until = None
-    session.commit()
+    #session.commit()
 
     return start_session(user, request, response, session)
 
