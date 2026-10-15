@@ -32,7 +32,7 @@ MAX_CONTENT_BYTES = 64 * 1024
 MAX_DOCUMENTS_PER_USER = 500
 MAX_FAVORITES_PER_USER = 1000
 
-RecordId = Annotated[int, Path(gt=0, lt=2**63)]
+RecordId = Annotated[int, Path(gt=0, lt=2 ** 63)]
 DocumentTypeName = Literal["contract", "claim", "application", "other"]
 
 
@@ -61,7 +61,7 @@ class DocumentCreate(BaseModel):
     document_type: DocumentTypeName = "other"
     content_json: dict[str, Any] = Field(default_factory=dict)
     due_date: date | None = None
-    template_id: int | None = Field(default=None, gt=0, lt=2**63)
+    template_id: int | None = Field(default=None, gt=0, lt=2 ** 63)
 
     @field_validator("title")
     @classmethod
@@ -259,7 +259,7 @@ def summary(user: UserDep, session: SessionDep) -> dict:
     by_status = {item.value: 0 for item in DocumentStatus}
     for doc_status, amount in session.execute(
             select(UserDocument.status, func.count())
-            .where(UserDocument.user_id == user.id).group_by(UserDocument.status)):
+                    .where(UserDocument.user_id == user.id).group_by(UserDocument.status)):
         by_status[_enum_val(doc_status)] = amount
     active_with_due = (UserDocument.user_id == user.id, UserDocument.status.in_(ACTIVE_STATUSES),
                        UserDocument.due_date.is_not(None))
@@ -284,11 +284,11 @@ def summary(user: UserDep, session: SessionDep) -> dict:
 
 @router.get("/documents", response_model=list[DocumentOut])
 def list_documents(
-    user: UserDep,
-    session: SessionDep,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
-    offset: Annotated[int, Query(ge=0)] = 0,
-    status_filter: Annotated[DocumentStatus | None, Query(alias="status")] = None,
+        user: UserDep,
+        session: SessionDep,
+        limit: Annotated[int, Query(ge=1, le=100)] = 20,
+        offset: Annotated[int, Query(ge=0)] = 0,
+        status_filter: Annotated[DocumentStatus | None, Query(alias="status")] = None,
 ) -> list[DocumentOut]:
     q = select(UserDocument).where(UserDocument.user_id == user.id)
     if status_filter is not None:
@@ -331,9 +331,8 @@ def create_document(payload: DocumentCreate, user: UserDep, session: SessionDep)
 
 
 @router.patch("/documents/{document_id}", response_model=DocumentDetailOut)
-def update_document(
-    document_id: RecordId, payload: DocumentUpdate, user: UserDep, session: SessionDep
-) -> DocumentDetailOut:
+def update_document(document_id: RecordId, payload: DocumentUpdate, user: UserDep,
+                    session: SessionDep) -> DocumentDetailOut:
     doc = get_own_document(session, user, document_id, with_history=True)
     data = payload.model_dump(exclude_unset=True)
     comment = data.pop("comment", None)
@@ -362,11 +361,7 @@ def update_document(
     return _document_detail(doc, day)
 
 
-@router.delete(
-    "/documents/{document_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_class=Response,
-)
+@router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 def delete_document(document_id: RecordId, user: UserDep, session: SessionDep) -> None:
     doc = get_own_document(session, user, document_id)
     session.execute(delete(DocumentStatusHistory).where(DocumentStatusHistory.document_id == doc.id))
@@ -377,10 +372,10 @@ def delete_document(document_id: RecordId, user: UserDep, session: SessionDep) -
 
 @router.get("/favorites", response_model=list[FavoriteOut])
 def list_favorites(
-    user: UserDep,
-    session: SessionDep,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
+        user: UserDep,
+        session: SessionDep,
+        limit: Annotated[int, Query(ge=1, le=100)] = 50,
+        offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[FavoriteOut]:
     q = (
         select(UserFavorite)
@@ -396,8 +391,7 @@ def list_favorites(
 
 @router.post("/favorites/{content_item_id}", response_model=FavoriteOut, status_code=status.HTTP_201_CREATED)
 def add_favorite(content_item_id: RecordId, user: UserDep, session: SessionDep) -> FavoriteOut:
-    item = session.scalar(select(ContentItem).where(
-        ContentItem.id == content_item_id, *published_articles()))
+    item = session.scalar(select(ContentItem).where(ContentItem.id == content_item_id, *published_articles()))
     if item is None:
         raise HTTPException(404, "Статья не найдена или не опубликована")
 
@@ -411,7 +405,6 @@ def add_favorite(content_item_id: RecordId, user: UserDep, session: SessionDep) 
 
     if favorites_count(session, user) >= MAX_FAVORITES_PER_USER:
         raise HTTPException(409, "Достигнут лимит избранного")
-    
 
     fav = UserFavorite(user_id=user.id, content_item_id=content_item_id)
     session.add(fav)
@@ -429,11 +422,7 @@ def add_favorite(content_item_id: RecordId, user: UserDep, session: SessionDep) 
     return _favorite_out(fav)
 
 
-@router.delete(
-    "/favorites/{content_item_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_class=Response,
-)
+@router.delete("/favorites/{content_item_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 def remove_favorite(content_item_id: RecordId, user: UserDep, session: SessionDep) -> None:
     fav = session.scalar(select(UserFavorite).where(
         UserFavorite.user_id == user.id, UserFavorite.content_item_id == content_item_id))

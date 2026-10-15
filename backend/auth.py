@@ -31,7 +31,7 @@ LOCK_MINUTES = 15
 class LoginInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     email: str = Field(min_length=3, max_length=320)
-    password: str = Field(min_length=1, max_length=1024)
+    password: str = Field(min_length=12, max_length=1024)
 
     @field_validator("email")
     @classmethod
@@ -65,8 +65,8 @@ class RegisterInput(BaseModel):
 
 class ChangePasswordInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    old_password: str = Field(min_length=1, max_length=1024)
-    new_password: str = Field(min_length=1, max_length=1024)
+    old_password: str = Field(min_length=12, max_length=1024)
+    new_password: str = Field(min_length=12, max_length=1024)
 
 
 def hash_token(token: str) -> str:

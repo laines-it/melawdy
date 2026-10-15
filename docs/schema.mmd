@@ -218,6 +218,13 @@ erDiagram
         timestamp created_at
     }
 
+    USER_FAVORITES {
+        bigint id
+        bigint user_id
+        bigint content_item_id
+        timestamp created_at
+    }
+
     %% Контент
     CONTENT_CATEGORIES ||--o{ CONTENT_CATEGORIES : "parent"
     CONTENT_CATEGORIES ||--o{ CONTENT_ITEMS : "содержит"
