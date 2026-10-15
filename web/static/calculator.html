@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Калькулятор пошлин — Законпозитор</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Inter:wght@400;500;800&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/melawdy.css">
+  <link rel="stylesheet" href="./css/calculator.css">
+</head>
+<body>
+  <div class="page-shell">
+    <!-- Шапка сайта -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="./index.html" class="brand">
+          <img src="./brand-mark.png" alt="Законпозитор" class="brand-mark">
+          <span class="brand-name">Законпозитор</span>
+        </a>
+        <nav class="main-nav">
+          <a href="./index.html#features" class="nav-link">Возможности</a>
+          <a href="./index.html#tariffs" class="nav-link">Тарифы</a>
+          <a href="./index.html#materials" class="nav-link">Специализированные материалы</a>
+          <a href="./admin.html">О нас</a>
+        </nav>
+        <div class="header-actions">
+          <button class="search-toggle" type="button" aria-label="Поиск">⌕</button>
+          <a href="./account.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+          <span class="user-chip" data-user-name hidden></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <!-- Hero-секция калькулятора -->
+      <section class="calculator-hero">
+        <div class="container">
+          <h1 class="calculator-title">Калькулятор пошлин</h1>
+          <p class="calculator-subtitle">
+            Рассчитайте стоимость государственной регистрации и других юридически значимых процедур.
+          </p>
+        </div>
+      </section>
+
+      <!-- Основной блок калькулятора -->
+      <section class="calculator-section">
+        <div class="container">
+          <div class="calculator-layout-custom">
+            <!-- Левая колонка: параметры расчёта -->
+            <div class="calculator-form-card">
+              <h2 class="calculator-card-title">Параметры расчёта</h2>
+              <p class="calculator-card-hint">Укажите параметры процедуры, чтобы получить точную стоимость.</p>
+
+              <form id="fee-calculator-form" class="fee-form">
+                <div class="fee-form-grid">
+                  <div class="fee-field">
+                    <label for="mkty-class">Класс МКТУ*</label>
+                    <select id="mkty-class" name="mkty-class">
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                    </select>
+                  </div>
+
+                  <div class="fee-field">
+                    <label for="applicant-type">Тип заявителя</label>
+                    <select id="applicant-type" name="applicant-type">
+                      <option value="individual">Физическое лицо</option>
+                      <option value="legal">Юридическое лицо</option>
+                      <option value="ip">ИП</option>
+                    </select>
+                  </div>
+
+                  <div class="fee-field">
+                    <label for="quantity">Количество</label>
+                    <input id="quantity" name="quantity" type="number" min="1" max="10" value="1">
+                  </div>
+
+                  <div class="fee-field">
+                    <label for="benefit">Льгота</label>
+                    <select id="benefit" name="benefit">
+                      <option value="none">Не претендует</option>
+                      <option value="small-business">Малое предприятие</option>
+                      <option value="disabled">Инвалид</option>
+                      <option value="veteran">Ветеран</option>
+                    </select>
+                  </div>
+                </div>
+
+                <p class="fee-note">* Краткое описание классов МКТУ</p>
+                <div class="fee-mkty-hint" id="mkty-hint">
+                  Класс 1: химические продукты, используемые в промышленности.
+                </div>
+              </form>
+            </div>
+
+            <!-- Правая колонка: результат -->
+            <div class="calculator-result-card">
+              <h2 class="calculator-card-title">Результат расчёта:</h2>
+              <div class="result-row-custom">
+                <span>Государственная пошлина</span>
+                <strong id="fee-total" class="fee-total">8 300 ₽</strong>
+              </div>
+              <div class="result-details" id="fee-details">
+                <p>Базовая ставка: <span id="fee-base">4 900 ₽</span></p>
+                <p>Доп. классы: <span id="fee-extra">3 400 ₽</span></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Нижний блок: важная информация -->
+          <div class="calculator-info-block">
+            <div class="info-card-custom">
+              <img src="./important.png" alt="Иллюстрация" class="info-image-custom">
+              <div class="info-card-custom-text">
+                <h3>Важно знать:</h3>
+                <p><strong>Классы МКТУ</strong></p>
+                <p>Различие здесь: <a href="#" class="info-link">Ссылка на статью</a></p>
+              </div>
+            </div>
+            <div class="calculator-actions">
+              <button type="button" class="button-save" id="save-calculation">Сохранить расчёт</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© 2026 Законпозитор. Юридический помощник для музыкантов.
+        <br>Информация носит справочный характер.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="./js/auth.js" defer></script>
+  <script src="./js/calculator.js" defer></script>
+</body>
+</html>

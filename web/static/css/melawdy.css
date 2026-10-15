@@ -5,7 +5,7 @@
   --border-strong: rgba(101, 71, 217, .34);
   --shadow: 0 24px 60px rgba(66, 48, 153, .12);
 }
-.brand-mark { display:grid; place-items:center; width:48px; height:48px; border-radius:16px; background:linear-gradient(145deg,#8068ed,#5136b7); color:white; box-shadow:0 8px 20px rgba(81,54,183,.24); }
+.brand-mark { display:grid; place-items:center; width:60px; height:50px; }
 .brand-monogram { font-size:25px; font-weight:800; line-height:1; }
 .site-footer { padding:26px 0; border-top:1px solid var(--border); background:rgba(255,255,255,.45); }
 .footer-inner { display:flex; align-items:center; justify-content:space-between; gap:20px; }
