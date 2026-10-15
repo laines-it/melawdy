@@ -24,6 +24,31 @@ Nginx передаёт `/api/` в Python API. Все опубликованны�
 
 Развёртывание на VPS с доменом `lawmposer.ru`, HTTPS и отдельным namespace существующего k3s описано в [инструкции VPS](deploy/k3s/README.md). Локальный Compose работает независимо от него. Push в `main` автоматически обновляет VPS после успешных тестов GitHub Actions; текущий SHA сайта доступен в `https://lawmposer.ru/version.json`. Другие ветки публикуются после слияния в `main`.
 
+## Запуск на Windows
+
+Установите и запустите [Docker Desktop с WSL 2](https://docs.docker.com/desktop/features/wsl/), используя Linux containers. Dockerfile и `backend/entrypoint.sh` выполняются внутри Linux-контейнера; локальная установка Python или ручной запуск `.sh` через PowerShell не нужны.
+
+Из корня проекта в PowerShell:
+
+```powershell
+docker info --format '{{.OSType}}'
+docker compose up --build -d
+docker compose ps -a
+```
+
+Первая команда должна вывести `linux`. После запуска откройте http://localhost:8080. Ключ `-d` запускает контейнеры в фоне; без него терминал остаётся занят выводом логов — это нормальная работа Compose.
+
+`.gitattributes` закрепляет LF для shell-скриптов; Dockerfile дополнительно исправляет CRLF в `entrypoint.sh` при сборке, включая старые рабочие копии Windows. После получения этих изменений пересоберите API командой `docker compose up --build -d`.
+
+Если сайт не открывается, сохраните вывод следующих команд:
+
+```powershell
+docker compose ps -a
+docker compose logs --tail=100 api postgres web minio
+```
+
+Если проблема возникает при сборке, отдельно выполните `docker compose --progress plain build` и сохраните последние строки вывода. Ошибки скачивания образов или пакетов требуют проверки сети Docker Desktop; смена `entrypoint.sh` их не исправляет.
+
 ## Управление
 
 ```sh

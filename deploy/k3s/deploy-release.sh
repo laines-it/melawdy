@@ -10,14 +10,21 @@ if [[ "$operation" != deploy || ! "$revision" =~ ^[0-9a-f]{40}$ || -n "${extra:-
 fi
 
 root=${MELAWDY_DEPLOY_ROOT:-/opt/melawdy}
-mkdir -p "$root/releases" "$root/backups"
+mkdir -p "$root/releases"
 exec 9>"$root/deploy.lock"
 flock -w 900 9
 release_dir=$(mktemp -d "$root/releases/upload-XXXXXXXX")
 cleanup() { rm -rf -- "$release_dir"; }
 trap cleanup EXIT
 # Limit the upload to 1 GiB; receive it completely before touching the live app.
-(ulimit -f 1048576; timeout 300 cat > "$release_dir/images.tar.gz")
+echo 'Receiving release images (upload timeout: 900 seconds)'
+if (ulimit -f 1048576; timeout 900 cat > "$release_dir/images.tar.gz"); then
+    echo "Upload complete: $(wc -c < "$release_dir/images.tar.gz") bytes"
+else
+    status=$?
+    echo "Release upload failed (exit $status); application images have not been changed" >&2
+    exit "$status"
+fi
 python3 - "$release_dir/images.tar.gz" "$revision" <<'PY'
 import json
 import sys
@@ -49,9 +56,6 @@ old_web=$(kube get deployment web -o 'jsonpath={.spec.template.spec.containers[0
 new_api="melawdy-api:$revision"
 new_web="melawdy-web:$revision"
 
-backup="$root/backups/pre-deploy-$(date -u +%Y%m%dT%H%M%SZ)-$revision.dump"
-kube exec postgres-0 -- pg_dump -U postgres -d melawdy -Fc > "$backup"
-test -s "$backup"
 gzip -dc "$release_dir/images.tar.gz" | k3s ctr images import -
 
 rollback() {
@@ -62,7 +66,7 @@ rollback() {
     kube set image deployment/web "web=$old_web" || true
     kube rollout status deployment/api --timeout=180s || true
     kube rollout status deployment/web --timeout=180s || true
-    echo "Database backup retained at $backup; migrations are not downgraded automatically" >&2
+    echo 'Database migrations are not downgraded automatically' >&2
     exit "$status"
 }
 trap rollback ERR

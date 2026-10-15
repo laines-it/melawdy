@@ -20,6 +20,9 @@ COPY migrations/ ./migrations/
 COPY backend/ ./backend/
 COPY ml/ ./ml/
 
+# Windows checkouts may contain CRLF, including in existing working copies.
+RUN python -c "from pathlib import Path; p = Path('backend/entrypoint.sh'); p.write_bytes(p.read_bytes().replace(b'\r\n', b'\n'))"
+
 FROM base AS runtime
 USER 10001:10001
 EXPOSE 8000

@@ -56,8 +56,6 @@ else:
         sys.stdin.buffer.read()
     elif args[3] == 'get':
         print(state[args[5]])
-    elif args[3] == 'exec':
-        print('database-backup')
     elif args[3] == 'set':
         image, value = args[6].split('=',1)
         state[image] = value
@@ -80,7 +78,7 @@ else:
     return root, run
 
 
-def test_deployment_records_tested_revision_and_keeps_backup(deployment):
+def test_deployment_records_tested_revision(deployment):
     root, run = deployment
     result = run()
     assert result.returncode == 0, result.stderr.decode()
@@ -88,7 +86,6 @@ def test_deployment_records_tested_revision_and_keeps_backup(deployment):
     assert json.loads((root / 'images.json').read_text()) == {
         'api': f'melawdy-api:{REVISION}', 'web': f'melawdy-web:{REVISION}',
     }
-    assert len(list((root / 'backups').glob('*.dump'))) == 1
     assert (root / 'k3s/kustomization.yaml').read_text().count(REVISION) == 2
     assert not list((root / 'releases').iterdir())
 
@@ -101,7 +98,6 @@ def test_failed_rollout_restores_previous_images_without_marking_success(deploym
         'api': 'melawdy-api:old', 'web': 'melawdy-web:old',
     }
     assert not (root / 'deployed-revision').exists()
-    assert len(list((root / 'backups').glob('*.dump'))) == 1
     assert b'restoring the previous application images' in result.stderr
     assert not list((root / 'releases').iterdir())
 
@@ -115,12 +111,11 @@ def test_superseded_main_run_never_updates_the_application(deployment):
     assert b'Skipping superseded commit' in result.stdout
 
 
-def test_mismatched_image_revision_is_rejected_before_database_or_cluster_changes(deployment):
+def test_mismatched_image_revision_is_rejected_before_cluster_changes(deployment):
     root, run = deployment
     result = run(data=bundle('b' * 40))
     assert result.returncode != 0
     assert not (root / 'commands.jsonl').exists()
-    assert not list((root / 'backups').iterdir())
 
 
 def test_deploy_key_cannot_execute_arbitrary_ssh_commands(deployment):
