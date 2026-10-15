@@ -1,4 +1,3 @@
-"""Create an admin explicitly or bootstrap one from deployment environment variables."""
 import argparse
 import getpass
 import os
@@ -8,7 +7,7 @@ import secrets
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from backend.auth import password_hasher
+from backend.auth import MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, password_hasher
 from backend.config import get_settings
 from backend.db import SessionLocal
 from backend.models import AdminSession, User, UserType
@@ -23,8 +22,8 @@ def create_admin(session: Session, email: str, password: str, name: str,
             raise ValueError("Email уже принадлежит пользователю без роли администратора")
         if not reset_password:
             return False
-    if len(password) < 12 or len(password) > 1024:
-        raise ValueError("Пароль должен содержать от 12 до 1024 символов")
+    if not MIN_PASSWORD_LENGTH <= len(password) <= MAX_PASSWORD_LENGTH:
+        raise ValueError(f"Пароль должен содержать от {MIN_PASSWORD_LENGTH} до {MAX_PASSWORD_LENGTH} символов")
     if "@" not in email or len(email) > 320 or not name.strip():
         raise ValueError("Укажите корректный email и имя администратора")
     if user is not None:

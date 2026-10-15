@@ -15,6 +15,7 @@ from backend.models.assessments import (
 from backend.models.fees import ApplicationType, FeeCalculation, FeeCalculationClass, FeeRate, MktuClass
 from backend.models.legacy import Document, DocumentChunk
 from backend.models.auth import AdminSession
+from backend.models.favorites import UserFavorite
 
 __all__ = [
     "Base", "User", "UserType", "ContentType", "ContentStatus", "QuestionType", "DocumentType",
@@ -23,5 +24,5 @@ __all__ = [
     "DocumentTemplate", "UserDocument", "DocumentStatusHistory", "RequestHistory",
     "AssessmentOption", "AssessmentQuestion", "AssessmentResult", "AssessmentResultRule",
     "AssessmentSurvey", "UserAssessment", "ApplicationType", "FeeCalculation",
-    "FeeCalculationClass", "FeeRate", "MktuClass", "Document", "DocumentChunk", "AdminSession",
+    "FeeCalculationClass", "FeeRate", "MktuClass", "Document", "DocumentChunk", "AdminSession", "UserFavorite"
 ]
