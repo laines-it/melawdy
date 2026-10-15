@@ -23,11 +23,15 @@ SessionDep = Annotated[Session, Depends(get_session)]
 password_hasher = PasswordHash.recommended()
 _dummy_hash = password_hasher.hash(secrets.token_urlsafe(32))
 
+MIN_PASSWORD_LENGTH = 12
+MAX_PASSWORD_LENGTH = 1024
+MAX_FAILED_LOGINS = 5
+LOCK_MINUTES = 15
 
 class LoginInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     email: str = Field(min_length=3, max_length=320)
-    password: str = Field(min_length=12, max_length=1024)
+    password: str = Field(min_length=1, max_length=1024)
 
     @field_validator("email")
     @classmethod
@@ -142,17 +146,18 @@ def login(payload: LoginInput, request: Request, response: Response, session: Se
     now = datetime.now(timezone.utc)
     user = session.scalar(select(User).where(func.lower(User.email) == payload.email))
     valid = verify_password(payload.password, user.password_hash if user else _dummy_hash)
-    if user:
-        if user.locked_until and user.locked_until > now:
+    if user is None:
+        raise HTTPException(401, "Неверный email или пароль")
+    if user.locked_until:
+        if user.locked_until > now:
             raise HTTPException(401, "Неверный email или пароль")
-        if not valid or not user.is_active:
-            user.failed_login_attempts += 1
-            if user.failed_login_attempts >= 5:
-                user.locked_until = now + timedelta(minutes=15)
-
-            session.commit()
-            raise HTTPException(401, "Неверный email или пароль")
-    else:
+        user.locked_until = None
+        user.failed_login_attempts = 0
+    if not valid or not user.is_active:
+        user.failed_login_attempts += 1
+        if user.failed_login_attempts >= MAX_FAILED_LOGINS:
+            user.locked_until = now + timedelta(minutes=LOCK_MINUTES)
+        session.commit()
         raise HTTPException(401, "Неверный email или пароль")
 
     user.failed_login_attempts = 0
@@ -190,10 +195,29 @@ def change_password(payload: ChangePasswordInput, request: Request, response: Re
     return start_session(user, request, response, session)
 
 
+def issue_new_csrf(session_row: AdminSession, db: Session) -> str:
+    csrf = secrets.token_hex(32)
+    session_row.csrf_token_hash = hash_token(csrf)
+    db.commit()
+    return csrf
+
+
 @router.get("/me")
-def me(request: Request, response: Response, user: UserDep) -> dict:
+def me(request: Request, response: Response, user: UserDep, session: SessionDep) -> dict:
     response.headers["Cache-Control"] = "no-store"
-    return session_response(user, request.cookies[COOKIE_NAME])
+
+    token = request.cookies.get(COOKIE_NAME, "")
+    stored = session.scalar(
+        select(AdminSession).where(
+            AdminSession.token_hash == hash_token(token),
+            AdminSession.expires_at > func.now(),
+        )
+    )
+    if stored is None:
+        raise HTTPException(401, "Сессия истекла. Войдите заново")
+
+    csrf = issue_new_csrf(stored, session)
+    return session_response(user, csrf)
 
 
 @router.post("/logout", status_code=204)

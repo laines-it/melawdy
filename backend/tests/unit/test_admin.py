@@ -346,7 +346,7 @@ def failed_attempt(monkeypatch, user):
 
 def test_five_failed_logins_lock_the_account(monkeypatch):
     user = make_user()
-    for _ in range(auth.MAX_FAILED_LOGINS):
+    for _ in range(5):
         failed_attempt(monkeypatch, user)
     assert user.locked_until > datetime.now(timezone.utc)
 
@@ -366,7 +366,7 @@ def test_locked_account_rejects_even_the_correct_password(monkeypatch):
 
 def test_expired_lock_starts_counting_from_zero(monkeypatch):
     user = make_user()
-    user.failed_login_attempts = auth.MAX_FAILED_LOGINS
+    user.failed_login_attempts = 5
     user.locked_until = datetime.now(timezone.utc) - timedelta(minutes=1)
     failed_attempt(monkeypatch, user)
     assert user.failed_login_attempts == 1 and user.locked_until is None

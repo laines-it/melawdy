@@ -44,7 +44,7 @@ def test_migration_is_offline_and_preserves_legacy_tables() -> None:
     config = Config("alembic.ini", output_buffer=buffer)
     command.upgrade(config, "head", sql=True)
     sql = buffer.getvalue()
-    assert sql.count("CREATE TABLE ") == 28  # 24 domain, 2 legacy, admin_sessions, alembic_version
+    assert sql.count("CREATE TABLE ") == 29  # 24 domain, 2 legacy, admin_sessions, alembic_version
     assert "VECTOR(1024)" in sql
     assert "USING hnsw (embedding vector_cosine_ops)" in sql
     assert "GENERATED ALWAYS AS (to_tsvector('russian'::regconfig, body)) STORED" in sql

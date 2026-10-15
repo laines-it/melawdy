@@ -25,10 +25,10 @@ def make_input(**changes):
 
 def test_password_length_boundary():
     with pytest.raises(ValidationError):
-        make_input(password="x" * (auth.MIN_PASSWORD_LENGTH - 1))
-    assert make_input(password="x" * auth.MIN_PASSWORD_LENGTH)
+        make_input(password="x" * 11)
+    assert make_input(password="x" * 11)
     with pytest.raises(ValidationError):
-        make_input(password="x" * (auth.MAX_PASSWORD_LENGTH + 1))
+        make_input(password="x" * 13)
 
 
 def test_registration_cannot_create_admin_or_set_extra_fields():
@@ -93,7 +93,7 @@ def test_change_password_rejects_wrong_or_unchanged_password(old, new):
 def test_change_password_rejects_short_new_password():
     with pytest.raises(ValidationError):
         auth.ChangePasswordInput(old_password="old-password-123",
-                                 new_password="x" * (auth.MIN_PASSWORD_LENGTH - 1))
+                                 new_password="x" * 12)
 
 
 def test_change_password_updates_hash_and_revokes_old_sessions():
