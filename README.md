@@ -22,6 +22,8 @@ docker compose up --build
 
 Nginx передаёт `/api/` в Python API. Все опубликованные порты привязаны к `127.0.0.1` хоста. Для доступа из интернета потребуется отдельная настройка домена, TLS и reverse proxy.
 
+Nginx обновляет IP сервиса `api` через DNS с интервалом кэша 5 секунд. DNS-серверы берутся из `/etc/resolv.conf` контейнера при запуске; для Kubernetes имя API дополняется доменом текущего namespace из DNS search-списка. При необходимости hostname можно задать через `NGINX_API_HOST`. Пересоздание API-контейнера не требует перезапуска web. После обновления этого конфига пересоберите web: `docker compose up --build -d web`.
+
 Развёртывание на VPS с доменом `lawmposer.ru`, HTTPS и отдельным namespace существующего k3s описано в [инструкции VPS](deploy/k3s/README.md). Локальный Compose работает независимо от него. Push в `main` автоматически обновляет VPS после успешных тестов GitHub Actions; текущий SHA сайта доступен в `https://lawmposer.ru/version.json`. Другие ветки публикуются после слияния в `main`.
 
 ## Запуск на Windows
@@ -93,6 +95,8 @@ python3 -m venv .venv
 python -m pip install -r backend/requirements.txt -r backend/requirements-test.txt
 python -m pytest -q
 ```
+
+Регрессионная проверка Nginx при смене IP API выполняется отдельно с Docker: `python -m pytest -q backend/tests/infrastructure/test_nginx_dns.py`. Она создаёт временную сеть и контейнеры, проверяет GET и POST без перезапуска web и удаляет тестовые ресурсы; рабочая БД не используется.
 
 Локальные юнит-тесты выполняются полностью в Python. Они проверяют схемы, функции API, репозиторий с mock-сессией, вход, права администратора, CSRF и сохранение материалов; подключение к базе данных, Docker и запущенная PostgreSQL не нужны.
 

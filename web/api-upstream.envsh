@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+if [ -n "${NGINX_API_HOST:-}" ]; then
+    return 0
+fi
+
+service_domain=$(awk '$1 == "search" {for (field = 2; field <= NF; field++) {if ($field ~ /\.svc\./) {print $field; exit}}}' /etc/resolv.conf)
+NGINX_API_HOST=api
+if [ -n "$service_domain" ]; then
+    NGINX_API_HOST="api.$service_domain"
+fi
+export NGINX_API_HOST
