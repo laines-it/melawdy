@@ -11,14 +11,15 @@ from backend.models import Document
 from backend.repository import DocumentRepository
 from backend.schemas import AnalyzeRequest, AnalyzeResponse, DocumentCreate, DocumentRead
 from ml.pipeline import analyze
-from backend import admin, auth, public, cabinet
-
+from backend import account, admin, auth, cabinet, fees, public
 
 app = FastAPI(title="MeLawDy API", version="0.1.0")
 app.include_router(auth.router)
 app.include_router(cabinet.router)
 app.include_router(admin.router)
 app.include_router(public.router)
+app.include_router(fees.router)
+app.include_router(account.router)
 SessionDep = Annotated[Session, Depends(get_session)]
 
 

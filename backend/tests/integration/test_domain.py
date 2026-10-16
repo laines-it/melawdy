@@ -3,9 +3,12 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
+from fastapi import Response
 from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import IntegrityError
+from starlette.requests import Request
 
+from backend import auth
 from backend.content_repository import ContentSearchRepository
 from backend.db import SessionLocal, engine
 from backend.models import (
@@ -14,13 +17,45 @@ from backend.models import (
     ContentStatus, ContentTag, ContentType, DocumentStatus, DocumentStatusHistory,
     DocumentTemplate, DocumentType, FeeCalculation, FeeCalculationClass, FeeRate,
     GlossaryTerm, GlossaryTermContent, MktuClass, QAPair, QuestionType, RequestHistory,
-    User, UserAssessment, UserDocument, UserType,
+    AdminSession, User, UserAssessment, UserDocument, UserFavorite, UserType,
 )
 from ml.constants import EMBEDDING_DIMENSIONS
 
 
 def test_all_domain_tables_exist() -> None:
     assert set(Base.metadata.tables).issubset(inspect(engine).get_table_names())
+
+
+def test_login_persists_required_csrf_hash_on_the_current_schema(monkeypatch) -> None:
+    with SessionLocal() as session:
+        user = User(email=f"{uuid4().hex}@example.test", full_name="Admin",
+                    password_hash=auth.password_hasher.hash("integration-test-password"),
+                    user_type=UserType.ADMIN)
+        session.add(user)
+        session.flush()
+        monkeypatch.setattr(session, "commit", session.flush)
+        request = Request({"type": "http", "method": "POST", "path": "/api/v1/auth/login", "headers": []})
+        response = auth.login(auth.LoginInput(email=user.email, password="integration-test-password"),
+                              request, Response(), session)
+        stored = session.scalar(select(AdminSession).where(AdminSession.user_id == user.id))
+        assert stored.csrf_token_hash == auth.hash_token(response["csrf_token"])
+        assert user.failed_login_attempts == 0
+        session.rollback()
+
+
+def test_existing_favorites_schema_matches_relationships() -> None:
+    token = uuid4().hex
+    with SessionLocal() as session:
+        user = User(email=f"{token}@example.test", full_name="Автор", password_hash="test-hash",
+                    user_type=UserType.INDIVIDUAL)
+        content = ContentItem(title="Материал", slug=token, type=ContentType.ARTICLE)
+        favorite = UserFavorite(user=user, content_item=content)
+        session.add(favorite)
+        session.flush()
+        assert favorite.created_at is not None
+        assert user.favorites == [favorite]
+        assert session.get(UserFavorite, favorite.id).content_item is content
+        session.rollback()
 
 
 def test_domain_objects_round_trip_with_json_money_and_relationships() -> None:

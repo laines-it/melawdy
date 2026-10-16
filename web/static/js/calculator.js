@@ -1,82 +1,130 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const request = window.MelawdyAPI.request;
   const form = document.querySelector("#fee-calculator-form");
-  const mktySelect = document.querySelector("#mkty-class");
-  const applicantSelect = document.querySelector("#applicant-type");
-  const quantityInput = document.querySelector("#quantity");
-  const benefitSelect = document.querySelector("#benefit");
-  const feeTotal = document.querySelector("#fee-total");
-  const feeBase = document.querySelector("#fee-base");
-  const feeExtra = document.querySelector("#fee-extra");
-  const mktyHint = document.querySelector("#mkty-hint");
+  const applicationSelect = document.querySelector("#application-type");
+  const classSelect = document.querySelector("#mkty-class");
+  const urgentSelect = document.querySelector("#is-urgent");
   const saveButton = document.querySelector("#save-calculation");
+  const status = document.querySelector("#status");
+  let catalog = null;
+  let result = null;
+  let version = 0;
+  let saving = false;
 
-  // Справочник классов МКТУ (краткое описание)
-  const MKTY_DESCRIPTIONS = {
-    1: "Класс 1: химические продукты, используемые в промышленности.",
-    2: "Класс 2: краски, лаки, защитные покрытия.",
-    3: "Класс 3: косметика, парфюмерия, чистящие средства.",
-    4: "Класс 4: промышленные масла, смазки, топливо.",
-    5: "Класс 5: фармацевтические препараты, медицинские изделия.",
-  };
-
-  // Базовые ставки (в рублях) — примерные значения
-  const BASE_FEE = {
-    individual: 4900,
-    legal: 8500,
-    ip: 4900,
-  };
-
-  // Стоимость за дополнительный класс МКТУ
-  const EXTRA_CLASS_FEE = 3400;
-
-  // Коэффициенты льгот
-  const BENEFIT_COEFFICIENT = {
-    none: 1,
-    "small-business": 0.5,
-    disabled: 0.3,
-    veteran: 0.3,
-  };
-
-  function formatMoney(value) {
-    return new Intl.NumberFormat("ru-RU", {
-      style: "currency",
-      currency: "RUB",
-      maximumFractionDigits: 0,
-    }).format(value);
+  function option(value, text) {
+    const element = document.createElement("option");
+    element.value = value;
+    element.textContent = text;
+    return element;
   }
 
-  function calculate() {
-    const mktyCount = Math.max(1, Math.min(10, Number(mktySelect.value) || 1));
-    const applicant = applicantSelect.value;
-    const quantity = Math.max(1, Math.min(10, Number(quantityInput.value) || 1));
-    const benefit = benefitSelect.value;
-
-    const base = BASE_FEE[applicant] || BASE_FEE.individual;
-    const extraClasses = Math.max(0, mktyCount - 1) * EXTRA_CLASS_FEE;
-    const subtotal = base + extraClasses;
-    const coefficient = BENEFIT_COEFFICIENT[benefit] ?? 1;
-    const total = subtotal * coefficient * quantity;
-
-    feeTotal.textContent = formatMoney(total);
-    feeBase.textContent = formatMoney(base * coefficient);
-    feeExtra.textContent = formatMoney(extraClasses * coefficient);
-
-    // Обновляем подсказку по МКТУ
-    mktyHint.textContent = MKTY_DESCRIPTIONS[mktyCount] || "Описание для выбранного класса отсутствует.";
+  function parameters() {
+    return {
+      application_type_id: Number(applicationSelect.value),
+      mktu_class_id: classSelect.value ? Number(classSelect.value) : null,
+      is_urgent: urgentSelect.value === "true",
+      quantity: Number(document.querySelector("#quantity").value),
+    };
   }
 
-  // Слушатели событий
+  function clearResult() {
+    result = null;
+    saveButton.disabled = true;
+    document.querySelector("#fee-total").textContent = "—";
+    document.querySelector("#fee-base").textContent = "—";
+    document.querySelector("#fee-quantity").textContent = "—";
+    document.querySelector("#fee-legal-basis").textContent = "";
+  }
+
+  function render(value) {
+    result = value;
+    function money(amount) {
+      return new Intl.NumberFormat("ru-RU", { style: "currency", currency: value.currency }).format(amount);
+    }
+    document.querySelector("#fee-total").textContent = money(value.total_amount);
+    document.querySelector("#fee-base").textContent = money(value.unit_amount);
+    document.querySelector("#fee-quantity").textContent = value.quantity;
+    document.querySelector("#fee-legal-basis").textContent = value.legal_basis;
+    saveButton.disabled = saving;
+  }
+
+  function updateClasses() {
+    const previous = classSelect.value;
+    const rates = catalog.rates.filter((rate) => rate.application_type_id === applicationSelect.value
+      && String(rate.is_urgent) === urgentSelect.value);
+    const ids = new Set(rates.map((rate) => rate.mktu_class_id));
+    classSelect.replaceChildren();
+    if (ids.has(null)) classSelect.append(option("", "Без привязки к классу"));
+    for (const item of catalog.mktu_classes.filter((item) => ids.has(item.id))) {
+      classSelect.append(option(item.id, `${item.class_number}. ${item.title}`));
+    }
+    if ([...classSelect.options].some((item) => item.value === previous)) classSelect.value = previous;
+    classSelect.disabled = !classSelect.options.length;
+  }
+
+  async function calculate() {
+    const currentVersion = ++version;
+    clearResult();
+    if (!catalog) return;
+    const selectedClass = catalog.mktu_classes.find((item) => item.id === classSelect.value);
+    document.querySelector("#mkty-hint").textContent = selectedClass?.description || "";
+    if (!applicationSelect.value || !classSelect.options.length) {
+      status.textContent = "Действующие ставки для выбранных параметров пока не настроены.";
+      return;
+    }
+    if (!form.checkValidity()) {
+      status.textContent = "Укажите количество от 1 до 100.";
+      return;
+    }
+    status.textContent = "Выполняется расчёт…";
+    try {
+      const value = await request("public/fees/calculate", { method: "POST", body: JSON.stringify(parameters()) });
+      if (currentVersion !== version) return;
+      render(value);
+      status.textContent = "";
+    } catch (error) {
+      if (currentVersion === version) status.textContent = error.message;
+    }
+  }
+
   form.addEventListener("submit", (event) => event.preventDefault());
-  form.addEventListener("input", calculate);
-  form.addEventListener("change", calculate);
-
-  saveButton.addEventListener("click", () => {
-    const total = feeTotal.textContent;
-    alert(`Расчёт сохранён!\nИтоговая пошлина: ${total}`);
-    // Здесь можно добавить логику сохранения на сервере:
-    // fetch("/api/v1/public/calculations", { method: "POST", body: ... })
+  form.addEventListener("input", (event) => {
+    if ([applicationSelect, urgentSelect].includes(event.target)) updateClasses();
+    calculate();
+  });
+  saveButton.addEventListener("click", async () => {
+    if (!result || saving) return;
+    const currentVersion = version;
+    try {
+      await window.ZPAuth.ready.catch(() => {});
+      if (!window.ZPAuth.isLoggedIn()) {
+        status.textContent = "Войдите в аккаунт, чтобы сохранить расчёт.";
+        return;
+      }
+      if (currentVersion !== version || !result || saving) return;
+      saving = true;
+      saveButton.disabled = true;
+      const saved = await request("public/fees/calculations", { method: "POST", body: JSON.stringify(parameters()) });
+      if (currentVersion !== version) return;
+      render(saved);
+      status.textContent = `Расчёт №${saved.id} сохранён в личном кабинете.`;
+    } catch (error) {
+      if (currentVersion === version) status.textContent = error.message;
+    } finally {
+      saving = false;
+      saveButton.disabled = !result;
+    }
   });
 
-  // Первый расчёт при загрузке
-  calculate();
+  clearResult();
+  request("public/fees/catalog").then((value) => {
+    catalog = value;
+    const available = new Set(value.rates.map((rate) => rate.application_type_id));
+    applicationSelect.replaceChildren(...value.application_types.filter((item) => available.has(item.id))
+      .map((item) => option(item.id, item.name)));
+    applicationSelect.disabled = !applicationSelect.options.length;
+    urgentSelect.disabled = false;
+    updateClasses();
+    calculate();
+  }).catch((error) => { status.textContent = error.message; });
 });

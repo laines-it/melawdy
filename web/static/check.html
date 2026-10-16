@@ -4,9 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Проверить музыку — Законпозитор</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./css/style.css">
   <link rel="stylesheet" href="./css/melawdy.css">
   <link rel="stylesheet" href="./css/check.css">
@@ -22,15 +19,14 @@
         </a>
         <nav class="main-nav">
           <a href="./index.html#features" class="nav-link">Возможности</a>
-          <a href="./index.html#tariffs" class="nav-link">Тарифы</a>
           <a href="./calculator.html" class="nav-link">Калькулятор</a>
           <a href="./index.html#materials" class="nav-link">Специализированные материалы</a>
-          <a href="./admin.html">О нас</a>
+          <a href="./admin.html" class="nav-link">Администрирование</a>
         </nav>
         <div class="header-actions">
-          <button class="search-toggle" type="button" aria-label="Поиск">⌕</button>
-          <span class="user-chip" data-user-name hidden></span>
-          <a href="./account.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+          <a class="search-toggle" href="./index.html#search" aria-label="Поиск">⌕</a>
+          <a href="./account.html" class="user-chip" data-user-name hidden></a>
+          <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
         </div>
       </div>
     </header>
@@ -56,17 +52,17 @@
               <div class="check-card">
                 <h2 class="check-card-title">Загрузите свою музыку</h2>
                 <p class="check-card-hint">
-                  Поддерживаются MP3, WAV, FLAC, M4A. Можно загрузить демо-версии.
+                  Доступность загрузки и анализа определяется сервером.
                 </p>
 
-                <div class="upload-dropzone" id="upload-dropzone">
-                  <input type="file" id="file-input" accept=".mp3,.wav,.flac,.m4a,audio/*" hidden multiple>
+                <div class="upload-dropzone" id="upload-dropzone" aria-disabled="true">
+                  <input type="file" id="file-input" accept=".mp3,.wav,.flac,.m4a,audio/*" hidden multiple disabled>
                   <div class="upload-icon">♪</div>
-                  <p class="upload-text">Перетащите файлы сюда или нажмите для выбора</p>
-                  <button type="button" class="upload-button" id="choose-files-btn">Выбрать файлы</button>
+                  <p class="upload-text">Загрузка станет доступна после подключения анализа аудио</p>
+                  <button type="button" class="upload-button" id="choose-files-btn" disabled>Выбрать файлы</button>
                 </div>
 
-                <div class="upload-status" id="upload-status"></div>
+                <div class="upload-status" id="upload-status" role="status" aria-live="polite">Проверяем доступность сервиса…</div>
 
                 <div class="check-actions">
                   <button type="button" class="button-primary" id="check-btn" disabled>Проверить</button>
@@ -77,37 +73,19 @@
               <div class="check-card">
                 <h2 class="check-card-title">Защити свою музыку: Готовые шаблоны договоров</h2>
 
-                <div class="templates-grid">
-                  <div class="template-card" style="--template-bg: #F2E0FC;">
-                    <div class="template-icon">📄</div>
-                    <h3 class="template-title">Лицензионный договор</h3>
-                    <p class="template-desc">Для предоставления прав на использование музыки.</p>
-                    <a href="#" class="template-download" download>Перейти в конструктор договоров →</a>
-                  </div>
-
-                  <div class="template-card" style="--template-bg: #D4E3F7;">
-                    <div class="template-icon">✍</div>
-                    <h3 class="template-title">Авторский договор</h3>
-                    <p class="template-desc">Для совместного создания произведений.</p>
-                    <a href="#" class="template-download" download>Перейти в конструктор договоров →</a>
-                  </div>
-
-                  <div class="template-card" style="--template-bg: #F2E0FC;">
-                    <div class="template-icon">⚖</div>
-                    <h3 class="template-title">Договор об отчуждении прав</h3>
-                    <p class="template-desc">Для полной передачи авторских прав.</p>
-                    <a href="#" class="template-download" download>Перейти в конструктор договоров →</a>
-                  </div>
-                </div>
+                <p id="templates-status" role="status" aria-live="polite"></p>
+                <div class="templates-grid" id="templates-list"></div>
+                <button id="more-templates" type="button" hidden>Ещё шаблоны</button>
+                <article id="template-preview" hidden></article>
               </div>
             </div>
 
             <!-- Правая колонка: результат проверки -->
             <aside class="check-sidebar">
               <div class="check-result-card">
-                <h2 class="check-result-title">Найдены совпадения:</h2>
+                <h2 class="check-result-title">Результат проверки</h2>
                 <p class="check-result-hint">
-                  В загруженном треке обнаружены совпадения со следующими композициями.
+                  Результаты появятся после подключения сервиса анализа аудио.
                 </p>
 
                 <div class="matches-list" id="matches-list">
@@ -115,7 +93,7 @@
                 </div>
 
                 <div class="plagiarism-block">
-                  <span class="plagiarism-label">Вероятность плагиата:</span>
+                  <span class="plagiarism-label">Оценка совпадений:</span>
                   <span class="plagiarism-value" id="plagiarism-value">—</span>
                 </div>
               </div>
@@ -133,6 +111,7 @@
     </footer>
   </div>
 
+  <script src="./js/api.js" defer></script>
   <script src="./js/auth.js" defer></script>
   <script src="./js/check.js" defer></script>
 </body>

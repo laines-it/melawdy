@@ -27,6 +27,8 @@ jobs:
         run: python -m pip install -r backend/requirements.txt -r backend/requirements-test.txt
       - name: Run local Python tests
         run: python -m pytest -q
+      - name: Run frontend session tests
+        run: node --test web/tests/*.test.js
 
   postgres-integration:
     runs-on: ubuntu-latest

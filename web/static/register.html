@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Регистрация — Законпозитор</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/melawdy.css">
+  <link rel="stylesheet" href="./css/account.css">
+</head>
+<body>
+  <div class="page-shell">
+    <!-- Шапка сайта -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="./index.html" class="brand">
+          <img src="./brand-mark.png" alt="Законпозитор" class="brand-mark" onerror="this.style.display='none'">
+          <span class="brand-name">Законпозитор</span>
+        </a>
+        <nav class="main-nav">
+          <a href="./index.html#features" class="nav-link">Возможности</a>
+          <a href="./calculator.html" class="nav-link">Калькулятор</a>
+          <a href="./index.html#materials" class="nav-link">Специализированные материалы</a>
+          <a href="./admin.html" class="nav-link">Администрирование</a>
+        </nav>
+        <div class="header-actions">
+          <a class="search-toggle" href="./index.html#search" aria-label="Поиск">⌕</a>
+          <a href="./account.html" class="user-chip" data-user-name hidden></a>
+          <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+
+        </div>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <section class="admin-hero"><div class="container">
+        <h1 class="admin-title">Регистрация</h1>
+        <p class="admin-subtitle">Создайте аккаунт, чтобы хранить документы и сохранять расчёты пошлин.</p>
+      </div></section>
+      <section class="admin-section"><div class="container"><div class="admin-login-card">
+        <h2 class="admin-section-title">Создать аккаунт</h2>
+        <p id="status" class="admin-status" role="status" aria-live="polite"></p>
+        <form id="auth-form" class="admin-form" data-mode="register">
+          <label class="admin-field"><span>Имя и фамилия</span>
+            <input name="full_name" type="text" maxlength="255" autocomplete="name" required>
+          </label>
+          <label class="admin-field"><span>Email</span>
+            <input name="email" type="email" maxlength="320" autocomplete="email" required>
+          </label>
+          <label class="admin-field"><span>Тип аккаунта</span>
+            <select name="user_type">
+              <option value="individual">Физическое лицо</option>
+              <option value="organization">Организация</option>
+              <option value="lawyer">Юрист</option>
+            </select>
+          </label>
+          <label class="admin-field"><span>Пароль</span>
+            <input name="password" type="password" minlength="5" maxlength="1024" autocomplete="new-password" aria-describedby="password-hint" required>
+          </label>
+          <p id="password-hint" class="admin-section-hint">От 5 до 1024 символов.</p>
+          <label class="admin-field"><span>Повторите пароль</span>
+            <input name="password_confirmation" type="password" minlength="5" maxlength="1024" autocomplete="new-password" required>
+          </label>
+          <div class="admin-submit-row"><button type="submit" class="button-primary">Зарегистрироваться</button></div>
+        </form>
+        <p class="auth-switch">Уже есть аккаунт? <a href="./login.html">Войти</a></p>
+      </div></div></section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© 2026 Законпозитор. Юридический помощник для музыкантов.
+        <br>Информация носит справочный характер.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="./js/api.js" defer></script>
+  <script src="./js/auth.js" defer></script>
+  <script src="./js/auth-form.js" defer></script>
+</body>
+</html>

@@ -4,9 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Законпозитор — Юридический помощник для музыкантов</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./css/style.css">
   <link rel="stylesheet" href="./css/melawdy.css">
 </head>
@@ -21,14 +18,13 @@
         </a>
         <nav class="main-nav">
           <a href="#features" class="nav-link">Возможности</a>
-          <a href="#tariffs" class="nav-link">Тарифы</a>
           <a href="#materials" class="nav-link">Специализированные материалы</a>
-          <a href="./admin.html">О нас</a>
+          <a href="./admin.html" class="nav-link">Администрирование</a>
         </nav>
         <div class="header-actions">
-          <button class="search-toggle" type="button" aria-label="Поиск">⌕</button>
-          <a href="./account.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
-          <span class="user-chip" data-user-name hidden></span>
+          <a class="search-toggle" href="./index.html#search" aria-label="Поиск">⌕</a>
+          <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+          <a href="./account.html" class="user-chip" data-user-name hidden></a>
         </div>
       </div>
     </header>
@@ -43,14 +39,18 @@
             <p class="hero-description">
               Проверьте права, оформите документы, разберитесь в спорных ситуациях — простым языком.
             </p>
-            <div class="hero-search">
+            <form id="search-form" class="hero-search" role="search">
               <div class="search-field">
                 <span class="search-icon">⌕</span>
-                <input type="text" placeholder="Задайте вопрос о правах на музыку…" aria-label="Поисковый запрос">
-                <button type="button" class="search-submit" aria-label="Найти">→</button>
+                <input id="search-query" name="query" type="search" maxlength="1000" required placeholder="Задайте вопрос о правах на музыку…" aria-label="Поисковый запрос">
+                <button type="submit" class="search-submit" aria-label="Найти">→</button>
               </div>
               <p class="search-hint">Например: как зарегистрировать песню?</p>
-            </div>
+            </form>
+            <section id="search" aria-label="Результаты поиска">
+              <p id="search-status" role="status" aria-live="polite"></p>
+              <div id="search-results" hidden></div>
+            </section>
           </div>
         </div>
       </section>
@@ -60,7 +60,7 @@
         <div class="container">
           <div class="services-grid">
             <!-- Карточка 1: Защитить музыку -->
-            <a href="#" class="service-card" style="--card-bg: #D4E3F7; --icon-bg: #93ABD8;">
+            <a href="#surveys-section" class="service-card" style="--card-bg: #D4E3F7; --icon-bg: #93ABD8;">
               <div class="service-icon">♫</div>
               <h3 class="service-title">Защитить музыку</h3>
               <p class="service-description">Регистрация, договоры, фиксация авторства.</p>
@@ -95,29 +95,11 @@
       <section class="content-section content-section-last">
         <div class="container">
           <h2 class="section-title">Популярные вопросы</h2>
-          <div class="faq-grid">
-            <a href="#" class="faq-card">
-              <h3 class="faq-question">Как зарегистрировать песню</h3>
-              <p class="faq-answer">Пошагово: фиксация и документы</p>
-            </a>
-            <a href="#" class="faq-card">
-              <h3 class="faq-question">Как составить лицензию</h3>
-              <p class="faq-answer">Что важно прописать в договоре</p>
-            </a>
-            <a href="#" class="faq-card">
-              <h3 class="faq-question">Украли мою музыку</h3>
-              <p class="faq-answer">Что собрать для доказательств</p>
-            </a>
-            <a href="#" class="faq-card">
-              <h3 class="faq-question">Как найти правообладателя</h3>
-              <p class="faq-answer">Где искать и как проверить</p>
-            </a>
-          </div>
+          <div id="faq-list" class="faq-grid"></div>
         </div>
       </section>
 
-      <!-- Скрытые секции для динамического контента (сохранены для совместимости с main.js) -->
-      <section id="materials" class="content-section" style="display: none;">
+      <section id="materials" class="content-section">
         <div class="container">
           <p id="status" role="status" aria-live="polite"></p>
           <section>
@@ -127,7 +109,7 @@
             <button id="more-articles" type="button" hidden>Ещё статьи</button>
             <article id="article" hidden></article>
           </section>
-          <section>
+          <section id="surveys-section">
             <h2>Опросы (assessment)</h2>
             <ul id="surveys"></ul>
             <button id="more-surveys" type="button" hidden>Ещё опросы</button>
@@ -145,6 +127,7 @@
     </footer>
   </div>
 
+  <script src="./js/api.js" defer></script>
   <script src="./js/auth.js" defer></script>
   <script src="./js/main.js" defer></script>
 </body>

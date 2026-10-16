@@ -4,9 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Личный кабинет — Законпозитор</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./css/style.css">
   <link rel="stylesheet" href="./css/melawdy.css">
   <link rel="stylesheet" href="./css/account.css">
@@ -22,20 +19,15 @@
         </a>
         <nav class="main-nav">
           <a href="./index.html#features" class="nav-link">Возможности</a>
-          <a href="./index.html#tariffs" class="nav-link">Тарифы</a>
           <a href="./calculator.html" class="nav-link">Калькулятор</a>
           <a href="./index.html#materials" class="nav-link">Специализированные материалы</a>
-          <a href="./admin.html" class="nav-link">О нас</a>
+          <a href="./admin.html" class="nav-link">Администрирование</a>
         </nav>
         <div class="header-actions">
-          <button class="search-toggle" type="button" aria-label="Поиск">⌕</button>
-          <span class="user-chip" data-user-name hidden></span>
-          <a href="#" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+          <a class="search-toggle" href="./index.html#search" aria-label="Поиск">⌕</a>
+          <a href="./account.html" class="user-chip" data-user-name hidden></a>
+          <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
 
-          <!-- <button class="search-toggle" type="button" aria-label="Поиск">⌕</button>
-          <span id="current-user" class="user-chip" hidden></span>
-          <a href="#" id="logout" class="button-login" hidden>Выйти →</a>
-          <a href="#" id="login-link" class="button-login">Войти →</a> -->
         </div>
       </div>
     </header>
@@ -62,21 +54,12 @@
       <section id="login-section" class="admin-section">
         <div class="container">
           <div class="admin-login-card">
-            <h2 class="admin-section-title">Вход администратора</h2>
-            <p class="admin-section-hint">Войдите, чтобы управлять статьями, опросами и документами.</p>
-            <form id="login-form" class="admin-form">
-              <label class="admin-field">
-                <span>Email или логин</span>
-                <input name="email" type="text" autocomplete="username" required>
-              </label>
-              <label class="admin-field">
-                <span>Пароль</span>
-                <input name="password" type="password" autocomplete="current-password" required>
-              </label>
-              <div class="admin-submit-row">
-                <button type="submit" class="button-primary">Войти</button>
-              </div>
-            </form>
+            <h2 class="admin-section-title">Войдите в личный кабинет</h2>
+            <p class="admin-section-hint">Войдите или создайте аккаунт, чтобы видеть свои документы и расчёты.</p>
+            <div class="admin-submit-row">
+              <a href="./login.html" class="button-primary">Войти</a>
+              <a href="./register.html" class="button-secondary">Зарегистрироваться</a>
+            </div>
           </div>
         </div>
       </section>
@@ -88,44 +71,47 @@
             <!-- Левая колонка: дела, статьи -->
             <div class="admin-workspace-main">
               <h2 class="admin-section-title">Мои документы</h2>
-              <div class="admin-cases" id="records"></div>
+              <p>Последние 25 документов и расчётов.</p>
+              <div class="admin-cases" id="account-documents"></div>
+              <h2 class="admin-section-title">Сохранённые расчёты</h2>
+              <div id="account-calculations"></div>
             </div>
 
             <!-- Правая колонка: профиль, статистика -->
             <aside class="admin-sidebar">
               <div class="profile-card">
                 <div class="profile-head">
-                  <div class="profile-avatar">ИИ</div>
+                  <div class="profile-avatar"></div>
                   <div class="profile-info">
-                    <strong id="profile-name">Иван Иванов</strong>
-                    <span id="profile-email">ivan_ivanov@gmail.com</span>
-                    <span id="profile-role">Музыкант</span>
+                    <strong id="profile-name">—</strong>
+                    <span id="profile-email">—</span>
+                    <span id="profile-role">—</span>
                   </div>
                 </div>
                 <div class="profile-stats">
                   <div class="stat-card stat-blue">
                     <span class="stat-label">Документы</span>
-                    <strong class="stat-value" id="stat-documents">3</strong>
+                    <strong class="stat-value" id="stat-documents">—</strong>
                   </div>
                   <div class="stat-card stat-purple">
                     <span class="stat-label">Статьи</span>
-                    <strong class="stat-value" id="stat-articles">24</strong>
+                    <strong class="stat-value" id="stat-articles">—</strong>
                   </div>
                   <div class="stat-card stat-yellow">
                     <span class="stat-label">Опросы</span>
-                    <strong class="stat-value" id="stat-surveys">12</strong>
+                    <strong class="stat-value" id="stat-surveys">—</strong>
                   </div>
                 </div>
                 <div class="profile-actions">
-                  <a href="#" class="primary-button">Все документы <span>→</span></a>
-                  <a href="./index.html#knowledge" class="primary-button">Все статьи <span>→</span></a>
+                  <a href="#account-documents" class="primary-button">Мои документы <span>→</span></a>
+                  <a href="./index.html#materials" class="primary-button">Все статьи <span>→</span></a>
                 </div>
               </div>
             </aside>
           </div>
 
           <!-- Панель управления ресурсами -->
-          <div class="admin-controls">
+          <div class="admin-controls" id="admin-controls" hidden>
             <div class="admin-controls-head">
               <h2 class="admin-section-title" id="resource-title">Управление</h2>
               <div class="admin-controls-actions">
@@ -187,7 +173,9 @@
     </footer>
   </div>
 
+  <script src="./js/api.js" defer></script>
   <script src="./js/auth.js" defer></script>
+  <script src="./js/admin.js" defer></script>
   <script src="./js/account.js" defer></script>
 </body>
 </html>

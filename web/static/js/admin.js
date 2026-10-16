@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
   const $ = (selector) => document.querySelector(selector);
-  let csrfToken = "";
   let resources = [];
   let current = null;
   let editingId = null;
@@ -16,23 +15,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function status(text) { $("#status").textContent = text; }
   function showLogin() {
-    csrfToken = "";
+    formVersion++;
+    current = null;
     $("#login-section").hidden = false;
     $("#workspace").hidden = true;
   }
-  async function api(path, options = {}) {
-    const headers = { ...options.headers };
-    if (options.body !== undefined) headers["Content-Type"] = "application/json";
-    if (csrfToken) headers["X-CSRF-Token"] = csrfToken;
-    const response = await fetch(`/api/v1/${path}`, { ...options, headers, credentials: "same-origin", cache: "no-store" });
-    if (!response.ok) {
-      if (response.status === 401) showLogin();
-      const data = await response.json().catch(() => ({}));
-      const detail = Array.isArray(data.detail) ? data.detail.map((item) => `${item.loc.join(".")}: ${item.msg}`).join("; ") : data.detail;
-      throw new Error(detail || `Ошибка сервера: ${response.status}`);
-    }
-    return response.status === 204 ? null : response.json();
-  }
+  const api = window.MelawdyAPI.request;
+  const recordsBody = $("#records-table-body") || $("#records");
   function handle(error) { status(error.message); }
   function sectionPath() { return `admin/${encodeURIComponent(current.key)}`; }
 
@@ -152,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const selected = current;
     const result = await api(`${sectionPath()}?limit=${pageSize}&offset=${offset}`);
     if (selected !== current) return;
-    $("#records").replaceChildren();
+    recordsBody.replaceChildren();
     for (const record of result.items) {
       const row = element("tr");
       const label = record.title ?? record.name ?? record.term ?? record.question ?? record.text ?? record.legal_basis ?? record.code ?? record.survey_id ?? record.content_item_id ?? record.id;
@@ -175,14 +164,14 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       actions.append(edit, document.createTextNode(" "), remove);
       row.append(actions);
-      $("#records").append(row);
+      recordsBody.append(row);
     }
     if (!result.items.length) {
       const row = element("tr");
       const cell = element("td", "Пока нет записей.");
       cell.colSpan = 3;
       row.append(cell);
-      $("#records").append(row);
+      recordsBody.append(row);
     }
     $("#page-status").textContent = result.total ? `${offset + 1}–${offset + result.items.length} из ${result.total}` : "0 записей";
     $("#previous-page").disabled = offset === 0;
@@ -197,9 +186,22 @@ document.addEventListener("DOMContentLoaded", () => {
     await Promise.all([buildForm(), loadRecords()]);
   }
   async function enter(session) {
-    csrfToken = session.csrf_token;
-    $("#current-user").textContent = `${session.user.full_name} (${session.user.email})`;
+    if (!session) { showLogin(); return; }
+    status("");
+    if ($("#admin-controls")) $("#admin-controls").hidden = session.user.user_type !== "admin";
+    if (session.user.user_type !== "admin") {
+      if ($("#account-documents")) {
+        $("#login-section").hidden = true;
+        $("#workspace").hidden = false;
+      } else {
+        showLogin();
+        status("Для этой страницы нужны права администратора.");
+      }
+      return;
+    }
+    if ($("#current-user")) $("#current-user").textContent = `${session.user.full_name} (${session.user.email})`;
     resources = await api("admin/resources");
+    if (window.ZPAuth.getUser() !== session.user) return;
     $("#resource-select").replaceChildren();
     for (const resource of resources) {
       const option = element("option", resource.title);
@@ -210,19 +212,19 @@ document.addEventListener("DOMContentLoaded", () => {
     $("#workspace").hidden = false;
     await selectResource();
   }
-  $("#login-form").addEventListener("submit", async (event) => {
+  $("#login-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = event.currentTarget.querySelector("button");
     button.disabled = true;
     try {
       const data = new FormData(event.currentTarget);
-      await enter(await api("auth/login", { method: "POST", body: JSON.stringify(Object.fromEntries(data)) }));
+      await window.ZPAuth.login(data.get("email"), data.get("password"));
       $("#login-form").reset();
     } catch (error) { handle(error); }
     finally { button.disabled = false; }
   });
-  $("#logout").addEventListener("click", async () => {
-    try { await api("auth/logout", { method: "POST" }); showLogin(); status("Вы вышли из аккаунта."); }
+  if ($("#logout")) $("#logout").addEventListener("click", async () => {
+    try { await window.ZPAuth.logout(); status("Вы вышли из аккаунта."); }
     catch (error) { handle(error); }
   });
   $("#resource-select").addEventListener("change", () => selectResource().catch(handle));
@@ -244,8 +246,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) { handle(error); }
     finally { button.disabled = false; }
   });
-  api("auth/me").then(enter).catch((error) => {
-    showLogin();
-    if (!error.message.includes("Войдите")) handle(error);
-  });
+  document.addEventListener("auth-change", (event) => enter(event.detail).catch(handle));
+  window.ZPAuth.ready.catch(handle);
 });
