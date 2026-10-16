@@ -23,7 +23,7 @@ def test_migration_chain_contains_the_existing_main_database_revision():
     assert script.get_heads() == ["0006_user_favorites"]
     assert [revision.revision for revision in reversed(list(script.walk_revisions()))] == [
         "0001_initial", "0002_domain_schema", "0003_admin_sessions", "0004_csrf_token",
-        "0005_auth_security", "0006_user_favorites",
+        "0005_auth_security", "0006_user_favorites", "0007_login_attempt_window"
     ]
 
 

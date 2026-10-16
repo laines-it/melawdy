@@ -153,7 +153,11 @@ def login(payload: LoginInput, request: Request, response: Response, session: Se
             raise HTTPException(401, "Неверный email или пароль")
         user.locked_until = None
         user.failed_login_attempts = 0
+        user.last_failed_login_at = None
     if not valid or not user.is_active:
+        window_start = now - timedelta(minutes=LOCK_MINUTES)
+        if user.last_failed_login_at is None or user.last_failed_login_at < window_start:
+            user.failed_login_attempts = 0
         user.failed_login_attempts += 1
         if user.failed_login_attempts >= MAX_FAILED_LOGINS:
             user.locked_until = now + timedelta(minutes=LOCK_MINUTES)
@@ -162,7 +166,7 @@ def login(payload: LoginInput, request: Request, response: Response, session: Se
 
     user.failed_login_attempts = 0
     user.locked_until = None
-    #session.commit()
+    user.last_failed_login_at = None
 
     return start_session(user, request, response, session)
 
