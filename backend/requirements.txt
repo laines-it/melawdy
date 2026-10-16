@@ -9,3 +9,4 @@ scikit-learn>=1.6,<2
 bm25s>=0.3.13,<0.4
 PyStemmer>=3.1,<4
 pwdlib[argon2]>=0.2,<1
+python-docx>=1.1.0
