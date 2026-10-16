@@ -75,13 +75,16 @@ def list_articles(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)
 
 @router.get("/articles/{article_id}")
 def read_article(article_id: int, session: SessionDep) -> dict:
-    item = session.scalar(select(ContentItem).options(selectinload(ContentItem.chunks)).where(
+    item = session.scalar(select(ContentItem).options(
+        selectinload(ContentItem.chunks), selectinload(ContentItem.category),
+    ).where(
         ContentItem.id == article_id, ContentItem.status == ContentStatus.PUBLISHED,
         ContentItem.published_at <= func.now()))
     if item is None:
         raise HTTPException(404, "Статья не найдена")
     return {"id": str(item.id), "title": item.title, "summary": item.summary,
-            "chunks": [chunk.body for chunk in item.chunks]}
+            "category": {"id": str(item.category.id), "name": item.category.name} if item.category else None,
+            "chunks": [chunk.body for chunk in sorted(item.chunks, key=lambda chunk: chunk.chunk_index)]}
 
 
 @router.get("/surveys")

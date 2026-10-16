@@ -13,6 +13,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return element;
   }
 
+  function articleLink(id, title) {
+    const link = node("a", title);
+    link.href = `./article.html?id=${encodeURIComponent(id)}`;
+    return link;
+  }
+
   async function load(kind, reset = false) {
     if (loading.has(kind)) return;
     loading.add(kind);
@@ -28,10 +34,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!records.length && offsets[kind] === 0) list.append(node("li", "Пока нет записей."));
       for (const record of records) {
         const item = document.createElement("li");
-        const button = node("button", record.title);
-        button.type = "button";
-        button.addEventListener("click", () => show(kind, record.id).catch(message));
-        item.append(button);
+        if (kind === "articles") {
+          item.append(articleLink(record.id, record.title));
+        } else {
+          const button = node("button", record.title);
+          button.type = "button";
+          button.addEventListener("click", () => showSurvey(record.id).catch(message));
+          item.append(button);
+        }
         list.append(item);
       }
       offsets[kind] += records.length;
@@ -42,38 +52,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function show(kind, id) {
-    const record = await request(`public/${kind}/${encodeURIComponent(id)}`);
-    const target = document.querySelector(kind === "articles" ? "#article" : "#survey");
+  async function showSurvey(id) {
+    const record = await request(`public/surveys/${encodeURIComponent(id)}`);
+    const target = document.querySelector("#survey");
     target.replaceChildren(node("h3", record.title));
-    if (kind === "articles") {
-      if (record.summary) target.append(node("p", record.summary));
-      for (const body of record.chunks) target.append(node("pre", body));
-    } else {
-      target.append(node("p", `Версия ${record.version}. Предпросмотр опроса; отправка ответов пока не подключена.`));
-      for (const question of record.questions) {
-        const fieldset = document.createElement("fieldset");
-        fieldset.disabled = true;
-        fieldset.append(node("legend", question.text + (question.is_required ? " *" : "")));
-        if (question.question_type === "text") {
-          const text = document.createElement("textarea");
-          text.setAttribute("aria-label", question.text);
-          fieldset.append(text);
-        } else {
-          const options = question.question_type === "boolean" && !question.options.length
-            ? [{ text: "Да", value: "true" }, { text: "Нет", value: "false" }] : question.options;
-          for (const option of options) {
-            const label = document.createElement("label");
-            const input = document.createElement("input");
-            input.type = question.question_type === "multiple_choice" ? "checkbox" : "radio";
-            input.name = `question-${question.id}`;
-            input.value = option.value;
-            label.append(input, document.createTextNode(option.text));
-            fieldset.append(label, document.createElement("br"));
-          }
+    target.append(node("p", `Версия ${record.version}. Предпросмотр опроса; отправка ответов пока не подключена.`));
+    for (const question of record.questions) {
+      const fieldset = document.createElement("fieldset");
+      fieldset.disabled = true;
+      fieldset.append(node("legend", question.text + (question.is_required ? " *" : "")));
+      if (question.question_type === "text") {
+        const text = document.createElement("textarea");
+        text.setAttribute("aria-label", question.text);
+        fieldset.append(text);
+      } else {
+        const options = question.question_type === "boolean" && !question.options.length
+          ? [{ text: "Да", value: "true" }, { text: "Нет", value: "false" }] : question.options;
+        for (const option of options) {
+          const label = document.createElement("label");
+          const input = document.createElement("input");
+          input.type = question.question_type === "multiple_choice" ? "checkbox" : "radio";
+          input.name = `question-${question.id}`;
+          input.value = option.value;
+          label.append(input, document.createTextNode(option.text));
+          fieldset.append(label, document.createElement("br"));
         }
-        target.append(fieldset);
       }
+      target.append(fieldset);
     }
     target.hidden = false;
     target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -93,10 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
       answer.className = "faq-answer";
       card.append(summary, answer);
       if (record.content_item_id) {
-        const button = node("button", "Читать материал →");
-        button.type = "button";
-        button.addEventListener("click", () => show("articles", record.content_item_id).catch(message));
-        card.append(button);
+        card.append(articleLink(record.content_item_id, "Читать материал →"));
       }
       list.append(card);
     }
@@ -117,10 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.querySelector("#search-status").textContent = records.length ? "" : "Ничего не найдено.";
       for (const record of records) {
         const item = document.createElement("article");
-        const button = node("button", record.title);
-        button.type = "button";
-        button.addEventListener("click", () => show("articles", record.article_id).catch(message));
-        item.append(button, node("p", record.body));
+        item.append(articleLink(record.article_id, record.title), node("p", record.body));
         list.append(item);
       }
     } catch (error) {

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Статья — Законпозитор</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/melawdy.css">
+  <link rel="stylesheet" href="./css/article.css">
+</head>
+<body class="article-page">
+  <div class="page-shell">
+    <a class="skip-link" href="#article">К статье</a>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="./index.html" class="brand">
+          <img src="./brand-mark.png" alt="" class="brand-mark">
+          <span class="brand-name">Законпозитор</span>
+        </a>
+        <nav class="main-nav" aria-label="Основная навигация">
+          <a href="./index.html#features" class="nav-link">Возможности</a>
+          <a href="./calculator.html" class="nav-link">Калькулятор</a>
+          <a href="./index.html#materials" class="nav-link">База знаний</a>
+        </nav>
+        <div class="header-actions">
+          <a class="article-search" href="./index.html#search" aria-label="Поиск по базе знаний">Поиск</a>
+          <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+          <a href="./account.html" class="user-chip" data-user-name hidden></a>
+        </div>
+      </div>
+    </header>
+
+    <main class="article-shell">
+      <nav class="article-breadcrumbs" aria-label="Хлебные крошки">
+        <a href="./index.html#materials">← База знаний</a>
+        <span id="article-category-path" hidden></span>
+      </nav>
+
+      <p id="status" class="article-notice" role="status" aria-live="polite"></p>
+
+      <div class="article-state" id="article-state" aria-busy="true">
+        <h1 id="state-title">Загружаем статью…</h1>
+        <p id="state-message" role="status" aria-live="polite">Получаем материал из базы знаний.</p>
+        <button id="retry-article" class="button-login" type="button" hidden>Попробовать снова</button>
+        <a href="./index.html#materials">Вернуться к материалам</a>
+      </div>
+
+      <article id="article" tabindex="-1" hidden aria-labelledby="article-title">
+        <header class="article-heading">
+          <p class="article-meta"><span id="article-category">База знаний</span> · <span id="article-reading-time"></span></p>
+          <h1 id="article-title"></h1>
+          <p id="article-summary" class="article-summary" hidden></p>
+          <p class="article-disclaimer">Общая информация, не индивидуальная юридическая консультация</p>
+        </header>
+
+        <div class="article-layout">
+          <aside class="article-sidebar" aria-label="Дополнительные материалы">
+            <section class="article-card article-help">
+              <h2>Разберитесь в правах на музыку</h2>
+              <p>Авторство, договоры и регистрация: ответы на ваши вопросы о правах на музыку.</p>
+              <a href="./index.html#materials">Все материалы →</a>
+            </section>
+            <section id="related-articles" class="article-card article-related" hidden>
+              <h2>Читайте также</h2>
+              <ul id="related-articles-list"></ul>
+            </section>
+          </aside>
+
+          <div class="article-copy">
+            <section id="article-intro" class="article-card article-intro" aria-label="Вводный раздел" hidden>
+              <p class="article-eyebrow">В этой статье</p>
+              <div id="article-intro-body"></div>
+            </section>
+            <div id="article-chunks" class="article-chunks"></div>
+            <p id="article-empty" class="article-empty" hidden>Текст статьи пока не добавлен.</p>
+            <a class="article-back" href="./index.html#materials">← Все статьи</a>
+          </div>
+        </div>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© 2026 Законпозитор. Юридический помощник для музыкантов.<br>Информация носит справочный характер.</p>
+      </div>
+    </footer>
+  </div>
+  <script src="./js/api.js" defer></script>
+  <script src="./js/auth.js" defer></script>
+  <script src="./js/article.js" defer></script>
+</body>
+</html>
