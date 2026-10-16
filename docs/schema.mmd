@@ -1,5 +1,5 @@
 erDiagram
-    USERS {
+        USERS {
         bigint id PK
         varchar email UK
         varchar password_hash
@@ -11,6 +11,7 @@ erDiagram
         boolean is_active
         int failed_login_attempts
         timestamp locked_until
+        timestamp last_failed_login_at
     }
 
     CONTENT_CATEGORIES {

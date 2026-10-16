@@ -17,7 +17,7 @@ def test_existing_documents_survive_domain_migration() -> None:
 def test_migration_and_vector_round_trip() -> None:
     with SessionLocal() as session:
         assert session.scalar(text("SELECT extname FROM pg_extension WHERE extname = 'vector'")) == "vector"
-        assert session.scalar(text("SELECT version_num FROM alembic_version")) == "0006_user_favorites"
+        assert session.scalar(text("SELECT version_num FROM alembic_version")) == "0007_login_attempt_window"
         document = Document(title="Векторный пример", body="Текст")
         document.chunks.append(DocumentChunk(text="Первый фрагмент", embedding=[1.0, 0.0, 0.0]))
         session.add(document)
