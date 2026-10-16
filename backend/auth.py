@@ -159,6 +159,7 @@ def login(payload: LoginInput, request: Request, response: Response, session: Se
         if user.last_failed_login_at is None or user.last_failed_login_at < window_start:
             user.failed_login_attempts = 0
         user.failed_login_attempts += 1
+        user.last_failed_login_at = now
         if user.failed_login_attempts >= MAX_FAILED_LOGINS:
             user.locked_until = now + timedelta(minutes=LOCK_MINUTES)
         session.commit()

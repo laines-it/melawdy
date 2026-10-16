@@ -2,7 +2,7 @@ from fastapi import APIRouter, Response
 from sqlalchemy import func, select
 
 from backend.auth import SessionDep, UserDep
-from backend.models import AssessmentSurvey, ContentItem, ContentStatus, FeeCalculation, UserDocument
+from backend.models import AssessmentSurvey, ContentItem, ContentStatus, FeeCalculation, UserDocument, UserFavorite
 
 router = APIRouter(prefix="/api/v1/account", tags=["account"])
 
@@ -11,15 +11,18 @@ router = APIRouter(prefix="/api/v1/account", tags=["account"])
 def overview(response: Response, session: SessionDep, user: UserDep) -> dict:
     response.headers["Cache-Control"] = "no-store"
     documents = session.scalars(select(UserDocument).where(UserDocument.user_id == user.id)
-                               .order_by(UserDocument.created_at.desc(), UserDocument.id.desc()).limit(25))
+                                .order_by(UserDocument.created_at.desc(), UserDocument.id.desc()).limit(25))
     calculations = session.scalars(select(FeeCalculation).where(FeeCalculation.user_id == user.id)
-                                  .order_by(FeeCalculation.created_at.desc(), FeeCalculation.id.desc()).limit(25))
+                                   .order_by(FeeCalculation.created_at.desc(), FeeCalculation.id.desc()).limit(25))
     return {
         "stats": {
             "documents": session.scalar(select(func.count()).select_from(UserDocument)
                                         .where(UserDocument.user_id == user.id)),
-            "articles": session.scalar(select(func.count()).select_from(ContentItem).where(
-                ContentItem.status == ContentStatus.PUBLISHED, ContentItem.published_at <= func.now())),
+            "articles": session.scalar(
+                select(func.count()).select_from(UserFavorite).join(ContentItem,
+                                                                    ContentItem.id == UserFavorite.content_item_id).where(
+                    UserFavorite.user_id == user.id, ContentItem.status == ContentStatus.PUBLISHED,
+                    ContentItem.published_at <= func.now())),
             "surveys": session.scalar(select(func.count()).select_from(AssessmentSurvey)
                                       .where(AssessmentSurvey.is_active.is_(True))),
         },
