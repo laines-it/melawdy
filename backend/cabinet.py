@@ -8,6 +8,12 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
+from fastapi.responses import Response
+from pydantic import BaseModel, Field
+from backend.agreement import build_agreement
+
+
+
 from backend.auth import SessionDep, UserDep
 from backend.models import (
     ContentItem,
@@ -147,6 +153,10 @@ class FavoriteOut(BaseModel):
     type: str
     published_at: datetime | None = None
     created_at: datetime | None = None
+
+class AgreementIn(BaseModel):
+    work_type: str = Field(default="Музыкальное произведение с текстом")
+
 
 
 def _enum_val(value: object) -> str:
@@ -430,3 +440,12 @@ def remove_favorite(content_item_id: RecordId, user: UserDep, session: SessionDe
         raise HTTPException(404, "В избранном нет этой статьи")
     session.delete(fav)
     session.commit()
+
+@router.post("/documents/coauthors-agreement")
+def create_coauthors_agreement(payload: AgreementIn, user: UserDep) -> Response:
+    raw = build_agreement(payload.work_type)
+    return Response(
+        content=raw,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": 'attachment; filename="agreement.docx"'},
+    )
