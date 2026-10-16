@@ -1,0 +1,323 @@
+﻿/* ========================================= */
+/* СТРАНИЦА КАЛЬКУЛЯТОРА ПОШЛИН               */
+/* ========================================= */
+
+/* Hero-секция калькулятора */
+.calculator-hero {
+  padding: 50px 0 20px;
+  background: #FBF6E6;
+}
+
+.calculator-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: clamp(40px, 5vw, 60px);
+  line-height: 1.2;
+  color: #0E0F12;
+  margin: 0 0 16px;
+}
+
+.calculator-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: clamp(16px, 2vw, 21px);
+  line-height: 1.3;
+  color: #6E7580;
+  margin: 0;
+  max-width: 640px;
+}
+
+/* Основная секция */
+.calculator-section {
+  padding: 30px 0 60px;
+  background: #FBF6E6;
+}
+
+.calculator-layout-custom {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+/* Карточка формы */
+.calculator-form-card {
+  max-width: 100%;
+  max-height: 100%;
+  background: #FEFBF2;
+  border: 1px solid #E0D6C4;
+  border-radius: 18px;
+  padding: 32px;
+}
+
+.calculator-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.2;
+  color: #0E0F12;
+  margin: 0 0 8px;
+}
+
+.calculator-card-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.2;
+  color: #6E7580;
+  margin: 0 0 24px;
+}
+
+/* Форма */
+.fee-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.fee-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fee-field label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.2;
+  color: #0E0F12;
+}
+
+.fee-field select,
+.fee-field input {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  background: #FEFBF2;
+  border: 1px solid #E0D6C4;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: #0E0F12;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%230E0F12' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+
+.fee-field input {
+  background-image: none;
+  padding: 0 0 0 3.5%;
+  padding-right: 0%;
+}
+
+.fee-field select:focus,
+.fee-field input:focus {
+  border-color: #93ABD8;
+  box-shadow: 0 0 0 3px rgba(147, 171, 216, 0.2);
+}
+
+.fee-note {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #0E0F12;
+  margin: 24px 0 8px;
+}
+
+.fee-mkty-hint {
+  background: #FEFBF2;
+  border: 1px solid #E0D6C4;
+  border-radius: 10px;
+  padding: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #6E7580;
+  min-height: 80px;
+}
+
+/* Карточка результата */
+.calculator-result-card {
+  max-width: 100%;
+  max-height: 100%;
+  background: #D4E3F7;
+  border: 1px solid #E0D6C4;
+  border-radius: 18px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+}
+
+.result-row-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.result-row-custom span {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: #0E0F12;
+}
+
+.fee-total {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: clamp(40px, 5vw, 60px);
+  line-height: 1.1;
+  color: #0E0F12;
+}
+
+.result-details {
+  margin-top: 20px;
+  display: grid;
+  gap: 8px;
+}
+
+.result-details p {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #0E0F12;
+  margin: 0;
+}
+
+.result-details p span {
+  font-weight: 600;
+}
+
+/* Нижний блок с информацией */
+.calculator-info-block {
+  display: grid;
+  grid-template-columns: 1fr 308px;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.info-card-custom {
+  width: 30%;
+  background: #F9ECFF;
+  border: 1px solid #F355FB;
+  border-radius: 10px;
+}
+
+.info-card-custom-text {
+  width: 50%;
+  margin-left: 50%;
+}
+
+.info-card-custom h3 {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  padding-top: 15%;
+  line-height: 1.2;
+  color: #0E0F12;
+  margin: 0 0 12px;
+}
+
+.info-card-custom p {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.2;
+  color: #0E0F12;
+  margin: 0 0 8px;
+}
+
+.info-link {
+  color: #93ABD8;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.info-image-custom {
+  width: 45%;
+  height: 40%;
+  border-radius: 10px;
+  display: grid;
+  float: left;
+  padding: 5%;
+  min-height: 131px;
+}
+
+.info-image-custom img {
+  display: grid;
+  align-items: left;
+  width: 80%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Кнопка сохранения */
+.calculator-actions {
+  display: flex;
+  justify-content: right;
+}
+
+.button-save {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.3;
+  text-align: center;
+  color: #000000;
+  background: #FEFBF2;
+  border: 1px solid #E0D6C4;
+  border-radius: 18px;
+  padding: 20px 60px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.button-save:hover {
+  background: #F9ECFF;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(147, 171, 216, 0.2);
+}
+
+/* Адаптивность */
+@media (max-width: 1100px) {
+  .calculator-layout-custom {
+    grid-template-columns: 1fr;
+  }
+
+  .calculator-info-block {
+    width: 100%;
+  }
+
+  .info-image-custom {
+    min-height: 100px;
+  }
+}
+
+@media (max-width: 720px) {
+  .calculator-hero {
+    padding: 30px 0 10px;
+  }
+
+  .calculator-form-card,
+  .calculator-result-card {
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .fee-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fee-total {
+    font-size: 40px;
+  }
+
+  .button-save {
+    width: 100%;
+    font-size: 20px;
+    padding: 16px 24px;
+  }
+}

@@ -1,0 +1,646 @@
+/* ========================================= */
+/* ЛИЧНЫЙ КАБИНЕТ                            */
+/* ========================================= */
+
+/* Hero-секция */
+.admin-hero {
+  padding: 50px 0 30px;
+  background: #FBF6E5;
+}
+
+.admin-hero-inner {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.admin-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: clamp(40px, 5vw, 54px);
+  line-height: 1.15;
+  color: #0E0F12;
+  margin: 0 0 16px;
+}
+
+.admin-subtitle {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+  font-size: clamp(16px, 1.6vw, 18px);
+  line-height: 1.4;
+  color: #6E7580;
+  margin: 0;
+  max-width: 600px;
+}
+
+.admin-status {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: #BA2525;
+  min-height: 20px;
+  margin: 8px 0;
+}
+
+/* Секции */
+.admin-section {
+  padding: 20px 0 40px;
+  background: #FBF6E5;
+}
+
+.admin-section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1.2;
+  color: #0E0F12;
+  margin: 0 0 12px;
+}
+
+.admin-section-hint {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: #6E7580;
+  margin: 0 0 24px;
+}
+
+.admin-subtitle {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.2;
+  color: #0E0F12;
+  margin: 0 0 16px;
+}
+
+/* Карточка входа */
+.admin-login-card {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 32px;
+  background: #FEFBF2;
+  border: 1px solid #E0D6C4;
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgba(14, 15, 18, 0.06);
+}
+
+/* Формы */
+.admin-form {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-field {
+  display: grid;
+  gap: 8px;
+  padding-right: 7%;
+}
+
+.admin-field span {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #0E0F12;
+}
+
+.admin-field input,
+.admin-field select,
+.admin-field textarea {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  background: #FEFBF2;
+  border: 1px solid #E0D6C4;
+  border-radius: 10px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 15px;
+  color: #0E0F12;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.admin-field input:focus,
+.admin-field select:focus,
+.admin-field textarea:focus {
+  border-color: #93ABD8;
+  box-shadow: 0 0 0 3px rgba(147, 171, 216, 0.2);
+}
+
+.admin-field-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-field-inline span {
+  white-space: nowrap;
+}
+
+.admin-submit-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+/* Кнопки */
+.button-primary,
+.button-secondary {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  min-height: 48px;
+  padding: 12px 24px;
+  border-radius: 24px;
+  border: 1px solid #E0D6C4;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.button-primary {
+  background: #D4E3F7;
+  color: #0E0F12;
+}
+
+.button-primary:hover {
+  background: #B8CEEE;
+  transform: translateY(-1px);
+}
+
+.button-secondary {
+  background: #FEFBF2;
+  color: #0E0F12;
+}
+
+.button-secondary:hover {
+  background: #F9ECFF;
+  transform: translateY(-1px);
+}
+
+/* Пользователь в шапке */
+.user-chip {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0E0F12;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(147, 171, 216, 0.2);
+  white-space: nowrap;
+}
+
+/* Workspace */
+.admin-workspace-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.admin-workspace-main {
+  min-width: 0;
+}
+
+.admin-cases {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+/* Case card */
+.case-card {
+  padding: 20px;
+  background: #FEFBF2;
+  border: 1px solid #E0D6C4;
+  border-radius: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.case-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.case-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.2;
+  color: #0E0F12;
+  margin: 0;
+}
+
+.case-card-meta {
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  color: #6E7580;
+  margin: 0;
+}
+
+.case-card-text {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #6E7580;
+  margin: 0;
+}
+
+.case-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.case-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.case-status.status-todo {
+  background: #F5C4C4;
+  color: #BA2525;
+}
+
+.case-status.status-progress {
+  background: #F4F5C4;
+  color: #B4BA25;
+}
+
+.case-status.status-done {
+  background: #E0F7E0;
+  color: #33A65E;
+}
+
+.case-link {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #0E0F12;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.case-link:hover {
+  color: #93ABD8;
+}
+
+/* Профиль */
+.profile-card {
+  padding: 24px;
+  background: #FEFBF2;
+  border: 1px solid #E0D6C4;
+  border-radius: 24px;
+  display: grid;
+  gap: 16px;
+  position: sticky;
+  top: 20px;
+}
+
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #D4E3F7;
+  display: grid;
+  place-items: center;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: #0E0F12;
+  flex-shrink: 0;
+}
+
+.profile-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-info strong {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: #0E0F12;
+}
+
+.profile-info span {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: #6E7580;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.stat-card {
+  padding: 16px;
+  border-radius: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.stat-card:first-child {
+  grid-column: 1 / -1;
+}
+
+.stat-blue {
+  background: #D4E3F7;
+}
+
+.stat-purple {
+  background: #F2E0FC;
+}
+
+.stat-yellow {
+  background: #FAF0C2;
+}
+
+.stat-label {
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  color: #6E7580;
+}
+
+.stat-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1;
+  color: #0E0F12;
+}
+
+.profile-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.profile-actions .primary-button {
+  min-height: 52px;
+  padding: 14px 18px;
+  background: #D4E3F7;
+  border-radius: 24px;
+  font-weight: 600;
+}
+
+/* Панель управления */
+.admin-controls {
+  padding: 24px;
+  background: #FEFBF2;
+  border: 1px solid #E0D6C4;
+  border-radius: 24px;
+}
+
+.admin-controls-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.admin-controls-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-hint {
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  color: #6E7580;
+  margin: 0 0 24px;
+  padding: 12px 16px;
+  background: rgba(147, 171, 216, 0.1);
+  border-radius: 12px;
+  line-height: 1.5;
+}
+
+.admin-editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.admin-editor-form,
+.admin-editor-list {
+  min-width: 0;
+}
+
+#fields > p {
+  margin: 0 0 16px;
+}
+
+#fields label {
+  display: block;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #0E0F12;
+  margin-bottom: 8px;
+}
+
+#fields input,
+#fields select,
+#fields textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  background: #FEFBF2;
+  border: 1px solid #E0D6C4;
+  border-radius: 10px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: #0E0F12;
+  outline: none;
+}
+
+#fields textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+#fields fieldset {
+  border: 1px solid #E0D6C4;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 0 0 12px;
+  background: rgba(251, 246, 230, 0.5);
+}
+
+#fields fieldset textarea {
+  margin-bottom: 8px;
+}
+
+#fields small {
+  display: block;
+  font-family: 'Manrope', sans-serif;
+  font-size: 12px;
+  color: #6E7580;
+  margin-top: 4px;
+}
+
+/* Таблица */
+.admin-table-wrap {
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 1px solid #E0D6C4;
+  background: #FEFBF2;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 400px;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 12px 16px;
+  text-align: left;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: #0E0F12;
+  border-bottom: 1px solid #E0D6C4;
+  vertical-align: top;
+}
+
+.admin-table th {
+  background: #FBF6E5;
+  font-weight: 600;
+  font-size: 13px;
+  color: #6E7580;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-table button {
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #E0D6C4;
+  background: #FEFBF2;
+  color: #0E0F12;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.admin-table button:hover {
+  background: #F9ECFF;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-pagination span {
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  color: #6E7580;
+}
+
+/* Адаптивность */
+@media (max-width: 1100px) {
+  .admin-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card {
+    position: static;
+  }
+
+  .admin-editor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-hero {
+    padding: 30px 0 20px;
+  }
+
+  .admin-section-title {
+    font-size: 28px;
+  }
+
+  .admin-subtitle {
+    font-size: 20px;
+  }
+
+  .admin-login-card,
+  .admin-controls,
+  .profile-card {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .profile-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .profile-stats .stat-card:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .profile-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-controls-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-controls-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-controls-actions .button-secondary,
+  .admin-controls-actions .admin-field-inline {
+    width: 100%;
+  }
+}

@@ -9,6 +9,8 @@ erDiagram
         timestamp updated_at
         timestamp last_login_at
         boolean is_active
+        int failed_login_attempts
+        timestamp locked_until
     }
 
     CONTENT_CATEGORIES {
@@ -219,9 +221,9 @@ erDiagram
     }
 
     USER_FAVORITES {
-        bigint id
-        bigint user_id
-        bigint content_item_id
+        bigint id PK
+        bigint user_id FK
+        bigint content_item_id FK
         timestamp created_at
     }
 
@@ -262,3 +264,5 @@ erDiagram
     USER_DOCUMENTS ||--o{ DOCUMENT_STATUS_HISTORY : "история статусов"
     USERS ||--o{ DOCUMENT_STATUS_HISTORY : "изменил"
     USERS ||--o{ REQUEST_HISTORY : "запросы"
+    USERS ||--o{ USER_FAVORITES : "избранное"
+    CONTENT_ITEMS ||--o{ USER_FAVORITES : "сохранён пользователем"

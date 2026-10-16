@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Проверить музыку — Законпозитор</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/melawdy.css">
+  <link rel="stylesheet" href="./css/check.css">
+</head>
+<body>
+  <div class="page-shell">
+    <!-- Шапка сайта -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="./index.html" class="brand">
+          <img src="./brand-mark.png" alt="Законпозитор" class="brand-mark" onerror="this.style.display='none'">
+          <span class="brand-name">Законпозитор</span>
+        </a>
+        <nav class="main-nav">
+          <a href="./index.html#features" class="nav-link">Возможности</a>
+          <a href="./calculator.html" class="nav-link">Калькулятор</a>
+          <a href="./index.html#materials" class="nav-link">Специализированные материалы</a>
+          <a href="./admin.html" class="nav-link">Администрирование</a>
+        </nav>
+        <div class="header-actions">
+          <a class="search-toggle" href="./index.html#search" aria-label="Поиск">⌕</a>
+          <a href="./account.html" class="user-chip" data-user-name hidden></a>
+          <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <!-- Hero-секция -->
+      <section class="check-hero">
+        <div class="container">
+          <h1 class="check-title">Проверить музыку</h1>
+          <p class="check-subtitle">
+            Найдите правообладателя, проверьте права на использование музыки и получите рекомендации.
+          </p>
+        </div>
+      </section>
+
+      <!-- Основной контент -->
+      <section class="check-section">
+        <div class="container">
+          <div class="check-layout">
+            <!-- Левая колонка -->
+            <div class="check-main">
+              <!-- Блок загрузки файла -->
+              <div class="check-card">
+                <h2 class="check-card-title">Загрузите свою музыку</h2>
+                <p class="check-card-hint">
+                  Доступность загрузки и анализа определяется сервером.
+                </p>
+
+                <div class="upload-dropzone" id="upload-dropzone" aria-disabled="true">
+                  <input type="file" id="file-input" accept=".mp3,.wav,.flac,.m4a,audio/*" hidden multiple disabled>
+                  <div class="upload-icon">♪</div>
+                  <p class="upload-text">Загрузка станет доступна после подключения анализа аудио</p>
+                  <button type="button" class="upload-button" id="choose-files-btn" disabled>Выбрать файлы</button>
+                </div>
+
+                <div class="upload-status" id="upload-status" role="status" aria-live="polite">Проверяем доступность сервиса…</div>
+
+                <div class="check-actions">
+                  <button type="button" class="button-primary" id="check-btn" disabled>Проверить</button>
+                </div>
+              </div>
+
+              <!-- Блок с шаблонами -->
+              <div class="check-card">
+                <h2 class="check-card-title">Защити свою музыку: Готовые шаблоны договоров</h2>
+
+                <p id="templates-status" role="status" aria-live="polite"></p>
+                <div class="templates-grid" id="templates-list"></div>
+                <button id="more-templates" type="button" hidden>Ещё шаблоны</button>
+                <article id="template-preview" hidden></article>
+              </div>
+            </div>
+
+            <!-- Правая колонка: результат проверки -->
+            <aside class="check-sidebar">
+              <div class="check-result-card">
+                <h2 class="check-result-title">Результат проверки</h2>
+                <p class="check-result-hint">
+                  Результаты появятся после подключения сервиса анализа аудио.
+                </p>
+
+                <div class="matches-list" id="matches-list">
+                  <!-- Заполняется через JS -->
+                </div>
+
+                <div class="plagiarism-block">
+                  <span class="plagiarism-label">Оценка совпадений:</span>
+                  <span class="plagiarism-value" id="plagiarism-value">—</span>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© 2026 Законпозитор. Юридический помощник для музыкантов.
+        <br>Информация носит справочный характер.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="./js/api.js" defer></script>
+  <script src="./js/auth.js" defer></script>
+  <script src="./js/check.js" defer></script>
+</body>
+</html>

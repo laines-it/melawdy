@@ -1,13 +1,66 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
 from backend.auth import SessionDep
-from backend.models import AssessmentQuestion, AssessmentSurvey, ContentItem, ContentStatus
+from backend.content_repository import ContentSearchRepository
+from backend.models import (
+    AssessmentQuestion, AssessmentSurvey, ContentItem, ContentStatus, DocumentTemplate, QAPair,
+)
+from ml.tfidf import TfidfIndex
 
 router = APIRouter(prefix="/api/v1/public", tags=["public"])
+
+
+@router.get("/capabilities")
+def capabilities() -> dict:
+    return {"music_check": {"available": False,
+                            "message": "Проверка аудиофайлов пока не подключена. Результаты проверки недоступны."}}
+
+
+@router.get("/faq")
+def list_faq(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 4) -> list[dict]:
+    items = session.scalars(select(QAPair).outerjoin(ContentItem).where(or_(
+        QAPair.content_item_id.is_(None),
+        (ContentItem.status == ContentStatus.PUBLISHED) & (ContentItem.published_at <= func.now()),
+    )).order_by(QAPair.sort_order, QAPair.id).limit(limit))
+    return [{"id": str(item.id), "question": item.question, "answer": item.answer,
+             "content_item_id": str(item.content_item_id) if item.content_item_id else None} for item in items]
+
+
+@router.get("/search")
+def search(session: SessionDep, query: Annotated[str, Query(min_length=1, max_length=1000)],
+           limit: Annotated[int, Query(ge=1, le=100)] = 10) -> list[dict]:
+    if not query.strip():
+        raise HTTPException(422, "Введите поисковый запрос")
+    hits = TfidfIndex(ContentSearchRepository(session).list_chunks()).search(query, limit)
+    if not hits:
+        return []
+    titles = dict(session.execute(select(ContentItem.id, ContentItem.title).where(
+        ContentItem.id.in_({hit.chunk.content_item_id for hit in hits}),
+        ContentItem.status == ContentStatus.PUBLISHED, ContentItem.published_at <= func.now(),
+    )).all())
+    return [{"article_id": str(hit.chunk.content_item_id), "title": titles[hit.chunk.content_item_id],
+             "body": hit.chunk.body, "score": hit.score} for hit in hits if hit.chunk.content_item_id in titles]
+
+
+@router.get("/templates")
+def list_templates(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 25,
+                   offset: Annotated[int, Query(ge=0)] = 0) -> list[dict]:
+    items = session.scalars(select(DocumentTemplate).where(DocumentTemplate.is_active.is_(True))
+                            .order_by(DocumentTemplate.id.desc()).limit(limit).offset(offset))
+    return [{"id": str(item.id), "title": item.title, "description": item.description} for item in items]
+
+
+@router.get("/templates/{template_id}")
+def read_template(template_id: int, session: SessionDep) -> dict:
+    item = session.scalar(select(DocumentTemplate).where(
+        DocumentTemplate.id == template_id, DocumentTemplate.is_active.is_(True)))
+    if item is None:
+        raise HTTPException(404, "Шаблон не найден")
+    return {"id": str(item.id), "title": item.title, "description": item.description, "body": item.body}
 
 
 @router.get("/articles")

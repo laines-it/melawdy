@@ -5,7 +5,17 @@
   --border-strong: rgba(101, 71, 217, .34);
   --shadow: 0 24px 60px rgba(66, 48, 153, .12);
 }
-.brand-mark { display:grid; place-items:center; width:48px; height:48px; border-radius:16px; background:linear-gradient(145deg,#8068ed,#5136b7); color:white; box-shadow:0 8px 20px rgba(81,54,183,.24); }
+[hidden] { display: none !important; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+button:disabled, select:disabled { cursor: not-allowed; opacity: .6; }
+#materials section, #search-results article, #template-preview { margin-block: 24px; }
+#articles, #surveys { display: grid; gap: 12px; padding-left: 20px; }
+.faq-card summary { cursor: pointer; }
+button.template-download { background: transparent; border: 0; padding: 0; text-align: left; cursor: pointer; }
+.auth-switch { margin: 24px 0 0; font: 14px sans-serif; color: #6E7580; }
+.auth-switch a { color: #423099; }
+a.button-primary, a.button-secondary { display: inline-flex; align-items: center; text-decoration: none; }
+.brand-mark { display:grid; place-items:center; width:60px; height:50px; }
 .brand-monogram { font-size:25px; font-weight:800; line-height:1; }
 .site-footer { padding:26px 0; border-top:1px solid var(--border); background:rgba(255,255,255,.45); }
 .footer-inner { display:flex; align-items:center; justify-content:space-between; gap:20px; }

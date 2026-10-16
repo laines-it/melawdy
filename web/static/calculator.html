@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Калькулятор пошлин — Законпозитор</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/melawdy.css">
+  <link rel="stylesheet" href="./css/calculator.css">
+</head>
+<body>
+  <div class="page-shell">
+    <!-- Шапка сайта -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="./index.html" class="brand">
+          <img src="./brand-mark.png" alt="Законпозитор" class="brand-mark">
+          <span class="brand-name">Законпозитор</span>
+        </a>
+        <nav class="main-nav">
+          <a href="./index.html#features" class="nav-link">Возможности</a>
+          <a href="./index.html#materials" class="nav-link">Специализированные материалы</a>
+          <a href="./admin.html" class="nav-link">Администрирование</a>
+        </nav>
+        <div class="header-actions">
+          <a class="search-toggle" href="./index.html#search" aria-label="Поиск">⌕</a>
+          <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+          <a href="./account.html" class="user-chip" data-user-name hidden></a>
+        </div>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <!-- Hero-секция калькулятора -->
+      <section class="calculator-hero">
+        <div class="container">
+          <h1 class="calculator-title">Калькулятор пошлин</h1>
+          <p class="calculator-subtitle">
+            Рассчитайте стоимость государственной регистрации и других юридически значимых процедур.
+          </p>
+        </div>
+      </section>
+
+      <!-- Основной блок калькулятора -->
+      <section class="calculator-section">
+        <div class="container">
+          <div class="calculator-layout-custom">
+            <!-- Левая колонка: параметры расчёта -->
+            <div class="calculator-form-card">
+              <h2 class="calculator-card-title">Параметры расчёта</h2>
+              <p class="calculator-card-hint">Выберите процедуру и действующую ставку из справочника.</p>
+              <p id="status" role="status" aria-live="polite">Загрузка справочников…</p>
+
+              <form id="fee-calculator-form" class="fee-form">
+                <div class="fee-form-grid">
+                  <div class="fee-field">
+                    <label for="application-type">Процедура</label>
+                    <select id="application-type" name="application_type_id" disabled></select>
+                  </div>
+                  <div class="fee-field">
+                    <label for="mkty-class">Класс МКТУ</label>
+                    <select id="mkty-class" name="mktu_class_id" disabled></select>
+                  </div>
+                  <div class="fee-field">
+                    <label for="quantity">Количество процедур</label>
+                    <input id="quantity" name="quantity" type="number" min="1" max="100" step="1" value="1" required>
+                  </div>
+                  <div class="fee-field">
+                    <label for="is-urgent">Срочность</label>
+                    <select id="is-urgent" name="is_urgent" disabled>
+                      <option value="false">Обычная</option>
+                      <option value="true">Срочная</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="fee-mkty-hint" id="mkty-hint"></div>
+              </form>
+            </div>
+
+            <!-- Правая колонка: результат -->
+            <div class="calculator-result-card">
+              <h2 class="calculator-card-title">Результат расчёта:</h2>
+              <div class="result-row-custom">
+                <span>Государственная пошлина</span>
+                <strong id="fee-total" class="fee-total">—</strong>
+              </div>
+              <div class="result-details" id="fee-details">
+                <p>Ставка за процедуру: <span id="fee-base">—</span></p>
+                <p>Количество: <span id="fee-quantity">—</span></p>
+                <p id="fee-legal-basis"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Нижний блок: важная информация -->
+          <div class="calculator-info-block">
+            <div class="info-card-custom">
+              <img src="./important.png" alt="Иллюстрация" class="info-image-custom">
+              <div class="info-card-custom-text">
+                <h3>Важно знать:</h3>
+                <p><strong>Классы МКТУ</strong></p>
+                <p><a href="./index.html#materials" class="info-link">Юридические материалы</a></p>
+              </div>
+            </div>
+            <div class="calculator-actions">
+              <button type="button" class="button-save" id="save-calculation" disabled>Сохранить расчёт</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© 2026 Законпозитор. Юридический помощник для музыкантов.
+        <br>Информация носит справочный характер.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="./js/api.js" defer></script>
+  <script src="./js/auth.js" defer></script>
+  <script src="./js/calculator.js" defer></script>
+</body>
+</html>

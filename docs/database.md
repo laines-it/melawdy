@@ -15,8 +15,9 @@ Python / FastAPI / SQLAlchemy 2 / psycopg 3 / Alembic, PostgreSQL 17 с pgvector
 | `assessments.py` | `assessment_surveys`, `assessment_questions`, `assessment_options`, `assessment_results`, `assessment_result_rules`, `user_assessments` |
 | `fees.py` | `mktu_classes`, `application_types`, `fee_rates`, `fee_calculations`, `fee_calculation_classes` |
 | `documents.py` | `document_templates`, `user_documents`, `document_status_history`, `request_history` |
+| `favorites.py` | `user_favorites` |
 
-Итого 24 доменные таблицы и служебная таблица `admin_sessions`. В `legacy.py` сохранены две таблицы первого каркаса с UUID: `documents` и `document_chunks`. Они обслуживают старый пример CRUD и не входят в новую предметную схему. Итого ORM управляет 27 таблицами.
+Итого 25 доменных таблиц и служебная таблица `admin_sessions`. В `legacy.py` сохранены две таблицы первого каркаса с UUID: `documents` и `document_chunks`. Они обслуживают старый пример CRUD и не входят в новую предметную схему. Итого ORM управляет 28 таблицами.
 
 Пример работы со связанными объектами:
 
@@ -57,7 +58,7 @@ with SessionLocal.begin() as session:
 - Индексы внешних ключей, уникальные email/slug/code, уникальный номер чанка внутри материала; сортировки и номера чанков неотрицательны.
 - `content_item_chunks.embedding`: nullable `vector(1024)`, HNSW cosine index. При изменении `body` триггер сбрасывает embedding в `NULL`; его нужно пересчитать.
 - `content_item_chunks.tsv`: вычисляемый сохранённый `to_tsvector('russian', body)` с GIN-индексом. Это поле полнотекстового поиска PostgreSQL; TF-IDF вычисляется отдельно через scikit-learn по исходному тексту.
-- Ставки имеют проверку диапазона дат и уникальность `(application_type_id, mktu_class_id, is_urgent, valid_from)` с `NULLS NOT DISTINCT`. Перекрытие разных периодов ставок должен проверять будущий сервис расчёта.
+- Ставки имеют проверку диапазона дат и уникальность `(application_type_id, mktu_class_id, is_urgent, valid_from)` с `NULLS NOT DISTINCT`. Сервис расчёта отклоняет пересечение действующих периодов для выбранной процедуры, класса и срочности. Сумма — точная ставка за одну процедуру, умноженная на количество процедур; льготы и доплаты за другие классы не заданы.
 - МКТУ: номер класса от 1 до 45. Сами справочники и юридические ставки не заполняются вымышленными данными.
 
 ## Допущения, которых нет в исходной диаграмме
@@ -79,6 +80,8 @@ with SessionLocal.begin() as session:
 
 `0003_admin_sessions` добавляет таблицу с SHA-256-хешем токена, пользователем, временем создания и сроком действия сессии. Откат этой ревизии завершает все админ-сессии, сохраняя пользователей. Встречающаяся в существующей локальной базе таблица `app_metadata` не управляется ORM и исключена из автогенерации Alembic; её данные сохраняются.
 
+Ревизии `0004_csrf_token`, `0005_auth_security` и `0006_user_favorites` продолжают ту же цепочку, что и в `main`: обязательный хеш CSRF-токена сессии, счётчик неудачных входов и срок блокировки пользователя, затем избранные материалы. `frontlayout` поддерживает базы, уже обновлённые до `0006_user_favorites`; откат или изменение `alembic_version` для запуска этой ветки не нужны.
+
 ```sh
 python -m alembic upgrade head
 python -m alembic current
@@ -93,6 +96,6 @@ python -m alembic revision --autogenerate -m "Describe schema change"
 
 Нужен `CREATE EXTENSION vector` в целевой базе (в Compose доступен пользователю и выполняется первой миграцией). Миграции применяются отдельно от загрузки ML-модели.
 
-`alembic downgrade 0001_initial` удаляет новые 24 доменные таблицы, админ-сессии и их данные, сохраняя legacy-таблицы. Для работающей базы откат требует заранее подготовленного резервного копирования.
+`alembic downgrade 0001_initial` удаляет новые 25 доменных таблиц, админ-сессии и их данные, сохраняя legacy-таблицы. Для работающей базы откат требует заранее подготовленного резервного копирования.
 
 Локальные юнит-тесты проверяют соответствие исходной ER-схеме, связи объектов и генерацию SQL без БД. CI дополнительно проверяет реальную PostgreSQL, совпадение моделей со схемой, JSONB/Decimal, pgvector, триггеры и downgrade/upgrade.
