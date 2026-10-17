@@ -1,11 +1,20 @@
-BUILDERS = {
-    "coauthors_agreement": build_coauthors_agreement,
-    "license": build_license,
-    # "service": build_service_contract,
-}
+"""Текст → DOCX bytes."""
 
-def build_document(doc_type: str, params: dict) -> bytes:
-    builder = BUILDERS.get(doc_type)
-    if builder is None:
-        raise ValueError(f"Неизвестный тип договора: {doc_type}")
-    return builder(params)
+from io import BytesIO
+
+from docx import Document
+
+
+def text_to_docx(text: str) -> bytes:
+    doc = Document()
+    for block in (text or "").split("\n\n"):
+        block = block.strip("\n")
+        if not block:
+            continue
+        lines = block.split("\n")
+        p = doc.add_paragraph(lines[0])
+        for line in lines[1:]:
+            p.add_run("\n" + line)
+    buf = BytesIO()
+    doc.save(buf)
+    return buf.getvalue()

@@ -11,8 +11,8 @@ from sqlalchemy.orm import selectinload
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from backend.agreement import build_agreement
-
-
+from backend.docx_out import text_to_docx
+from backend.render import render_flat_body, render_structure
 
 from backend.auth import SessionDep, UserDep
 from backend.models import (
@@ -154,9 +154,17 @@ class FavoriteOut(BaseModel):
     published_at: datetime | None = None
     created_at: datetime | None = None
 
+
 class AgreementIn(BaseModel):
     work_type: str = Field(default="Музыкальное произведение с текстом")
 
+
+class GenerateDocumentIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    template_slug: str = Field(min_length=1, max_length=255)
+    title: str | None = Field(default=None, max_length=500)
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 def _enum_val(value: object) -> str:
@@ -441,6 +449,7 @@ def remove_favorite(content_item_id: RecordId, user: UserDep, session: SessionDe
     session.delete(fav)
     session.commit()
 
+
 @router.post("/documents/coauthors-agreement")
 def create_coauthors_agreement(payload: AgreementIn, user: UserDep) -> Response:
     raw = build_agreement(payload.work_type)
@@ -449,3 +458,37 @@ def create_coauthors_agreement(payload: AgreementIn, user: UserDep) -> Response:
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": 'attachment; filename="agreement.docx"'},
     )
+
+
+@router.post("/documents/generate")
+def generate_document(payload: GenerateDocumentIn, user: UserDep, session: SessionDep) -> Response:
+    template = session.scalar(select(DocumentTemplate).where(DocumentTemplate.slug == payload.template_slug,
+                                                             DocumentTemplate.is_active.is_(True)))
+    if template is None:
+        raise HTTPException(404, "Шаблон не найден")
+
+    params = dict(payload.params)
+    structure = template.structure_json or {}
+    if structure.get("blocks"):
+        text = render_structure(structure, params)
+    else:
+        text = render_flat_body(template.body, params)
+
+    if not text.strip():
+        raise HTTPException(422, "Шаблон пустой или ни один блок не подошёл под params")
+
+    raw = text_to_docx(text)
+
+    doc = UserDocument(
+        user_id=user.id,
+        template_id=template.id,
+        document_type=template.document_type,
+        title=payload.title or template.title,
+        status=DocumentStatus.DRAFT,
+        content_json=params,
+    )
+    session.add(doc)
+    session.commit()
+
+    return Response(content=raw, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    headers={"Content-Disposition": f'attachment; filename="{template.slug}.docx"'})
