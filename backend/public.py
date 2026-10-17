@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, or_, select
@@ -9,6 +9,8 @@ from backend.content_repository import ContentSearchRepository
 from backend.models import (
     AssessmentQuestion, AssessmentSurvey, ContentItem, ContentStatus, DocumentTemplate, QAPair,
 )
+from ml.embedding_search import search_embeddings
+from ml.embeddings import EmbeddingConfigurationError
 from ml.tfidf import TfidfIndex
 
 router = APIRouter(prefix="/api/v1/public", tags=["public"])
@@ -32,10 +34,17 @@ def list_faq(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 4
 
 @router.get("/search")
 def search(session: SessionDep, query: Annotated[str, Query(min_length=1, max_length=1000)],
-           limit: Annotated[int, Query(ge=1, le=100)] = 10) -> list[dict]:
+           limit: Annotated[int, Query(ge=1, le=100)] = 10,
+           method: Literal["embeddings", "tfidf"] = "embeddings") -> list[dict]:
     if not query.strip():
         raise HTTPException(422, "Введите поисковый запрос")
-    hits = TfidfIndex(ContentSearchRepository(session).list_chunks()).search(query, limit)
+    try:
+        hits = (search_embeddings(query, session=session, limit=limit) if method == "embeddings"
+                else TfidfIndex(ContentSearchRepository(session).list_chunks()).search(query, limit))
+    except EmbeddingConfigurationError as exc:
+        raise HTTPException(503, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     if not hits:
         return []
     titles = dict(session.execute(select(ContentItem.id, ContentItem.title).where(

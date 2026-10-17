@@ -149,7 +149,7 @@ def test_search_reuses_published_corpus_and_does_not_return_hidden_articles(monk
     monkeypatch.setattr(public, "ContentSearchRepository", lambda session: repository)
     session = Mock()
     session.execute.return_value.all.return_value = [(4, "Права на музыку")]
-    result = public.search(session, query="музыка", limit=10)
+    result = public.search(session, query="музыка", limit=10, method="tfidf")
     assert len(result) == 1
     assert result[0]["article_id"] == "4"
     assert result[0]["title"] == "Права на музыку"

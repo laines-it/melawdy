@@ -42,3 +42,32 @@ class ContentSearchRepository:
             SearchHit(SearchChunk(row.id, row.content_item_id, row.body), 1 - float(row.distance))
             for row in self.session.execute(statement)
         ]
+
+    def nearest_articles(self, embedding: list[float], limit: int = 10) -> list[SearchHit]:
+        validate_embedding(embedding)
+        if not 1 <= limit <= 100:
+            raise ValueError("Limit must be between 1 and 100")
+        distance = ContentItemChunk.embedding.cosine_distance(embedding)
+        candidates = (
+            select(
+                ContentItemChunk.id, ContentItemChunk.content_item_id, ContentItemChunk.body,
+                distance.label("distance"),
+                func.row_number().over(
+                    partition_by=ContentItemChunk.content_item_id,
+                    order_by=(distance, ContentItemChunk.id),
+                ).label("chunk_rank"),
+            )
+            .join(ContentItem)
+            .where(*self._published(), ContentItemChunk.embedding.is_not(None))
+            .subquery()
+        )
+        statement = (
+            select(candidates.c.id, candidates.c.content_item_id, candidates.c.body, candidates.c.distance)
+            .where(candidates.c.chunk_rank == 1)
+            .order_by(candidates.c.distance, candidates.c.content_item_id)
+            .limit(limit)
+        )
+        return [
+            SearchHit(SearchChunk(row.id, row.content_item_id, row.body), 1 - float(row.distance))
+            for row in self.session.execute(statement)
+        ]

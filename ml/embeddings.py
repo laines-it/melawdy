@@ -3,7 +3,13 @@ from pathlib import Path
 from typing import Any
 import math
 
-from ml.constants import EMBEDDING_DIMENSIONS, EMBEDDING_MAX_TOKENS, QUERY_PREFIX
+from ml.constants import (
+    EMBEDDING_DIMENSIONS, EMBEDDING_MAX_TOKENS, EMBEDDING_MODEL_ID, PASSAGE_PREFIX, QUERY_PREFIX,
+)
+
+
+class EmbeddingConfigurationError(RuntimeError):
+    pass
 
 
 def validate_embedding(values: list[float]) -> list[float]:
@@ -40,18 +46,24 @@ class LegalEmbedder:
         return self._encode([QUERY_PREFIX + query.strip()])[0]
 
     def encode_documents(self, texts: list[str]) -> list[list[float]]:
-        return self._encode(texts)
+        if any(not text.strip() for text in texts):
+            raise ValueError("Text must not be blank")
+        return self._encode([PASSAGE_PREFIX + text.strip() for text in texts])
 
 
 @lru_cache(maxsize=1)
-def get_embedder(model_path: str, device: str = "cpu") -> LegalEmbedder:
-    if not model_path or not Path(model_path).is_dir():
-        raise RuntimeError("Download the model and set EMBEDDING_MODEL_PATH to its local directory")
+def get_embedder(model_path: str = "", device: str = "cpu") -> LegalEmbedder:
+    if model_path and not Path(model_path).is_dir():
+        raise EmbeddingConfigurationError("EMBEDDING_MODEL_PATH должен указывать на каталог модели")
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:
-        raise RuntimeError("Install ml/requirements.txt to use embeddings") from exc
-    model = SentenceTransformer(
-        model_path, device=device, local_files_only=True, trust_remote_code=False
-    )
-    return LegalEmbedder(model)
+        raise EmbeddingConfigurationError("Установите ml/requirements.txt для поиска по эмбеддингам") from exc
+    try:
+        model = SentenceTransformer(
+            model_path or EMBEDDING_MODEL_ID, device=device,
+            local_files_only=bool(model_path), trust_remote_code=False,
+        )
+        return LegalEmbedder(model)
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise EmbeddingConfigurationError("Не удалось загрузить multilingual-e5-small-ru-law; проверьте модель и доступ к Hugging Face") from exc
