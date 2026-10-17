@@ -54,7 +54,7 @@ def test_generate_docx_from_structure():
     docx_bytes = text_to_docx(text)
 
     # 4. Сохраняем в файл для проверки
-    output_path = Path("test_output.docx")
+    output_path = Path("/tmp/test_output.docx")
     output_path.write_bytes(docx_bytes)
     print(f"\n✅ Файл сохранён: {output_path.absolute()}")
 
