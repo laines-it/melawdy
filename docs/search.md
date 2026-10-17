@@ -8,7 +8,7 @@
 
 `ml.embedding_search.search_embeddings(query, session=session, limit=10)` кодирует только запрос. PostgreSQL сравнивает его с сохранёнными в `content_item_chunks.embedding` векторами по cosine distance. Каждый материал получает оценку лучшего чанка и возвращается один раз; лимит применяется после выбора лучшего чанка. Учитываются все опубликованные типы материалов с наступившей датой публикации, включая чек-листы.
 
-API `GET /api/v1/public/search?query=...&limit=10` по умолчанию использует embeddings. Ответ сохраняет контракт главной: массив объектов `article_id`, `title`, `body`, `score`. `body` — лучший чанк, `score` — cosine similarity, а не вероятность релевантности. Без проиндексированных чанков результат пустой. Для TF-IDF укажите `method=tfidf`.
+API `GET /api/v1/public/search?query=...&limit=10` по умолчанию использует embeddings. Формат совпадает с веткой BM25: `{"article_ids": ["2", "3"], "title": "Заголовок первого материала", "summary": "Описание"}`. При отсутствии результатов возвращается `{"article_ids": [], "title": null, "summary": null}`. Для TF-IDF укажите `method=tfidf`. Страница также принимает прежний массив результатов при обновлении контейнеров по отдельности.
 
 ## Запуск через Docker Compose
 

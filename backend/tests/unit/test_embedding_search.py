@@ -148,11 +148,23 @@ def test_invalid_ranking_does_not_execute_sql(values, limit):
     session.execute.assert_not_called()
 
 
-def test_public_search_defaults_to_embeddings_and_preserves_response_contract(monkeypatch):
-    search = Mock(return_value=[SearchHit(SearchChunk(8, 2, "Найденный абзац"), 0.8)])
+@pytest.mark.parametrize("hits,metadata,expected", [
+    ([SearchHit(SearchChunk(8, 2, "Найденный абзац"), 0.8)],
+     [SimpleNamespace(id=2, title="Заголовок", summary="Описание")],
+     {"article_ids": ["2"], "title": "Заголовок", "summary": "Описание"}),
+    ([], [], {"article_ids": [], "title": None, "summary": None}),
+    ([SearchHit(SearchChunk(8, 2, "Скрытый материал"), 0.8)], [],
+     {"article_ids": [], "title": None, "summary": None}),
+    ([SearchHit(SearchChunk(8, 2, "Первый"), 0.8), SearchHit(SearchChunk(9, 2, "Второй"), 0.7),
+      SearchHit(SearchChunk(10, 3, "Третий"), 0.6)],
+     [SimpleNamespace(id=3, title="Другой", summary=None), SimpleNamespace(id=2, title="Заголовок", summary="Описание")],
+     {"article_ids": ["2", "3"], "title": "Заголовок", "summary": "Описание"}),
+])
+def test_public_search_defaults_to_embeddings_and_preserves_response_contract(monkeypatch, hits, metadata, expected):
+    search = Mock(return_value=hits)
     monkeypatch.setattr(public, "search_embeddings", search)
     session = Mock(spec=Session)
-    session.execute.return_value.all.return_value = [(2, "Заголовок")]
+    session.execute.return_value.all.return_value = metadata
     app.dependency_overrides[get_session] = lambda: session
     try:
         with TestClient(app) as client:
@@ -161,7 +173,7 @@ def test_public_search_defaults_to_embeddings_and_preserves_response_contract(mo
     finally:
         app.dependency_overrides.pop(get_session, None)
     assert response.status_code == 200
-    assert response.json() == [{"article_id": "2", "title": "Заголовок", "body": "Найденный абзац", "score": 0.8}]
+    assert response.json() == expected
     search.assert_called_once_with("защитить трек", session=session, limit=3)
 
 
@@ -180,7 +192,7 @@ def test_public_search_reports_model_and_input_errors(monkeypatch, error, status
 def test_empty_search_does_not_fetch_titles(monkeypatch):
     monkeypatch.setattr(public, "search_embeddings", Mock(return_value=[]))
     session = Mock(spec=Session)
-    assert public.search(session, query="Запрос") == []
+    assert public.search(session, query="Запрос") == {"article_ids": [], "title": None, "summary": None}
     session.execute.assert_not_called()
 
 

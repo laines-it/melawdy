@@ -9,6 +9,7 @@ from backend.content_repository import ContentSearchRepository
 from backend.models import (
     AssessmentQuestion, AssessmentSurvey, ContentItem, ContentStatus, DocumentTemplate, QAPair,
 )
+from backend.schemas import SearchResponse
 from ml.embedding_search import search_embeddings
 from ml.embeddings import EmbeddingConfigurationError
 from ml.tfidf import TfidfIndex
@@ -32,10 +33,10 @@ def list_faq(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 4
              "content_item_id": str(item.content_item_id) if item.content_item_id else None} for item in items]
 
 
-@router.get("/search")
+@router.get("/search", response_model=SearchResponse)
 def search(session: SessionDep, query: Annotated[str, Query(min_length=1, max_length=1000)],
            limit: Annotated[int, Query(ge=1, le=100)] = 10,
-           method: Literal["embeddings", "tfidf"] = "embeddings") -> list[dict]:
+           method: Literal["embeddings", "tfidf"] = "embeddings") -> dict:
     if not query.strip():
         raise HTTPException(422, "Введите поисковый запрос")
     try:
@@ -46,13 +47,18 @@ def search(session: SessionDep, query: Annotated[str, Query(min_length=1, max_le
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     if not hits:
-        return []
-    titles = dict(session.execute(select(ContentItem.id, ContentItem.title).where(
+        return {"article_ids": [], "title": None, "summary": None}
+    metadata = {row.id: row for row in session.execute(select(
+        ContentItem.id, ContentItem.title, ContentItem.summary,
+    ).where(
         ContentItem.id.in_({hit.chunk.content_item_id for hit in hits}),
         ContentItem.status == ContentStatus.PUBLISHED, ContentItem.published_at <= func.now(),
-    )).all())
-    return [{"article_id": str(hit.chunk.content_item_id), "title": titles[hit.chunk.content_item_id],
-             "body": hit.chunk.body, "score": hit.score} for hit in hits if hit.chunk.content_item_id in titles]
+    )).all()}
+    ids = list(dict.fromkeys(hit.chunk.content_item_id for hit in hits
+                             if hit.chunk.content_item_id in metadata))
+    top = metadata[ids[0]] if ids else None
+    return {"article_ids": [str(article_id) for article_id in ids],
+            "title": top.title if top else None, "summary": top.summary if top else None}
 
 
 @router.get("/templates")
