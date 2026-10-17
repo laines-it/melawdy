@@ -63,11 +63,11 @@ def test_query_prefix_and_document_encoding_follow_model_contract() -> None:
     assert model.encode.call_args.args[0] == [PASSAGE_PREFIX + "Текст документа"]
 
 
-def test_long_chunks_are_rejected_instead_of_silently_truncated() -> None:
+def test_long_queries_are_rejected_instead_of_silently_truncated() -> None:
     model = make_model()
     model.tokenizer.return_value = {"input_ids": [[1] * (EMBEDDING_MAX_TOKENS + 1)]}
     with pytest.raises(ValueError, match="512"):
-        LegalEmbedder(model).encode_documents(["Длинный текст"])
+        LegalEmbedder(model).encode_query("Длинный запрос")
     model.encode.assert_not_called()
 
 

@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -52,6 +53,16 @@ def test_local_model_override_is_loaded_offline(monkeypatch, tmp_path):
     monkeypatch.setitem(sys.modules, "sentence_transformers", SimpleNamespace(SentenceTransformer=factory))
     get_embedder(str(tmp_path))
     factory.assert_called_once_with(str(tmp_path), device="cpu", local_files_only=True, trust_remote_code=False)
+
+
+def test_release_image_loads_bundled_model_without_network(monkeypatch):
+    factory = Mock(return_value=model_stub())
+    monkeypatch.setitem(sys.modules, "sentence_transformers", SimpleNamespace(SentenceTransformer=factory))
+    monkeypatch.setattr(Path, "is_dir", lambda directory: str(directory) == "/opt/embedding-model")
+    get_embedder()
+    factory.assert_called_once_with(
+        "/opt/embedding-model", device="cpu", local_files_only=True, trust_remote_code=False,
+    )
 
 
 def test_missing_dependency_has_an_actionable_error(monkeypatch):
@@ -200,6 +211,7 @@ def test_indexing_preserves_batch_and_concurrent_edit_checks(monkeypatch, capsys
     row = SimpleNamespace(id=7, body="Текст для индексации", updated_at="revision")
     session = Mock(spec=Session)
     session.execute.side_effect = [Mock(all=lambda: [row]), Mock(rowcount=1), Mock(all=lambda: [])]
+    session.scalar.return_value = 0
     context = Mock()
     context.__enter__ = Mock(return_value=session)
     context.__exit__ = Mock(return_value=False)
@@ -214,4 +226,4 @@ def test_indexing_preserves_batch_and_concurrent_edit_checks(monkeypatch, capsys
     update = session.execute.call_args_list[1].args[0]
     assert "content_item_chunks.updated_at =" in str(update)
     assert update.compile().params["embedding"] == vector()
-    assert "Indexed 1 chunks" in capsys.readouterr().out
+    assert "Index ready: 1 chunks calculated" in capsys.readouterr().out
