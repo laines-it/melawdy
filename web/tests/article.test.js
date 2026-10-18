@@ -33,6 +33,7 @@ async function runtime(search, responses) {
       return elements.get(selector);
     },
     createElement: (tag) => new Element(tag),
+    createTextNode: (text) => ({ textContent: text }),
   };
   for (const selector of ["#article", "#retry-article", "#related-articles", "#article-empty"]) {
     document.querySelector(selector).hidden = true;
