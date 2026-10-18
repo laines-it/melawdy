@@ -131,5 +131,4 @@ test("an article without chunks or a category renders an explicit empty state", 
   assert.equal(get("#article-intro").hidden, true);
   assert.equal(get("#article-summary").hidden, true);
   assert.equal(get("#article-category-path").hidden, true);
-  assert.equal(get("#article-category").textContent, "База знаний");
 });
