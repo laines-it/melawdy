@@ -2,7 +2,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const request = window.MelawdyAPI.request;
   const status = document.querySelector("#upload-status");
   const list = document.querySelector("#templates-list");
-  const preview = document.querySelector("#template-preview");
   const more = document.querySelector("#more-templates");
   let offset = 0;
   const pageSize = 25;
@@ -31,21 +30,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const description = element("p", template.description || "");
         description.className = "template-desc";
         card.append(title, description);
-        const button = element("button", "Открыть шаблон →");
-        button.type = "button";
+        const button = element("a", "Создать документ →");
+        button.href = `./documents.html?template=${encodeURIComponent(template.id)}`;
         button.className = "template-download";
-        button.addEventListener("click", async () => {
-          button.disabled = true;
-          try {
-            const record = await request(`public/templates/${encodeURIComponent(template.id)}`);
-            preview.replaceChildren(element("h3", record.title), element("pre", record.body));
-            preview.hidden = false;
-          } catch (error) {
-            document.querySelector("#templates-status").textContent = error.message;
-          } finally {
-            button.disabled = false;
-          }
-        });
         card.append(button);
         list.append(card);
       }

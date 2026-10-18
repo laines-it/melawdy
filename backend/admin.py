@@ -46,7 +46,7 @@ def serialize(resource: Resource, record) -> dict:
 
 def validated(resource: Resource, payload: dict[str, Any]) -> dict:
     try:
-        return resource.schema.model_validate(payload).model_dump()
+        return resource.schema.model_validate(payload).model_dump(by_alias=True)
     except ValidationError as exc:
         raise HTTPException(422, jsonable_encoder(exc.errors(include_input=False, include_context=False))) from exc
 

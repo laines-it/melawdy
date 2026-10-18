@@ -1,5 +1,6 @@
 (function () {
   async function request(path, options = {}) {
+    const { responseType, ...fetchOptions } = options;
     const headers = { ...options.headers };
     if (options.body !== undefined) headers["Content-Type"] = "application/json";
     const csrfToken = window.ZPAuth?.getCsrfToken();
@@ -9,7 +10,7 @@
     let response;
     try {
       response = await fetch(`/api/v1/${path}`, {
-        ...options, headers, credentials: "same-origin", cache: "no-store",
+        ...fetchOptions, headers, credentials: "same-origin", cache: "no-store",
       });
     } catch {
       throw new Error("Сервер недоступен. Попробуйте ещё раз позже.");
@@ -24,6 +25,7 @@
       error.status = response.status;
       throw error;
     }
+    if (responseType === "blob") return response.blob();
     return response.status === 204 ? null : response.json();
   }
   window.MelawdyAPI = { request };

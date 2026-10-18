@@ -460,6 +460,25 @@ def create_coauthors_agreement(payload: AgreementIn, user: UserDep) -> Response:
     )
 
 
+@router.get("/documents/{document_id}/download")
+def download_document(document_id: RecordId, user: UserDep, session: SessionDep) -> Response:
+    doc = get_own_document(session, user, document_id)
+    template = session.get(DocumentTemplate, doc.template_id) if doc.template_id else None
+    if template is None:
+        raise HTTPException(404, "Шаблон документа больше недоступен")
+    params = doc.content_json or {}
+    text = (render_structure(template.structure_json, params)
+            if (template.structure_json or {}).get("blocks") else render_flat_body(template.body, params))
+    if not text.strip():
+        raise HTTPException(422, "Документ пуст: проверьте параметры шаблона")
+    return Response(
+        content=text_to_docx(text),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="document-{doc.id}.docx"',
+                 "Cache-Control": "no-store"},
+    )
+
+
 @router.post("/documents/generate")
 def generate_document(payload: GenerateDocumentIn, user: UserDep, session: SessionDep) -> Response:
     template = session.scalar(select(DocumentTemplate).where(DocumentTemplate.slug == payload.template_slug,
