@@ -1,6 +1,6 @@
-/* ========================================= */
-/* ЛИЧНЫЙ КАБИНЕТ                            */
-/* ========================================= */
+/* ============== */
+/* ЛИЧНЫЙ КАБИНЕТ */
+/* ============== */
 
 /* Hero-секция */
 .admin-hero {
@@ -423,11 +423,39 @@
 }
 
 .profile-actions .primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 52px;
   padding: 14px 18px;
   background: #D4E3F7;
   border-radius: 24px;
   font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  color: #0E0F12;
+  white-space: nowrap;
+}
+
+.profile-actions .primary-button:link,
+.profile-actions .primary-button:visited,
+.profile-actions .primary-button:hover,
+.profile-actions .primary-button:focus,
+.profile-actions .primary-button:active {
+  color: #0E0F12;
+  text-decoration: none;
+}
+
+.profile-actions .primary-button:hover {
+  background: #B8CEEE;
+}
+
+.profile-actions .primary-button span {
+  line-height: 1;
 }
 
 /* Панель управления */
@@ -657,4 +685,160 @@
   .admin-controls-actions .admin-field-inline {
     width: 100%;
   }
+}
+
+.account-block {
+  margin-bottom: 32px;
+}
+
+.account-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.account-block-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.account-link {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #0E0F12;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.account-link:hover {
+  color: #93ABD8;
+}
+
+.collapse-toggle {
+  background: none;
+  border: 1px solid #E0D6C4;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.collapse-toggle:hover {
+  background: #F9ECFF;
+}
+.collapse-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.admin-block-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-block-content[hidden] {
+  display: none !important;
+}
+
+.case-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.button-secondary.small {
+  min-height: 32px;
+  padding: 6px 16px;
+  font-size: 12px;
+  border-radius: 16px;
+}
+
+@media (max-width: 720px) {
+  .account-block-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .account-block-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ---- Кнопки профиля: центр, без подчёркивания, единый цвет ---- */
+.profile-actions .primary-button {
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  color: #0E0F12;
+  background: #D4E3F7;
+}
+
+.profile-actions .primary-button:hover,
+.profile-actions .primary-button:focus,
+.profile-actions .primary-button:visited,
+.profile-actions .primary-button:active {
+  color: #0E0F12;
+  text-decoration: none;
+  background: #B8CEEE;
+}
+
+/* ---- Заголовок раздела: кнопка сворачивания перед названием ---- */
+.account-block-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.account-block-header .admin-section-title {
+  margin: 0;
+}
+
+.account-block-header .account-link {
+  margin-left: auto;
+}
+
+/* Кнопка сворачивания: визуальная реакция */
+.collapse-toggle {
+  background: none;
+  border: 1px solid #E0D6C4;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.collapse-toggle:hover {
+  background: #F9ECFF;
+  border-color: #93ABD8;
+}
+
+.collapse-toggle:active {
+  transform: scale(0.92);
+}
+
+.collapse-toggle[aria-expanded="false"] {
+  background: #F9ECFF;
+  border-color: #93ABD8;
+}
+
+.collapse-icon {
+  font-size: 11px;
+  line-height: 1;
+  color: #0E0F12;
+  transition: transform 0.2s ease;
 }
