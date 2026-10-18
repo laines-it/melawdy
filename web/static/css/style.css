@@ -540,3 +540,36 @@ body {
     font-size: 22px;
   }
 }
+
+.site-header {
+  position: static;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-color);
+  height: 76px;
+  display: flex;
+  align-items: center;
+}
+
+.header-inner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand-name {
+  font-size: 36px;
+}
+
+.nav-link {
+  font-size: 15px;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border-color);
+  padding: 28px 72px;
+  background: var(--surface);
+}

@@ -12,11 +12,10 @@
 </head>
 <body class="article-page">
   <div class="page-shell">
-    <a class="skip-link" href="#article">К статье</a>
     <header class="site-header">
       <div class="container header-inner">
         <a href="/" class="brand">
-          <img src="./brand-mark.png" alt="" class="brand-mark">
+          <img src="./brand-mark.png" alt="Законпозитор" class="brand-mark" onerror="this.style.display='none'">
           <span class="brand-name">Законпозитор</span>
         </a>
         <nav class="main-nav" aria-label="Основная навигация">
@@ -26,7 +25,7 @@
           <a href="./admin.html" class="nav-link">О нас</a>
         </nav>
         <div class="header-actions">
-          <a class="article-search" href="./index.html#search" aria-label="Поиск по базе знаний">Поиск</a>
+          <a class="search-toggle" href="./search.html" aria-label="Поиск">⌕</a>
           <a href="./account.html" class="user-chip" data-user-name hidden></a>
           <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
         </div>
@@ -35,7 +34,7 @@
 
     <main class="article-shell">
       <nav class="article-breadcrumbs" aria-label="Хлебные крошки">
-        <a href="./index.html#materials">← База знаний</a>
+        <a href="./search.html">← К поиску</a>
         <span id="article-category-path" hidden></span>
       </nav>
 
@@ -43,41 +42,50 @@
 
       <div class="article-state" id="article-state" aria-busy="true">
         <h1 id="state-title">Загружаем статью…</h1>
-        <p id="state-message" role="status" aria-live="polite">Получаем материал из базы знаний.</p>
+        <p id="state-message" role="status" aria-live="polite">Получаем материал</p>
         <button id="retry-article" class="button-login" type="button" hidden>Попробовать снова</button>
-        <a href="./index.html#materials">Вернуться к материалам</a>
+        <a href="./search.html">Вернуться к поиску</a>
       </div>
 
       <article id="article" tabindex="-1" hidden aria-labelledby="article-title">
         <header class="article-heading">
-          <p class="article-meta"><span id="article-category">База знаний</span> · <span id="article-reading-time"></span></p>
+          <p class="article-meta">
+            <span id="article-category">Полезные материалы</span> · <span id="article-reading-time"></span>
+          </p>
           <h1 id="article-title"></h1>
-          <p id="article-summary" class="article-summary" hidden></p>
-          <p class="article-disclaimer">Общая информация, не индивидуальная юридическая консультация</p>
+          <div class="favorite-actions" id="favorite-actions">
+            <button class="fav-star" id="fav-btn" type="button" title="Добавить в избранное" aria-label="Добавить в избранное" aria-pressed="false">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </button>
+          </div>
         </header>
 
         <div class="article-layout">
+          <div class="article-copy">
+            <section id="article-intro" class="article-card article-intro" aria-label="Вводный раздел" hidden>
+              <p class="article-eyebrow">В этой статье</p>
+              <p id="article-summary" class="article-summary" hidden></p>
+            </section>
+            <div id="article-chunks" class="article-chunks"></div>
+            <p id="article-empty" class="article-empty" hidden>Текст статьи пока не добавлен.</p>
+            <div class="article-footer-links">
+              <a class="article-back" href="./search.html">Читать ещё →</a>
+            </div>
+          </div>
+
           <aside class="article-sidebar" aria-label="Дополнительные материалы">
             <section class="article-card article-help">
               <h2>Разберитесь в правах на музыку</h2>
               <p>Авторство, договоры и регистрация: ответы на ваши вопросы о правах на музыку.</p>
-              <a href="./index.html#materials">Все материалы →</a>
+              <a href="./index.html#materials" class="article-sidebar-link">Все материалы →</a>
             </section>
             <section id="related-articles" class="article-card article-related" hidden>
               <h2>Читайте также</h2>
               <ul id="related-articles-list"></ul>
             </section>
           </aside>
-
-          <div class="article-copy">
-            <section id="article-intro" class="article-card article-intro" aria-label="Вводный раздел" hidden>
-              <p class="article-eyebrow">В этой статье</p>
-              <div id="article-intro-body"></div>
-            </section>
-            <div id="article-chunks" class="article-chunks"></div>
-            <p id="article-empty" class="article-empty" hidden>Текст статьи пока не добавлен.</p>
-            <a class="article-back" href="./index.html#materials">← Все статьи</a>
-          </div>
         </div>
       </article>
     </main>
@@ -88,6 +96,7 @@
       </div>
     </footer>
   </div>
+
   <script src="./js/api.js" defer></script>
   <script src="./js/auth.js" defer></script>
   <script src="./js/article.js" defer></script>
