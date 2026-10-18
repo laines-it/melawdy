@@ -102,11 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const open = element("a", "Открыть документ →");
       open.className = "case-link";
-      open.href = "#"; // TODO: ссылка на конструктор, когда появится
-      open.addEventListener("click", (event) => {
-        event.preventDefault();
-        document.querySelector("#status").textContent = "Просмотр документа пока недоступен.";
-      });
+      open.href = `./documents.html?document=${encodeURIComponent(doc.id)}`;
 
       footer.append(statusBtn, open);
       card.append(head, meta, footer);

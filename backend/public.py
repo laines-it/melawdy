@@ -60,7 +60,9 @@ def read_template(template_id: int, session: SessionDep) -> dict:
         DocumentTemplate.id == template_id, DocumentTemplate.is_active.is_(True)))
     if item is None:
         raise HTTPException(404, "Шаблон не найден")
-    return {"id": str(item.id), "title": item.title, "description": item.description, "body": item.body}
+    return {"id": str(item.id), "title": item.title, "description": item.description, "body": item.body,
+            "slug": item.slug, "document_type": item.document_type,
+            "schema_json": item.schema_json or {}, "structure_json": item.structure_json or {}}
 
 
 @router.get("/articles")

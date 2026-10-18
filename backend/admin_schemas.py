@@ -114,6 +114,8 @@ class TemplateInput(Input):
     body: Body
     file_path: Annotated[str, Field(max_length=1024)] | None = None
     is_active: bool = True
+    constructor_schema: dict[str, Any] = Field(default_factory=dict, alias="schema_json")
+    structure_json: dict[str, Any] = Field(default_factory=dict)
 
 
 class ApplicationTypeInput(Input):

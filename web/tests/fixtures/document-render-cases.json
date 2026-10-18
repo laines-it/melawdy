@@ -1,0 +1,10 @@
+[
+  { "name": "nested values, empty and missing values", "template": { "body": "{{author.name}} — {{share}}%; {{empty}} / {{missing}}" }, "params": { "author": { "name": "Иванов" }, "share": 0, "empty": "" }, "expected": "Иванов — 0%; __________ / __________" },
+  { "name": "conditional structured blocks replace flat body", "template": { "body": "ignored", "structure_json": { "blocks": [{ "id": "title", "template": "СОГЛАШЕНИЕ" }, { "when": "license == exclusive", "template": "Исключительная: {{title}}" }, { "when": "license != exclusive", "template": "Простая" }] } }, "params": { "license": "exclusive", "title": "Песня" }, "expected": "СОГЛАШЕНИЕ\n\nИсключительная: Песня" },
+  { "name": "booleans use the backend condition rules", "template": { "structure_json": { "blocks": [{ "when": "proxy == true", "template": "Представитель: {{proxy}}" }, { "when": "proxy == false", "template": "Лично" }, { "when": "broken expression", "template": "hidden" }] } }, "params": { "proxy": true }, "expected": "Представитель: True" },
+  { "name": "missing boolean is false", "template": { "structure_json": { "blocks": [{ "when": "proxy != true", "template": "Лично" }, { "when": "proxy == true", "template": "Представитель" }] } }, "params": {}, "expected": "Лично" },
+  { "name": "stored markup remains literal text", "template": { "body": "{{name}}" }, "params": { "name": "<img src=x onerror=alert(1)>" }, "expected": "<img src=x onerror=alert(1)>" },
+  { "name": "empty structure falls back to body", "template": { "body": "г. {{ city }}", "structure_json": { "blocks": [] } }, "params": { "city": "Москва" }, "expected": "г. Москва" },
+  { "name": "conditions accept Cyrillic values", "template": { "structure_json": { "blocks": [{ "when": "license == исключительная", "template": "Исключительная лицензия" }] } }, "params": { "license": "исключительная" }, "expected": "Исключительная лицензия" },
+  { "name": "nonliteral boolean comparison uses Python text", "template": { "structure_json": { "blocks": [{ "when": "proxy == True", "template": "Представитель" }] } }, "params": { "proxy": true }, "expected": "Представитель" }
+]
