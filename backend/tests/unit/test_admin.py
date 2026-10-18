@@ -25,7 +25,9 @@ def test_every_admin_route_is_protected_and_resources_are_allowlisted():
     assert error.value.status_code == 404
     for resource in RESOURCES.values():
         fields = metadata(resource)["fields"]
-        assert {field["name"] for field in fields} == set(resource.schema.model_fields)
+        assert {field["name"] for field in fields} == {
+            field.alias or name for name, field in resource.schema.model_fields.items()
+        }
         assert not ({"password_hash", "embedding", "tsv", "created_by"} & set(resource.schema.model_fields))
     assert next(field for field in metadata(RESOURCES["fee-rates"])["fields"]
                 if field["name"] == "amount")["kind"] == "decimal"

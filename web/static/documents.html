@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Конструктор документов — Законпозитор</title>
+  <link rel="icon" type="image/png" href="./brand-mark.png">
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/melawdy.css">
+  <link rel="stylesheet" href="./css/documents.css">
+</head>
+<body class="documents-page">
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="/" class="brand">
+          <img src="./brand-mark.png" alt="" class="brand-mark">
+          <span class="brand-name">Законпозитор</span>
+        </a>
+        <nav class="main-nav" aria-label="Основная навигация">
+          <a href="./documents.html" class="nav-link" aria-current="page">Конструктор договоров</a>
+          <a href="./calculator.html" class="nav-link">Калькулятор</a>
+          <a href="./search.html" class="nav-link">Полезные материалы</a>
+          <a href="./admin.html" class="nav-link">О нас</a>
+        </nav>
+        <div class="header-actions">
+          <a class="search-toggle" href="./search.html" aria-label="Поиск">⌕</a>
+          <a href="./account.html" class="user-chip" data-user-name hidden></a>
+          <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="documents-main">
+      <section id="catalog" class="document-catalog" aria-labelledby="catalog-title">
+        <p class="document-eyebrow">Договорённости на бумаге</p>
+        <h1 id="catalog-title">Конструктор документов</h1>
+        <p class="catalog-description">Выберите документ, заполните условия и скачайте готовый файл. Текст будет меняться вместе с вашими ответами.</p>
+        <div id="template-list" class="document-template-grid"></div>
+        <button id="more-templates" class="document-secondary" type="button" hidden>Показать ещё</button>
+      </section>
+
+      <section id="editor" aria-labelledby="document-heading" hidden>
+        <div class="document-topbar">
+          <a class="document-back" href="./documents.html">← <span>Выбор документа</span></a>
+          <h1 id="document-heading"></h1>
+          <a class="document-account" href="./account.html">Мои документы ↗</a>
+        </div>
+        <div class="document-workspace">
+          <aside class="document-panel document-sidebar" aria-label="Навигация по документу">
+            <div class="document-view-switch" role="group" aria-label="Режим просмотра">
+              <button id="builder-view" type="button" aria-pressed="true">Конструктор</button>
+              <button id="text-view" type="button" aria-pressed="false">Текст</button>
+            </div>
+            <h2>Разделы</h2>
+            <nav id="document-sections" aria-label="Разделы документа"></nav>
+            <div class="document-progress">
+              <div><span>Заполнено</span><strong id="progress-label">0 из 0</strong></div>
+              <progress id="document-progress" value="0" max="1" aria-label="Заполненность документа"></progress>
+              <p>Черновик можно сохранить на любом этапе.</p>
+            </div>
+          </aside>
+
+          <section class="document-panel document-preview-panel" aria-labelledby="preview-heading">
+            <div class="document-panel-heading">
+              <h2 id="preview-heading">Документ</h2>
+              <button id="expand-document" class="document-secondary" type="button">⛶ <span>Полный размер</span></button>
+            </div>
+            <div class="document-preview-scroll" id="preview-scroll">
+              <article id="document-preview" class="document-paper" aria-label="Предпросмотр документа"></article>
+            </div>
+            <div class="document-preview-footer"><span class="preview-dot" aria-hidden="true"></span>Предпросмотр обновляется при заполнении</div>
+          </section>
+
+          <section id="parameters-panel" class="document-panel document-parameters" aria-labelledby="parameters-heading">
+            <h2 id="parameters-heading">Параметры документа</h2>
+            <p class="document-notice"><span aria-hidden="true">ⓘ</span> Заполните условия, и текст документа сформируется автоматически.</p>
+            <form id="document-form" novalidate>
+              <div class="document-field document-title-field">
+                <label for="document-title">Название документа</label>
+                <input id="document-title" name="title" maxlength="500" required>
+              </div>
+              <div id="document-fields"></div>
+              <div class="document-step-actions">
+                <button id="previous-section" class="document-secondary" type="button">← Назад</button>
+                <button id="next-section" class="document-secondary" type="button">Далее →</button>
+              </div>
+              <p class="document-notice document-warning"><span aria-hidden="true">!</span> Проверьте данные сторон и полномочия их представителей перед подписанием.</p>
+              <button id="generate-document" class="document-primary" type="submit">Собрать документ <span aria-hidden="true">→</span></button>
+              <button id="save-document" class="document-save" type="button">Сохранить черновик</button>
+              <p id="save-state" class="document-save-state" role="status" aria-live="polite">Черновик ещё не сохранён</p>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section id="document-state" class="document-empty" aria-live="polite" aria-busy="true">
+        <span class="document-state-icon" aria-hidden="true">▤</span>
+        <h2 id="state-title">Загружаем шаблоны…</h2>
+        <p id="state-description">Подбираем документы для ваших договорённостей.</p>
+        <button id="retry-documents" class="document-secondary" type="button" hidden>Попробовать ещё раз</button>
+        <button id="login-to-open" class="document-primary" type="button" hidden>Войти в аккаунт →</button>
+      </section>
+      <p id="status" class="document-status" role="status" aria-live="polite"></p>
+    </main>
+
+    <footer class="site-footer"><div class="container footer-inner"><p>© 2026 Законпозитор. Юридический помощник для музыкантов.<br>Информация носит справочный характер.</p></div></footer>
+  </div>
+
+  <dialog id="preview-dialog" class="document-dialog" aria-labelledby="full-preview-heading">
+    <div class="document-panel-heading"><h2 id="full-preview-heading">Просмотр документа</h2><form method="dialog"><button class="document-secondary" aria-label="Закрыть просмотр">Закрыть ×</button></form></div>
+    <article id="full-preview" class="document-paper"></article>
+  </dialog>
+  <dialog id="login-dialog" class="document-login-dialog" aria-labelledby="document-login-heading">
+    <form method="dialog" class="document-dialog-close"><button class="document-secondary" aria-label="Закрыть вход">×</button></form>
+    <h2 id="document-login-heading">Сохраните свои договорённости</h2>
+    <p>Войдите, чтобы сохранить документ в личном кабинете и скачать DOCX. Заполненные поля останутся на месте.</p>
+    <form id="document-login-form">
+      <div class="document-field"><label for="document-email">Электронная почта</label><input id="document-email" type="email" autocomplete="username" required maxlength="254"></div>
+      <div class="document-field"><label for="document-password">Пароль</label><input id="document-password" type="password" autocomplete="current-password" required maxlength="1024"></div>
+      <p id="document-login-status" role="alert"></p>
+      <button id="document-login-submit" class="document-primary" type="submit">Войти →</button>
+    </form>
+    <p><a href="./register.html" target="_blank" rel="noopener">Создать аккаунт в новой вкладке ↗</a></p>
+  </dialog>
+  <script src="./js/api.js" defer></script>
+  <script src="./js/auth.js" defer></script>
+  <script src="./js/document-model.js" defer></script>
+  <script src="./js/documents.js" defer></script>
+</body>
+</html>

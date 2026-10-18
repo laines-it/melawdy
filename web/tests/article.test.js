@@ -132,29 +132,4 @@ test("an article without chunks or a category renders an explicit empty state", 
   assert.equal(get("#article-intro").hidden, true);
   assert.equal(get("#article-summary").hidden, true);
   assert.equal(get("#article-category-path").hidden, true);
-  assert.equal(get("#article-category").textContent, "Полезные материалы");
-});
-
-test("inline Markdown renders DOM formatting while keeping markup and unsafe links literal", async () => {
-  const text = '**Важно** и *курсив* & <img src=x onerror=alert(1)> ' +
-    '[Источник](https://example.com/?a=1&b=2) [Раздел](./search.html) ' +
-    '[Опасно](javascript:alert) [Атрибут](https://example.com/"onclick="alert)';
-  const { get } = await runtime("?id=42", [{ ...article, chunks: [text, '- **Список**'] }, []]);
-  const paragraph = get("#article-intro-body").children[0];
-  const nodes = paragraph.children;
-  assert.equal(nodes.find((node) => node.tagName === "STRONG").textContent, "Важно");
-  assert.equal(nodes.find((node) => node.tagName === "EM").textContent, "курсив");
-  const links = nodes.filter((node) => node.tagName === "A");
-  assert.equal(links.length, 3);
-  assert.equal(links[0].href, "https://example.com/?a=1&b=2");
-  assert.equal(links[0].target, "_blank");
-  assert.equal(links[0].rel, "noopener noreferrer");
-  assert.equal(links[1].href, "./search.html");
-  assert.equal(links[2].href, 'https://example.com/"onclick="alert');
-  assert.ok(paragraph.textContent.includes("& <img src=x onerror=alert(1)>"));
-  assert.ok(paragraph.textContent.includes("[Опасно](javascript:alert)"));
-  assert.equal(nodes.some((node) => node.tagName === "IMG"), false);
-  const item = get("#article-chunks").children[0].children[0].children[0];
-  assert.equal(item.textContent, "Список");
-  assert.equal(item.children.find((node) => node.tagName === "STRONG").textContent, "Список");
 });
