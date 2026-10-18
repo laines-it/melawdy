@@ -25,6 +25,49 @@
 содержания остаются под управлением администратора. Шаблоны автоматически в
 базу не добавляются.
 
+### Импорт скриптом
+
+Использованный для добавления соглашения импорт вынесен в `backend/import_template.py`.
+Он проверяет JSON через `TemplateInput`, добавляет запись транзакцией с
+`ON CONFLICT (slug) DO NOTHING` и выводит ID и число разделов/блоков.
+Повторный запуск выводит `"created": false`, сохраняя существующую запись,
+включая изменения администратора. Пароли не встроены в скрипт: используются
+`POSTGRES_*` из окружения и локального `.env`, как у API.
+
+В PowerShell из корня репозитория, с установленными Python-зависимостями проекта:
+
+```powershell
+# Посмотреть запущенные контейнеры и версию схемы БД.
+docker compose ps
+docker compose exec -T postgres psql -U melawdy_app -d melawdy -X -c "SELECT version_num FROM alembic_version;"
+
+# Добавить соглашение соавторов в БД из настроек backend/config.py.
+.\.venv\Scripts\python.exe -m backend.import_template
+
+# Или явно указать JSON другого шаблона.
+.\.venv\Scripts\python.exe -m backend.import_template docs/examples/coauthors-template.json
+
+# Проверить опубликованный шаблон через сайт.
+Invoke-RestMethod 'http://localhost:8080/api/v1/public/templates'
+```
+
+Для локального Compose без `.env` используются `localhost:5432`, база `melawdy`
+и роль `melawdy_app`. Если они переопределены, задайте соответствующие `POSTGRES_*`
+для локального Python. В команде `psql` выше также замените роль/базу на свои.
+
+Чтобы использовать подключение уже работающего API-контейнера, скопируйте в него
+скрипт и JSON. Пересборка образа не требуется:
+
+```powershell
+docker compose cp backend/import_template.py api:/tmp/import_template.py
+docker compose cp docs/examples/coauthors-template.json api:/tmp/coauthors-template.json
+docker compose exec -T api python /tmp/import_template.py /tmp/coauthors-template.json
+```
+
+API-контейнер должен иметь актуальные модели и миграцию `0008_template_constructor`.
+В Linux с локальным Python эквивалентная команда:
+`python -m backend.import_template docs/examples/coauthors-template.json`.
+
 `schema_json.sections` — массив разделов в порядке отображения:
 
 | Поле | Назначение |
