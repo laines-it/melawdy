@@ -72,7 +72,7 @@ rollback() {
 trap rollback ERR
 kube set image deployment/api "api=$new_api"
 kube set image deployment/web "web=$new_web"
-kube rollout status deployment/api --timeout=180s
+kube rollout status deployment/api --timeout=900s
 kube rollout status deployment/web --timeout=180s
 curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 15 \
     --resolve lawmposer.ru:443:127.0.0.1 https://lawmposer.ru/api/v1/public/articles > /dev/null

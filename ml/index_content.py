@@ -1,6 +1,6 @@
 import argparse
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from backend.config import get_settings
 from backend.db import SessionLocal
@@ -16,7 +16,7 @@ def main() -> None:
     if not 1 <= args.batch_size <= 128:
         parser.error("batch-size must be between 1 and 128")
     settings = get_settings()
-    embedder = get_embedder(settings.embedding_model_path, settings.embedding_device)
+    embedder = None
     last_id = 0
     indexed = 0
     with SessionLocal() as session:
@@ -31,17 +31,26 @@ def main() -> None:
             rows = session.execute(statement).all()
             if not rows:
                 break
+            if embedder is None:
+                print("Loading embedding model", flush=True)
+                embedder = get_embedder(settings.embedding_model_path, settings.embedding_device)
             vectors = embedder.encode_documents([row.body for row in rows])
             for row, vector in zip(rows, vectors, strict=True):
                 result = session.execute(
                     update(ContentItemChunk)
-                    .where(ContentItemChunk.id == row.id, ContentItemChunk.updated_at == row.updated_at)
+                    .where(ContentItemChunk.id == row.id, ContentItemChunk.updated_at == row.updated_at,
+                           ContentItemChunk.body == row.body)
                     .values(embedding=vector)
                 )
                 indexed += result.rowcount
             session.commit()
             last_id = rows[-1].id
-    print(f"Indexed {indexed} chunks; concurrently edited chunks are retried on the next run")
+            print(f"Indexed {indexed} chunks; last chunk id: {last_id}", flush=True)
+        missing = session.scalar(select(func.count()).select_from(ContentItemChunk)
+                                 .where(ContentItemChunk.embedding.is_(None)))
+        if missing:
+            raise RuntimeError(f"{missing} chunks still lack embeddings; rerun indexing after concurrent edits")
+    print(f"Index ready: {indexed} chunks calculated; no missing embeddings", flush=True)
 
 
 if __name__ == "__main__":

@@ -32,6 +32,11 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_FULL_NAME: ${ADMIN_FULL_NAME:-Администратор}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      EMBEDDING_MODEL_PATH: ${EMBEDDING_MODEL_PATH:-}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
+      SEARCH_MIN_SIMILARITY: ${SEARCH_MIN_SIMILARITY:-0.40}
+    volumes:
+      - model_cache:/opt/hf-cache
     ports:
       - "127.0.0.1:${API_PORT:-8081}:8000"
     depends_on:
@@ -42,7 +47,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 900s
     restart: unless-stopped
 
   postgres:
@@ -87,5 +92,6 @@ services:
     restart: unless-stopped
 
 volumes:
+  model_cache:
   postgres_data:
   minio_data:

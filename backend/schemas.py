@@ -42,3 +42,10 @@ class AnalyzeResponse(BaseModel):
     status: str
     model_ready: bool
     message: str
+
+
+class SearchResponse(BaseModel):
+    article_id: str
+    title: str
+    body: str
+    summary: str | None

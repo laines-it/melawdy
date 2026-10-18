@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, or_, select
@@ -9,6 +9,9 @@ from backend.content_repository import ContentSearchRepository
 from backend.models import (
     AssessmentQuestion, AssessmentSurvey, ContentItem, ContentStatus, DocumentTemplate, QAPair,
 )
+from backend.schemas import SearchResponse
+from ml.embedding_search import search_embeddings
+from ml.embeddings import EmbeddingConfigurationError
 from ml.tfidf import TfidfIndex
 
 router = APIRouter(prefix="/api/v1/public", tags=["public"])
@@ -30,20 +33,32 @@ def list_faq(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 4
              "content_item_id": str(item.content_item_id) if item.content_item_id else None} for item in items]
 
 
-@router.get("/search")
+@router.get("/search", response_model=list[SearchResponse])
 def search(session: SessionDep, query: Annotated[str, Query(min_length=1, max_length=1000)],
-           limit: Annotated[int, Query(ge=1, le=100)] = 10) -> list[dict]:
+           limit: Annotated[int, Query(ge=1, le=100)] = 10,
+           method: Literal["embeddings", "tfidf"] = "embeddings") -> list[dict]:
     if not query.strip():
         raise HTTPException(422, "Введите поисковый запрос")
-    hits = TfidfIndex(ContentSearchRepository(session).list_chunks()).search(query, limit)
+    try:
+        hits = (search_embeddings(query, session=session, limit=limit) if method == "embeddings"
+                else TfidfIndex(ContentSearchRepository(session).list_chunks()).search(query, limit))
+    except EmbeddingConfigurationError as exc:
+        raise HTTPException(503, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     if not hits:
         return []
-    titles = dict(session.execute(select(ContentItem.id, ContentItem.title).where(
+    metadata = {row.id: row for row in session.execute(select(
+        ContentItem.id, ContentItem.title, ContentItem.summary,
+    ).where(
         ContentItem.id.in_({hit.chunk.content_item_id for hit in hits}),
         ContentItem.status == ContentStatus.PUBLISHED, ContentItem.published_at <= func.now(),
-    )).all())
-    return [{"article_id": str(hit.chunk.content_item_id), "title": titles[hit.chunk.content_item_id],
-             "body": hit.chunk.body, "score": hit.score} for hit in hits if hit.chunk.content_item_id in titles]
+    )).all()}
+    ids = list(dict.fromkeys(hit.chunk.content_item_id for hit in hits
+                             if hit.chunk.content_item_id in metadata))
+    return [{"article_id": str(article_id), "title": metadata[article_id].title,
+             "body": metadata[article_id].summary or "", "summary": metadata[article_id].summary}
+            for article_id in ids]
 
 
 @router.get("/templates")
