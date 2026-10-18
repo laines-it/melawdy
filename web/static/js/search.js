@@ -6,8 +6,50 @@ document.addEventListener("DOMContentLoaded", () => {
   const results = document.querySelector("#search-results");
   let searchVersion = 0;
 
+  // ---- Мини-markdown → DOM (inline) ----
+  // Поддерживает **bold**, *italic*, [text](url), `code`.
+  // Возвращает DocumentFragment с инлайн-узлами (без <p>-обёрток).
+  function renderInlineMarkdown(text) {
+    const fragment = document.createDocumentFragment();
+    const src = String(text ?? "");
+
+    const tokens = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`|\[([^\]]+)\]\s*\(([^)\s]+)\)/g;
+    let offset = 0;
+    for (const match of src.matchAll(tokens)) {
+      fragment.append(document.createTextNode(src.slice(offset, match.index)));
+      if (match[1] !== undefined || match[2] !== undefined) {
+        const node = document.createElement(match[1] !== undefined ? "strong" : "em");
+        node.textContent = match[1] ?? match[2];
+        fragment.append(node);
+      } else if (match[3] !== undefined) {
+        const code = document.createElement("code");
+        code.textContent = match[3];
+        fragment.append(code);
+      } else if (match[4] !== undefined) {
+        if (/^(https?:\/\/|mailto:|\/(?![\/\\])|\.\.?\/|#|\?)/i.test(match[5]) && !/[\\\u0000-\u0020]/.test(match[5])) {
+          const link = document.createElement("a");
+          link.textContent = match[4];
+          link.href = match[5];
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          fragment.append(link);
+        } else {
+          fragment.append(document.createTextNode(match[0]));
+        }
+      }
+      offset = match.index + match[0].length;
+    }
+    fragment.append(document.createTextNode(src.slice(offset)));
+    return fragment;
+  }
+
+  // Рендерит markdown в контейнер, сохраняя className.
+  function setMarkdown(el, text) {
+    if (!el) return;
+    el.replaceChildren(renderInlineMarkdown(text));
+  }
+
   // Эвристика: бэк возвращает { article_id, title, body }.
-  // Если в будущем появится type/type_label/inside_label — используем их.
   function labelFor(record) {
     if (record.type_label) return record.type_label;
     const map = {
@@ -57,16 +99,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     head.append(arrow);
 
+    // Заголовок — markdown-inline
     const title = element("h2", "search-card-title");
     if (href) {
-      const titleLink = element("a", null, record.title || "Без названия");
+      const titleLink = element("a");
       titleLink.href = href;
+      titleLink.replaceChildren(renderInlineMarkdown(record.title || "Без названия"));
       title.append(titleLink);
     } else {
-      title.textContent = record.title || "Без названия";
+      title.replaceChildren(renderInlineMarkdown(record.title || "Без названия"));
     }
 
-    const body = element("p", "search-card-body", record.body || "");
+    // Описание — markdown-inline
+    const body = element("p", "search-card-body");
+    body.replaceChildren(renderInlineMarkdown(record.body || ""));
     if (record.body) body.title = record.body;
 
     const foot = element("div", "search-card-foot");
@@ -88,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
     box.append(document.createTextNode(
       query
         ? `По запросу «${query}» материалов не найдено. Попробуйте переформулировать.`
-        : "Введите вопрос, чтобы найти материалы."
+        : "Пока нет опубликованных статей. Загляните позже."
     ));
     results.replaceChildren(box);
   }
@@ -96,21 +142,32 @@ document.addEventListener("DOMContentLoaded", () => {
   async function runSearch(query) {
     const currentVersion = ++searchVersion;
     status.textContent = "";
-    if (!query) {
-      results.hidden = true;
-      results.replaceChildren();
-      return;
-    }
     results.hidden = false;
-    status.textContent = "Поиск…";
+
+    const isBrowse = !query;
+    if (!isBrowse) status.textContent = "Поиск…";
+
     try {
-      const records = await request(`public/search?query=${encodeURIComponent(query)}`);
+      let records;
+      if (isBrowse) {
+        const articles = await request("public/articles?limit=50&offset=0");
+        records = articles.map((r) => ({
+          article_id: r.id,
+          title: r.title,
+          body: r.summary || r.body || "",
+          type: "article",
+        }));
+      } else {
+        records = await request(`public/search?query=${encodeURIComponent(query)}`);
+      }
       if (currentVersion !== searchVersion) return;
+
       if (!records.length) {
         status.textContent = "";
         renderEmpty(query);
         return;
       }
+
       status.textContent = "";
       const fragment = document.createDocumentFragment();
       records.forEach((record, index) => fragment.append(renderCard(record, index)));
@@ -123,7 +180,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Сабмит: обновляем URL (без перезагрузки) и запускаем поиск.
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const query = input.value.trim();
@@ -134,14 +190,10 @@ document.addEventListener("DOMContentLoaded", () => {
     runSearch(query);
   });
 
-  // Deep-link: если пришли с index.html с ?query=... — сразу ищем.
   const initialQuery = new URLSearchParams(window.location.search).get("query") || "";
-  if (initialQuery) {
-    input.value = initialQuery;
-    runSearch(initialQuery.trim());
-  }
+  if (initialQuery) input.value = initialQuery;
+  runSearch(initialQuery.trim());
 
-  // Кнопки «Назад/Вперёд» браузера — синхронизируем состояние.
   window.addEventListener("popstate", () => {
     const query = new URLSearchParams(window.location.search).get("query") || "";
     input.value = query;

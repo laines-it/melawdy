@@ -501,3 +501,48 @@ html, body { margin: 0; padding: 0; }
   color: #385F9D;               /* при наведении — синий */
   text-decoration-color: #385F9D;
 }
+
+.footnote-ref {
+  font-size: 0.65em;
+  vertical-align: super;
+  line-height: 0;
+  text-decoration: none;
+  color: #385F9D;
+  padding: 0 1px;
+}
+.footnote-ref:hover { text-decoration: underline; }
+.article-footnotes {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+.article-footnotes h2 {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  margin: 0 0 12px;
+}
+.article-footnotes ol {
+  font-size: 15px;
+  line-height: 1.5;
+  padding-left: 24px;
+}
+.article-footnotes li { scroll-margin-top: 20px; }
+.footnote-back { text-decoration: none; color: #385F9D; margin-left: 4px; }
+
+.article-heading h1 p,
+.article-summary p { margin: 0; display: inline; }
+.article-summary p { margin: 0 0 8px; }
+.article-summary p + p { display: block; margin-top: 6px; }
+.article-related a p { display: inline; margin: 0; }
+
+@media (min-width: 1201px) {
+  .article-sidebar {
+    top: 100px; /* было 20px — опускаем под зону звёздочки */
+  }
+}
+
+@media (min-width: 1201px) {
+  .article-help { margin-top: 40px; }
+}
+
+.article-sidebar { margin-top: 16px; }
