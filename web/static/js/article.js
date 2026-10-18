@@ -436,7 +436,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const retryEl = $("#retry-article");
-  if (retryEl) retryEl.addEventListener("click", () => { load(); });
+  if (retryEl) retryEl.addEventListener("click", load);
 
   if (!id || !/^[1-9]\d*$/.test(id) || BigInt(id) > 9223372036854775807n) {
     show(state);
