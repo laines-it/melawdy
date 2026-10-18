@@ -4,7 +4,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const offsets = { articles: 0, surveys: 0 };
   const loading = new Set();
   const pageSize = 25;
-  let searchVersion = 0;
 
   function message(error) { status.textContent = error.message; }
   function node(tag, text) {
@@ -104,28 +103,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  document.querySelector("#search-form").addEventListener("submit", async (event) => {
+  document.querySelector("#search-form").addEventListener("submit", (event) => {
     event.preventDefault();
-    const currentVersion = ++searchVersion;
     const query = document.querySelector("#search-query").value.trim();
-    const list = document.querySelector("#search-results");
-    list.replaceChildren();
     if (!query) return;
-    list.hidden = false;
-    document.querySelector("#search-status").textContent = "Поиск…";
-    try {
-      const records = await request(`public/search?query=${encodeURIComponent(query)}`);
-      if (currentVersion !== searchVersion) return;
-      document.querySelector("#search-status").textContent = records.length ? "" : "Ничего не найдено.";
-      for (const record of records) {
-        const item = document.createElement("article");
-        item.append(articleLink(record.article_id, record.title), node("p", record.body));
-        list.append(item);
-      }
-    } catch (error) {
-      if (currentVersion === searchVersion) document.querySelector("#search-status").textContent = error.message;
-    }
+    window.location.href = `./search.html?query=${encodeURIComponent(query)}`;
   });
+
   document.querySelector("#reload-articles").addEventListener("click", () => load("articles", true).catch(message));
   for (const kind of ["articles", "surveys"]) {
     document.querySelector(`#more-${kind}`).addEventListener("click", () => load(kind).catch(message));
