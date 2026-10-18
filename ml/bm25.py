@@ -20,12 +20,7 @@ def _normalize(text: str) -> str:
 
 
 class Bm25Index:
-    """Lucene BM25 with Russian stemming and the same result types as TfidfIndex.
-
-    Build once and reuse for queries. The caller selects eligible chunks and
-    rebuilds the index when the corpus changes. Stopwords are retained, including
-    negations; numbers and hyphenated references such as 152-ФЗ remain searchable.
-    """
+    """Lucene BM25 with Russian stemming and reusable corpus statistics."""
 
     def __init__(self, chunks: Sequence[SearchChunk], *, k1: float = 1.5, b: float = 0.75) -> None:
         if not math.isfinite(k1) or k1 <= 0:
@@ -59,7 +54,7 @@ class Bm25Index:
             raise ValueError("Limit must be between 1 and 100")
         if self._index is None:
             return []
-        stems = self._stemmer.stemWords(_TOKEN_PATTERN.findall(_normalize(query)))
+        stems = self.terms(query)
         tokens = [self._vocab[stem] for stem in stems if stem in self._vocab]
         if not tokens:
             return []
@@ -69,3 +64,6 @@ class Bm25Index:
             key=lambda index: (-float(scores[index]), self.chunks[index].id),
         )[:limit]
         return [SearchHit(self.chunks[index], float(scores[index])) for index in ranked]
+
+    def terms(self, text: str) -> list[str]:
+        return self._stemmer.stemWords(_TOKEN_PATTERN.findall(_normalize(text)))

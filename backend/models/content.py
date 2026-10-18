@@ -102,6 +102,31 @@ class ContentItemChunk(BigIntPrimaryKey, UpdatedAt, Base):
     content_item: Mapped[ContentItem] = relationship(back_populates="chunks")
 
 
+class ContentSearchIndex(Base):
+    __tablename__ = "content_search_indexes"
+
+    content_item_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("content_items.id", ondelete="CASCADE"), primary_key=True,
+    )
+    source_hash: Mapped[str] = mapped_column(String(64))
+
+
+class ContentSearchFragment(BigIntPrimaryKey, Base):
+    __tablename__ = "content_search_fragments"
+    __table_args__ = (
+        UniqueConstraint("content_item_id", "position"),
+        CheckConstraint("position >= 0", name="position_nonnegative"),
+        CheckConstraint("btrim(body) <> ''", name="body_not_blank"),
+    )
+
+    content_item_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("content_search_indexes.content_item_id", ondelete="CASCADE"), index=True,
+    )
+    position: Mapped[int] = mapped_column(Integer)
+    body: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[list[float]] = mapped_column(VECTOR(EMBEDDING_DIMENSIONS))
+
+
 class ContentTag(BigIntPrimaryKey, Base):
     __tablename__ = "content_tags"
 

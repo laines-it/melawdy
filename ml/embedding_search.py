@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from ml.embeddings import get_embedder
+from ml.hybrid_search import get_search_index
 from ml.tfidf import SearchHit
 
 if TYPE_CHECKING:
@@ -9,7 +10,7 @@ if TYPE_CHECKING:
 
 def search_embeddings(query: str, *, session: "Session | None" = None,
                       limit: int = 10) -> list[SearchHit]:
-    """Rank published articles by their closest chunk using local E5 embeddings."""
+    """Combine contextual E5 embeddings and BM25 for published articles."""
     if not query.strip():
         raise ValueError("Query must not be blank")
     if not 1 <= limit <= 100:
@@ -24,5 +25,8 @@ def search_embeddings(query: str, *, session: "Session | None" = None,
     from backend.config import get_settings
 
     settings = get_settings()
+    fragments = ContentSearchRepository(session).list_search_fragments()
+    if not fragments:
+        return []
     vector = get_embedder(settings.embedding_model_path, settings.embedding_device).encode_query(query)
-    return ContentSearchRepository(session).nearest_articles(vector, limit)
+    return get_search_index(fragments).search(query, vector, limit, settings.search_min_similarity)

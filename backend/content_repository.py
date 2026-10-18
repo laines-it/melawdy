@@ -1,7 +1,8 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.models import ContentItem, ContentItemChunk, ContentStatus
+from backend.models import ContentItem, ContentItemChunk, ContentStatus, ContentSearchFragment
+from ml.hybrid_search import IndexedFragment
 from ml.embeddings import validate_embedding
 from ml.tfidf import SearchChunk, SearchHit
 
@@ -23,6 +24,17 @@ class ContentSearchRepository:
             .join(ContentItem).where(*self._published()).order_by(ContentItemChunk.id)
         )
         return [SearchChunk(*row) for row in self.session.execute(statement)]
+
+    def list_search_fragments(self) -> tuple[IndexedFragment, ...]:
+        statement = (
+            select(ContentSearchFragment.id, ContentSearchFragment.content_item_id,
+                   ContentItem.title, ContentSearchFragment.body, ContentSearchFragment.embedding)
+            .join(ContentItem, ContentItem.id == ContentSearchFragment.content_item_id)
+            .where(*self._published()).order_by(ContentSearchFragment.id)
+        )
+        return tuple(IndexedFragment(row.id, row.content_item_id, row.title, row.body,
+                                     tuple(float(value) for value in row.embedding))
+                     for row in self.session.execute(statement))
 
     def nearest(self, embedding: list[float], limit: int = 10) -> list[SearchHit]:
         validate_embedding(embedding)

@@ -15,6 +15,7 @@ from backend.main import app
 from ml import embedding_search, index_content
 from ml.constants import EMBEDDING_DIMENSIONS
 from ml.embeddings import EmbeddingConfigurationError, LegalEmbedder, get_embedder
+from ml.hybrid_search import IndexedFragment
 from ml.tfidf import SearchChunk, SearchHit
 
 
@@ -112,16 +113,21 @@ def test_search_encodes_only_query_and_uses_article_ranking(monkeypatch):
     embedder = Mock()
     embedder.encode_query.return_value = vector()
     repository = Mock(spec=ContentSearchRepository)
-    repository.nearest_articles.return_value = [SearchHit(SearchChunk(1, 10, "Текст"), 0.9)]
+    fragments = (IndexedFragment(1, 10, "Заголовок", "Текст", tuple(vector())),)
+    repository.list_search_fragments.return_value = fragments
+    index = Mock()
+    index.search.return_value = [SearchHit(SearchChunk(1, 10, "Текст"), 0.9)]
     session = Mock(spec=Session)
     factory = Mock(return_value=embedder)
     monkeypatch.setattr(embedding_search, "get_embedder", factory)
+    monkeypatch.setattr(embedding_search, "get_search_index", lambda actual: index if actual == fragments else None)
     monkeypatch.setattr("backend.content_repository.ContentSearchRepository", lambda actual: repository)
     result = embedding_search.search_embeddings("защитить трек", session=session, limit=3)
     assert [hit.chunk.content_item_id for hit in result] == [10]
     embedder.encode_query.assert_called_once_with("защитить трек")
     embedder.encode_documents.assert_not_called()
-    repository.nearest_articles.assert_called_once_with(vector(), 3)
+    repository.list_search_fragments.assert_called_once_with()
+    index.search.assert_called_once_with("защитить трек", vector(), 3, 0.40)
     session.commit.assert_not_called()
 
 

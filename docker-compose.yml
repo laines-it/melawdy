@@ -34,6 +34,7 @@ services:
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       EMBEDDING_MODEL_PATH: ${EMBEDDING_MODEL_PATH:-}
       EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
+      SEARCH_MIN_SIMILARITY: ${SEARCH_MIN_SIMILARITY:-0.40}
     volumes:
       - model_cache:/opt/hf-cache
     ports:

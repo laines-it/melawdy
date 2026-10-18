@@ -20,10 +20,11 @@ def request():
 
 def test_migration_chain_contains_the_existing_main_database_revision():
     script = ScriptDirectory.from_config(Config("alembic.ini"))
-    assert set(script.get_heads()) == {"0008_template_constructor", "0007_e5_embeddings"}
+    assert set(script.get_heads()) == {"0008_template_constructor", "0008_search_fragments"}
     revisions = {revision.revision for revision in script.walk_revisions()}
     assert {"0001_initial", "0006_user_favorites", "0007_login_attempt_window",
-            "0008_template_constructor", "0007_e5_embeddings"} <= revisions
+            "0008_template_constructor", "0007_e5_embeddings", "0008_search_fragments"} <= revisions
+
 
 
 def test_upgrade_from_old_frontlayout_adds_only_missing_schema():
@@ -40,7 +41,8 @@ def test_upgrade_from_old_frontlayout_adds_only_missing_schema():
 
 def test_upgrade_from_main_changes_only_embedding_dimension_and_index():
     buffer = io.StringIO()
-    command.upgrade(Config("alembic.ini", output_buffer=buffer), "0008_template_constructor:head", sql=True)
+    command.upgrade(Config("alembic.ini", output_buffer=buffer), "0006_user_favorites:0007_e5_embeddings", sql=True)
+
     sql = buffer.getvalue()
     assert "ALTER TABLE content_item_chunks ALTER COLUMN embedding TYPE VECTOR(384) USING NULL::vector(384)" in sql
     assert "DROP INDEX ix_content_item_chunks_embedding" in sql
@@ -48,10 +50,14 @@ def test_upgrade_from_main_changes_only_embedding_dimension_and_index():
     assert all(statement not in sql for statement in ["CREATE TABLE", "DROP TABLE", "DELETE FROM", "ALTER COLUMN body"])
 
 
-def test_database_at_e5_head_requires_no_schema_changes():
+def test_database_at_e5_head_adds_search_tables_without_rewriting_articles():
     buffer = io.StringIO()
     command.upgrade(Config("alembic.ini", output_buffer=buffer), "0007_e5_embeddings:head", sql=True)
-    assert all(statement not in buffer.getvalue() for statement in ["CREATE TABLE", "ALTER TABLE", "UPDATE alembic_version"])
+    sql = buffer.getvalue()
+    assert "CREATE TABLE content_search_indexes" in sql
+    assert "CREATE TABLE content_search_fragments" in sql
+    assert "CREATE TRIGGER tr_content_search_chunks" in sql
+    assert "UPDATE content_item_chunks" not in sql and "ALTER TABLE content_item_chunks" not in sql
 
 
 def test_e5_downgrade_restores_legacy_dimension_without_changing_content():

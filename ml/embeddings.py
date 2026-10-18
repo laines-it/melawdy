@@ -78,18 +78,18 @@ class LegalEmbedder:
         )
         return len(tokens["input_ids"][0])
 
-    def split_document(self, text: str) -> list[str]:
+    def split_document(self, text: str, *, context: str = "") -> list[str]:
         """Split oversized documents without losing text or exceeding the token budget."""
         parts = []
         remaining = text
         while remaining:
-            if self._document_size(remaining) <= EMBEDDING_MAX_TOKENS:
-                parts.append(remaining)
+            if self._document_size(context + remaining) <= EMBEDDING_MAX_TOKENS:
+                parts.append(context + remaining)
                 break
             low, high = 0, len(remaining)
             while low < high:
                 middle = (low + high + 1) // 2
-                if self._document_size(remaining[:middle]) <= EMBEDDING_MAX_TOKENS:
+                if self._document_size(context + remaining[:middle]) <= EMBEDDING_MAX_TOKENS:
                     low = middle
                 else:
                     high = middle - 1
@@ -98,9 +98,9 @@ class LegalEmbedder:
             boundaries = list(re.finditer(r"\n+|(?<=[.!?])\s+", remaining[:low]))
             boundary = boundaries[-1].end() if boundaries else remaining.rfind(" ", 0, low) + 1
             if (boundary >= low // 2 and remaining[:boundary].strip()
-                    and self._document_size(remaining[:boundary]) <= EMBEDDING_MAX_TOKENS):
+                    and self._document_size(context + remaining[:boundary]) <= EMBEDDING_MAX_TOKENS):
                 low = boundary
-            parts.append(remaining[:low])
+            parts.append(context + remaining[:low])
             remaining = remaining[low:]
         return parts
 
