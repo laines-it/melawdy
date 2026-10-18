@@ -17,6 +17,9 @@ from backend.models.legacy import Document, DocumentChunk
 from backend.models.auth import AdminSession
 from backend.models.favorites import UserFavorite
 
+from backend.docx_out import text_to_docx
+from backend.render import render_structure
+
 __all__ = [
     "Base", "User", "UserType", "ContentType", "ContentStatus", "QuestionType", "DocumentType",
     "DocumentStatus", "DeadlineStatus", "ContentCategory", "ContentItem", "ContentItemChunk",
@@ -24,5 +27,6 @@ __all__ = [
     "DocumentTemplate", "UserDocument", "DocumentStatusHistory", "RequestHistory",
     "AssessmentOption", "AssessmentQuestion", "AssessmentResult", "AssessmentResultRule",
     "AssessmentSurvey", "UserAssessment", "ApplicationType", "FeeCalculation",
-    "FeeCalculationClass", "FeeRate", "MktuClass", "Document", "DocumentChunk", "AdminSession", "UserFavorite"
+    "FeeCalculationClass", "FeeRate", "MktuClass", "Document", "DocumentChunk", "AdminSession", "UserFavorite",
+    "render_structure", "text_to_docx"
 ]

@@ -22,6 +22,8 @@ class DocumentTemplate(BigIntPrimaryKey, CreatedAt, UpdatedAt, Base):
     body: Mapped[str] = mapped_column(Text)
     file_path: Mapped[str | None] = mapped_column(String(1024))
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+    schema_json: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'"), nullable=False)
+    structure_json: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'"), nullable=False)
     documents: Mapped[list["UserDocument"]] = relationship(back_populates="template")
 
 

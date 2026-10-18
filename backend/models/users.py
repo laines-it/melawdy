@@ -36,3 +36,4 @@ class User(BigIntPrimaryKey, CreatedAt, UpdatedAt, Base):
     #от брутфорса
     failed_login_attempts: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_failed_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

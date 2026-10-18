@@ -11,6 +11,7 @@ erDiagram
         boolean is_active
         int failed_login_attempts
         timestamp locked_until
+        timestamp last_failed_login_at
     }
 
     CONTENT_CATEGORIES {
@@ -181,6 +182,8 @@ erDiagram
         text body
         varchar file_path
         boolean is_active
+        jsonb schema_json
+        jsonb structure_json
         timestamp created_at
         timestamp updated_at
     }
