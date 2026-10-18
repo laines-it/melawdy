@@ -28,7 +28,6 @@
           <a class="search-toggle" href="./index.html#search" aria-label="Поиск">⌕</a>
           <a href="./account.html" class="user-chip" data-user-name hidden></a>
           <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
-
         </div>
       </div>
     </header>
@@ -40,7 +39,7 @@
           <div class="admin-hero-copy">
             <h1 class="admin-title">Личный кабинет</h1>
             <p class="admin-subtitle">
-              Следите за регистрациями, договорами и правовыми вопросами в одном месте. Все дела, документы и сроки всегда под рукой.
+              Следите за документами и избранными статьями в одном месте. Все дела и материалы всегда под рукой.
             </p>
           </div>
         </div>
@@ -71,9 +70,36 @@
           <div class="admin-workspace-grid">
             <!-- Левая колонка: дела, статьи -->
             <div class="admin-workspace-main">
-              <h2 class="admin-section-title">Мои документы</h2>
-              <p>Последние 25 документов и расчётов.</p>
-              <div class="admin-cases" id="account-documents"></div>
+              <!-- Мои документы -->
+              <div class="account-block" id="documents-block">
+                <div class="account-block-header">
+                  <button class="collapse-toggle" data-target="account-documents" aria-label="Свернуть документы" aria-expanded="true">
+                    <span class="collapse-icon">▼</span>
+                  </button>
+                  <h2 class="admin-section-title">Мои документы</h2>
+                  <a href="./index.html#features" class="account-link">Конструктор документов →</a>
+                </div>
+                <p class="admin-section-hint">Последние 25 документов и расчётов.</p>
+                <div class="admin-block-content" id="account-documents">
+                  <p class="placeholder-text">Загрузка документов…</p>
+                </div>
+              </div>
+
+              <!-- Избранные статьи -->
+              <div class="account-block" id="favorites-block">
+                <div class="account-block-header">
+                  <button class="collapse-toggle" data-target="account-favorites" aria-label="Свернуть статьи" aria-expanded="true">
+                    <span class="collapse-icon">▼</span>
+                  </button>
+                  <h2 class="admin-section-title">Избранные статьи</h2>
+                  <a href="./search.html" class="account-link">Другие статьи →</a>
+                </div>
+                <div class="admin-block-content" id="account-favorites">
+                  <p class="placeholder-text">Загрузка статей…</p>
+                </div>
+              </div>
+
+              <!-- Сохранённые расчёты -->
               <h2 class="admin-section-title">Сохранённые расчёты</h2>
               <div id="account-calculations"></div>
             </div>
@@ -111,7 +137,7 @@
             </aside>
           </div>
 
-          <!-- Панель управления ресурсами -->
+          <!-- Панель управления ресурсами (админ — оставлена как была) -->
           <div class="admin-controls" id="admin-controls" hidden>
             <div class="admin-controls-head">
               <h2 class="admin-section-title" id="resource-title">Управление</h2>
@@ -131,7 +157,6 @@
             </p>
 
             <div class="admin-editor-grid">
-              <!-- Форма -->
               <div class="admin-editor-form">
                 <h3 id="form-title" class="admin-subtitle">Новая запись</h3>
                 <form id="record-form" class="admin-form">
@@ -143,7 +168,6 @@
                 </form>
               </div>
 
-              <!-- Таблица записей -->
               <div class="admin-editor-list">
                 <h3 class="admin-subtitle">Записи</h3>
                 <div class="admin-table-wrap">
