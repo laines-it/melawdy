@@ -116,6 +116,8 @@ def test_search_encodes_only_query_and_uses_article_ranking(monkeypatch):
     fragments = (IndexedFragment(1, 10, "Заголовок", "Текст", tuple(vector())),)
     repository.list_search_fragments.return_value = fragments
     index = Mock()
+    index.prepare_query.return_value = "защитить трек"
+    index.texts.words.return_value = ["защитить", "трек"]
     index.search.return_value = [SearchHit(SearchChunk(1, 10, "Текст"), 0.9)]
     session = Mock(spec=Session)
     factory = Mock(return_value=embedder)
@@ -168,14 +170,15 @@ def test_invalid_ranking_does_not_execute_sql(values, limit):
 @pytest.mark.parametrize("hits,metadata,expected", [
     ([SearchHit(SearchChunk(8, 2, "Найденный абзац"), 0.8)],
      [SimpleNamespace(id=2, title="Заголовок", summary="Описание")],
-     {"article_ids": ["2"], "title": "Заголовок", "summary": "Описание"}),
-    ([], [], {"article_ids": [], "title": None, "summary": None}),
+     [{"article_id": "2", "title": "Заголовок", "body": "Описание", "summary": "Описание"}]),
+    ([], [], []),
     ([SearchHit(SearchChunk(8, 2, "Скрытый материал"), 0.8)], [],
-     {"article_ids": [], "title": None, "summary": None}),
+     []),
     ([SearchHit(SearchChunk(8, 2, "Первый"), 0.8), SearchHit(SearchChunk(9, 2, "Второй"), 0.7),
       SearchHit(SearchChunk(10, 3, "Третий"), 0.6)],
      [SimpleNamespace(id=3, title="Другой", summary=None), SimpleNamespace(id=2, title="Заголовок", summary="Описание")],
-     {"article_ids": ["2", "3"], "title": "Заголовок", "summary": "Описание"}),
+     [{"article_id": "2", "title": "Заголовок", "body": "Описание", "summary": "Описание"},
+      {"article_id": "3", "title": "Другой", "body": "", "summary": None}]),
 ])
 def test_public_search_defaults_to_embeddings_and_preserves_response_contract(monkeypatch, hits, metadata, expected):
     search = Mock(return_value=hits)
@@ -209,7 +212,7 @@ def test_public_search_reports_model_and_input_errors(monkeypatch, error, status
 def test_empty_search_does_not_fetch_titles(monkeypatch):
     monkeypatch.setattr(public, "search_embeddings", Mock(return_value=[]))
     session = Mock(spec=Session)
-    assert public.search(session, query="Запрос") == {"article_ids": [], "title": None, "summary": None}
+    assert public.search(session, query="Запрос") == []
     session.execute.assert_not_called()
 
 

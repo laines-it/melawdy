@@ -150,7 +150,7 @@ def test_search_reuses_published_corpus_and_does_not_return_hidden_articles(monk
     session = Mock()
     session.execute.return_value.all.return_value = [SimpleNamespace(id=4, title="Права на музыку", summary="Описание")]
     result = public.search(session, query="музыка", limit=10, method="tfidf")
-    assert result == {"article_ids": ["4"], "title": "Права на музыку", "summary": "Описание"}
+    assert result == [{"article_id": "4", "title": "Права на музыку", "body": "Описание", "summary": "Описание"}]
     sql = str(session.execute.call_args.args[0])
     assert "content_items.status" in sql and "content_items.published_at <= now()" in sql
 

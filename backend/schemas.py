@@ -45,6 +45,7 @@ class AnalyzeResponse(BaseModel):
 
 
 class SearchResponse(BaseModel):
-    article_ids: list[str]
-    title: str | None
+    article_id: str
+    title: str
+    body: str
     summary: str | None

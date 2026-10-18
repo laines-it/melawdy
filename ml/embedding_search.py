@@ -28,5 +28,9 @@ def search_embeddings(query: str, *, session: "Session | None" = None,
     fragments = ContentSearchRepository(session).list_search_fragments()
     if not fragments:
         return []
-    vector = get_embedder(settings.embedding_model_path, settings.embedding_device).encode_query(query)
-    return get_search_index(fragments).search(query, vector, limit, settings.search_min_similarity)
+    index = get_search_index(fragments)
+    prepared = index.prepare_query(query)
+    if not index.texts.words(prepared):
+        return []
+    vector = get_embedder(settings.embedding_model_path, settings.embedding_device).encode_query(prepared)
+    return index.search(prepared, vector, limit, settings.search_min_similarity)

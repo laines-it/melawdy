@@ -1,15 +1,12 @@
 from dataclasses import dataclass
 from functools import lru_cache
-import re
 
 import numpy as np
 
 from ml.bm25 import Bm25Index
 from ml.search_documents import normalized_title
 from ml.tfidf import SearchChunk, SearchHit
-
-
-_QUESTION_WORDS = frozenset("как что где когда какой какая какие сколько зачем почему ли можно нужно надо это свой свою свои мой моя мою мои его ее их я мы вы на в во к ко с со из за по от до при для и или а но если чтобы бы же то чем меня мне нас у о об который которая которые".split())
+from ml.preprocessing import QueryPreprocessor, RUSSIAN_STOPWORDS, words
 
 
 @dataclass(frozen=True)
@@ -28,8 +25,15 @@ class HybridSearch:
         self.vectors = np.asarray([part.embedding for part in fragments], dtype=np.float32)
         if len(fragments):
             self.vectors /= np.linalg.norm(self.vectors, axis=1, keepdims=True)
-        self.titles = Bm25Index([SearchChunk(aid, aid, title) for aid, title in self.articles.items()])
-        self.texts = Bm25Index([SearchChunk(part.id, part.content_item_id, part.body) for part in fragments])
+        self.titles = Bm25Index([SearchChunk(aid, aid, title) for aid, title in self.articles.items()],
+                                stopwords=RUSSIAN_STOPWORDS)
+        self.texts = Bm25Index([SearchChunk(part.id, part.content_item_id, part.body) for part in fragments],
+                               stopwords=RUSSIAN_STOPWORDS)
+        self.preprocessor = QueryPreprocessor((word for part in fragments for word in words(part.body)),
+                                               self.texts.terms)
+
+    def prepare_query(self, query: str) -> str:
+        return self.preprocessor.prepare(query)
 
     def search(self, query: str, vector: list[float], limit: int = 10,
                min_similarity: float = 0.40) -> list[SearchHit]:
@@ -37,6 +41,7 @@ class HybridSearch:
             raise ValueError("Provide a nonblank query and a limit between 1 and 100")
         if not self.fragments:
             return []
+        query = self.prepare_query(query)
         similarities = self.vectors @ np.asarray(vector, dtype=np.float32)
         best: dict[int, int] = {}
         for index, part in enumerate(self.fragments):
@@ -44,14 +49,15 @@ class HybridSearch:
             if aid not in best or similarities[index] > similarities[best[aid]]:
                 best[aid] = index
         semantic = sorted(best, key=lambda aid: (-float(similarities[best[aid]]), aid))
-        words = re.findall(r"[^\W_]+", query.casefold().replace("ё", "е"))
-        lexical_query = " ".join(word for word in words if word not in _QUESTION_WORDS)
+        lexical_query = " ".join(self.texts.words(query))
+        if not lexical_query:
+            return []
         lexical = []
-        for hit in self.texts.search(lexical_query or query, 100):
+        for hit in self.texts.search(lexical_query, 100):
             if hit.chunk.content_item_id not in lexical:
                 lexical.append(hit.chunk.content_item_id)
         terms = set(self.titles.terms(lexical_query))
-        titles = [hit.chunk.content_item_id for hit in self.titles.search(lexical_query or query, 100)
+        titles = [hit.chunk.content_item_id for hit in self.titles.search(lexical_query, 100)
                   if terms and len(terms & set(self.titles.terms(hit.chunk.body))) / len(terms) >= 0.5]
         exact = {aid for aid, title in self.articles.items()
                  if normalized_title(title) == normalized_title(query)}
