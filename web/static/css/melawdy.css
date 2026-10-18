@@ -8,7 +8,6 @@
 [hidden] { display: none !important; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 button:disabled, select:disabled { cursor: not-allowed; opacity: .6; }
-#materials section, #search-results article, #template-preview { margin-block: 24px; }
 #articles, #surveys { display: grid; gap: 12px; padding-left: 20px; }
 .faq-card summary { cursor: pointer; }
 button.template-download { background: transparent; border: 0; padding: 0; text-align: left; cursor: pointer; }

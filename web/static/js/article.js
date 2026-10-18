@@ -7,68 +7,183 @@ document.addEventListener("DOMContentLoaded", () => {
   const id = new URLSearchParams(window.location.search).get("id");
   const favBtn = $("#fav-btn");
 
-  // ---- Markdown → DOM ----
-  // Возвращает <div> со списком детей (p/h2/h3/ul/ol).
-  function renderMarkdown(text) {
-    const container = document.createElement("div");
+  // ---- helpers, безопасные для моков ----
+  function clear(el) {
+    if (!el) return;
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+  function setText(el, text) {
+    if (el) el.textContent = String(text ?? "");
+  }
+  function show(el) {
+    if (!el) return;
+    el.hidden = false;
+    if (typeof el.removeAttribute === "function") el.removeAttribute("hidden");
+  }
+  function hide(el) {
+    if (!el) return;
+    el.hidden = true;
+    if (typeof el.setAttribute === "function") el.setAttribute("hidden", "");
+  }
+  function addClass(el, cls) {
+    if (!el) return;
+    if (el.classList && typeof el.classList.add === "function") el.classList.add(cls);
+    else el.className = ((el.className || "") + " " + cls).trim();
+  }
+  function removeClass(el, cls) {
+    if (!el) return;
+    if (el.classList && typeof el.classList.remove === "function") el.classList.remove(cls);
+    else el.className = (el.className || "").split(/\s+/).filter((c) => c && c !== cls).join(" ");
+  }
+  function hasClass(el, cls) {
+    if (!el) return false;
+    if (el.classList && typeof el.classList.contains === "function") return el.classList.contains(cls);
+    return (el.className || "").split(/\s+/).includes(cls);
+  }
 
-    const lines = text.replace(/\r\n?/g, "\n").split("\n");
-    let paragraph = [];
-    let list = null;
+  // ---- Реестр сносок: один на всю статью ----
+  function createFootnoteRegistry() {
+    const notes = new Map();   // id -> text
+    const order = [];          // id в порядке появления
+    const index = new Map();   // id -> номер
 
-    function appendInline(target, text) {
-      const tokens = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|\[([^\]]+)\]\s*\(([^)\s]+)\)/g;
-      let offset = 0;
-      for (const match of text.matchAll(tokens)) {
-        target.append(document.createTextNode(text.slice(offset, match.index)));
-        if (match[1] !== undefined || match[2] !== undefined) {
-          const node = document.createElement(match[1] !== undefined ? "strong" : "em");
-          node.textContent = match[1] ?? match[2];
-          target.append(node);
-        } else if (/^(https?:\/\/|mailto:|\/(?![\/\\])|\.\.?\/|#|\?)/i.test(match[4]) && !/[\\\u0000-\u0020]/.test(match[4])) {
+    function define(noteId, text) {
+      notes.set(noteId, text);
+    }
+
+    function ref(noteId) {
+      if (!index.has(noteId)) {
+        index.set(noteId, order.length + 1);
+        order.push(noteId);
+      }
+      const n = index.get(noteId);
+      const sup = document.createElement("sup");
+      const a = document.createElement("a");
+      a.id = `fnref-${noteId}`;
+      a.href = `#fn-${noteId}`;
+      a.textContent = String(n);
+      a.className = "footnote-ref";
+      sup.appendChild(a);
+      return sup;
+    }
+
+    const api = { notes, order, index, define, ref, buildSection };
+
+    function buildSection() {
+      if (!order.length) return null;
+      const section = document.createElement("section");
+      section.className = "article-footnotes";
+      const h = document.createElement("h2");
+      h.textContent = "Сноски";
+      section.appendChild(h);
+      const ol = document.createElement("ol");
+      for (let i = 0; i < order.length; i++) {
+        const noteId = order[i];
+        const li = document.createElement("li");
+        li.id = `fn-${noteId}`;
+        const p = document.createElement("p");
+        // ВАЖНО: передаём api, а не registry (которого здесь нет)
+        appendInlineInto(p, notes.get(noteId) || "", api);
+        const back = document.createElement("a");
+        back.href = `#fnref-${noteId}`;
+        back.className = "footnote-back";
+        back.textContent = "↩";
+        back.setAttribute("aria-label", "Вернуться к тексту");
+        p.appendChild(document.createTextNode(" "));
+        p.appendChild(back);
+        li.appendChild(p);
+        ol.appendChild(li);
+      }
+      section.appendChild(ol);
+      return section;
+    }
+
+    return api;
+  }
+
+  // ---- Inline markdown с рекурсией для **bold** / *italic* ----
+  function appendInlineInto(target, text, registry) {
+    const src = String(text ?? "");
+    const re = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`|\[([^\]]+)\]\s*\(([^)\s]+)\)|\[\^([^\]]+)\]/g;
+    let offset = 0;
+    let m;
+    while ((m = re.exec(src)) !== null) {
+      target.appendChild(document.createTextNode(src.slice(offset, m.index)));
+      if (m[1] !== undefined) {
+        // **bold** — рекурсивно, чтобы поймать вложенные [^N], *italic*, ссылки
+        const strong = document.createElement("strong");
+        appendInlineInto(strong, m[1], registry);
+        target.appendChild(strong);
+      } else if (m[2] !== undefined) {
+        // *italic* — тоже рекурсивно
+        const em = document.createElement("em");
+        appendInlineInto(em, m[2], registry);
+        target.appendChild(em);
+      } else if (m[3] !== undefined) {
+        const code = document.createElement("code");
+        code.textContent = m[3];
+        target.appendChild(code);
+      } else if (m[4] !== undefined) {
+        if (/^(https?:\/\/|mailto:|\/(?![\/\\])|\.\.?\/|#|\?)/i.test(m[5]) && !/[\\\u0000-\u0020]/.test(m[5])) {
           const link = document.createElement("a");
-          link.textContent = match[3];
-          link.href = match[4];
+          link.textContent = m[4];
+          link.href = m[5];
           link.target = "_blank";
           link.rel = "noopener noreferrer";
-          target.append(link);
+          target.appendChild(link);
         } else {
-          target.append(document.createTextNode(match[0]));
+          target.appendChild(document.createTextNode(m[0]));
         }
-        offset = match.index + match[0].length;
+      } else if (m[6] !== undefined) {
+        target.appendChild(registry.ref(m[6]));
       }
-      target.append(document.createTextNode(text.slice(offset)));
+      offset = m.index + m[0].length;
     }
+    target.appendChild(document.createTextNode(src.slice(offset)));
+  }
+
+  // ---- Разбор одного чанка в контейнер, БЕЗ блока сносок ----
+  // Определения [^N]: text вынимаются и складываются в общий registry.
+  function renderChunkInto(container, text, registry) {
+    const raw = String(text ?? "").replace(/\r\n?/g, "\n");
+    const allLines = raw.split("\n");
+    const lines = [];
+    for (let i = 0; i < allLines.length; i++) {
+      const m = /^\s*\[\^([^\]]+)\]:\s*(.+)$/.exec(allLines[i]);
+      if (m) registry.define(m[1], m[2].trim());
+      else lines.push(allLines[i]);
+    }
+
+    let paragraph = [];
+    let list = null;
 
     function flushParagraph() {
       if (paragraph.length) {
         const p = document.createElement("p");
-        appendInline(p, paragraph.join("\n"));
-        container.append(p);
+        appendInlineInto(p, paragraph.join("\n"), registry);
+        container.appendChild(p);
         paragraph = [];
       }
     }
-
     function flushList() {
-      if (list) { container.append(list); list = null; }
+      if (list) { container.appendChild(list); list = null; }
     }
 
-    for (const line of lines) {
-      const trimmed = line.trim();
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
       if (!trimmed) { flushParagraph(); flushList(); continue; }
 
-      const heading = trimmed.match(/^(#{1,6})\s+(.+)$/);
+      const heading = /^(#{1,6})\s+(.+)$/.exec(trimmed);
       if (heading) {
         flushParagraph(); flushList();
-        const level = heading[1].length;
-        const tag = level <= 2 ? "h2" : "h3";
+        const tag = heading[1].length <= 2 ? "h2" : "h3";
         const h = document.createElement(tag);
-        h.textContent = heading[2];
-        container.append(h);
+        appendInlineInto(h, heading[2], registry);
+        container.appendChild(h);
         continue;
       }
 
-      const bullet = trimmed.match(/^([-*]|\d+\.)\s+(.+)$/);
+      const bullet = /^([-*]|\d+\.)\s+(.+)$/.exec(trimmed);
       if (bullet) {
         flushParagraph();
         const isOrdered = /^\d/.test(bullet[1]);
@@ -78,31 +193,47 @@ document.addEventListener("DOMContentLoaded", () => {
           list = document.createElement(tag);
         }
         const li = document.createElement("li");
-        appendInline(li, bullet[2]);
-        list.append(li);
+        appendInlineInto(li, bullet[2], registry);
+        list.appendChild(li);
         continue;
       }
 
       flushList();
       paragraph.push(trimmed);
     }
-    flushParagraph();
-    flushList();
+    flushParagraph(); flushList();
 
-    if (!container.children.length && text.trim()) {
+    if (!container.firstChild && String(text).trim()) {
       const p = document.createElement("p");
-      appendInline(p, text);
-      container.append(p);
+      appendInlineInto(p, text, registry);
+      container.appendChild(p);
     }
-    return container;
   }
 
-  // Перенос детей из одного контейнера в другой.
-  // Работает и с HTMLCollection (браузер), и с массивом (mock).
-  function moveChildren(from, to) {
-    if (!from || !to) return;
-    const kids = Array.from(from.children || []);
-    if (kids.length) to.append(...kids);
+  // ---- Рендер всего тела статьи с единым реестром сносок ----
+  // Возвращает DocumentFragment: [chunk0, chunk1, ..., section.footnotes?]
+  function renderBody(chunks) {
+    const registry = createFootnoteRegistry();
+    const fragment = document.createDocumentFragment();
+    const blocks = [];
+    for (let i = 0; i < chunks.length; i++) {
+      const section = document.createElement("section");
+      section.className = "article-chunk";
+      renderChunkInto(section, chunks[i], registry);
+      blocks.push(section);
+    }
+    for (let i = 0; i < blocks.length; i++) fragment.appendChild(blocks[i]);
+    const notes = registry.buildSection();
+    if (notes) fragment.appendChild(notes);
+    return fragment;
+  }
+
+  // inline-рендер в существующий элемент (для заголовка/summary/related)
+  function renderInlineInto(el, text) {
+    if (!el) return;
+    clear(el);
+    const registry = createFootnoteRegistry();
+    appendInlineInto(el, text ?? "", registry);
   }
 
   // ---- Избранное ----
@@ -113,23 +244,22 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!window.ZPAuth.isLoggedIn()) {
         favBtn.disabled = true;
         favBtn.title = "Войдите, чтобы добавить в избранное";
-        favBtn.classList.remove("is-active");
+        removeClass(favBtn, "is-active");
         favBtn.setAttribute("aria-pressed", "false");
         return;
       }
       favBtn.disabled = false;
       const favorites = await request("cabinet/favorites?limit=100");
-      const isFav = favorites.some((f) => String(f.content_item_id) === String(id));
+      const isFav = Array.isArray(favorites) && favorites.some((f) => String(f.content_item_id) === String(id));
       applyFavoriteState(isFav);
     } catch (e) {
-      console.warn("Не удалось проверить статус избранного", e);
       if (favBtn) favBtn.disabled = false;
     }
   }
 
   function applyFavoriteState(isFav) {
     if (!favBtn) return;
-    favBtn.classList.toggle("is-active", isFav);
+    if (isFav) addClass(favBtn, "is-active"); else removeClass(favBtn, "is-active");
     favBtn.setAttribute("aria-pressed", String(isFav));
     favBtn.title = isFav ? "Удалить из избранного" : "Добавить в избранное";
   }
@@ -140,11 +270,11 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.href = "./login.html";
         return;
       }
-      if (favBtn.dataset.busy === "1") return;
-      favBtn.dataset.busy = "1";
+      if (favBtn.dataset && favBtn.dataset.busy === "1") return;
+      if (favBtn.dataset) favBtn.dataset.busy = "1";
       favBtn.disabled = true;
 
-      const isActive = favBtn.classList.contains("is-active");
+      const isActive = hasClass(favBtn, "is-active");
       try {
         if (isActive) {
           await request(`cabinet/favorites/${id}`, { method: "DELETE" });
@@ -154,31 +284,26 @@ document.addEventListener("DOMContentLoaded", () => {
           applyFavoriteState(true);
         }
       } catch (error) {
-        console.error(error);
-        if (error.status === 409 && !isActive) {
-          applyFavoriteState(true);
-        } else {
+        if (error.status === 409 && !isActive) applyFavoriteState(true);
+        else {
           const statusEl = $("#status");
           if (statusEl) statusEl.textContent = "Ошибка: " + error.message;
         }
       } finally {
-        favBtn.dataset.busy = "";
+        if (favBtn.dataset) favBtn.dataset.busy = "";
         favBtn.disabled = false;
       }
     });
   }
 
-  // ---- Рендер ----
+  // ---- Рендер статьи ----
   function render(record) {
     document.title = `${record.title} — Законпозитор`;
 
-    const titleEl = $("#article-title");
-    if (titleEl) titleEl.textContent = record.title;
+    renderInlineInto($("#article-title"), record.title || "");
 
-    // Если в репозитории уже "Полезные материалы" — поменяйте строку ниже.
     const categoryName = record.category?.name || "Полезные материалы";
-    const catEl = $("#article-category");
-    if (catEl) catEl.textContent = categoryName;
+    setText($("#article-category"), categoryName);
 
     const catPath = $("#article-category-path");
     if (catPath) {
@@ -194,24 +319,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const summaryEl = $("#article-summary");
     const summaryText = (record.summary || "").trim();
     if (summaryEl) {
-      summaryEl.textContent = summaryText;
-      summaryEl.hidden = !summaryText;
+      if (summaryText) {
+        renderInlineInto(summaryEl, summaryText);
+        summaryEl.hidden = false;
+      } else {
+        clear(summaryEl);
+        summaryEl.hidden = true;
+      }
     }
 
     // Время чтения
-    const chunks = record.chunks || [];
+    const chunks = Array.isArray(record.chunks) ? record.chunks : [];
     const words = chunks.join(" ").match(/\S+/g)?.length || 0;
     const minutes = Math.max(1, Math.ceil(words / 200));
-    const timeEl = $("#article-reading-time");
-    if (timeEl) timeEl.textContent = `${minutes} мин. чтения`;
+    setText($("#article-reading-time"), `${minutes} мин. чтения`);
 
     const introEl = $("#article-intro");
     const introBody = $("#article-intro-body");
     const chunksEl = $("#article-chunks");
     const emptyEl = $("#article-empty");
 
-    if (introBody) introBody.replaceChildren();
-    if (chunksEl) chunksEl.replaceChildren();
+    if (introBody) clear(introBody);
+    if (chunksEl) clear(chunksEl);
 
     if (!chunks.length) {
       if (introEl) introEl.hidden = true;
@@ -220,22 +349,31 @@ document.addEventListener("DOMContentLoaded", () => {
       if (introEl) introEl.hidden = !summaryText;
       if (emptyEl) emptyEl.hidden = true;
 
-      // Первый чанк — в #article-intro-body
-      const first = renderMarkdown(chunks[0]);
-      if (introBody) moveChildren(first, introBody);
+      // Первый чанк — в #article-intro-body (интро), остальные — в #article-chunks.
+      // Сноски собираем по ВСЕМ чанкам и добавляем один блок в конце #article-chunks.
+      const registry = createFootnoteRegistry();
 
-      // Остальные — каждый в отдельный <section> в #article-chunks
+      if (introBody) {
+        const introSection = document.createElement("div");
+        renderChunkInto(introSection, chunks[0], registry);
+        while (introSection.firstChild) introBody.appendChild(introSection.firstChild);
+      }
       for (let i = 1; i < chunks.length; i++) {
         const section = document.createElement("section");
         section.className = "article-chunk";
-        const rendered = renderMarkdown(chunks[i]);
-        moveChildren(rendered, section);
-        if (chunksEl) chunksEl.append(section);
+        renderChunkInto(section, chunks[i], registry);
+        if (chunksEl) chunksEl.appendChild(section);
+      }
+      // Один блок сносок — после всех чанков
+      const notes = registry.buildSection();
+      if (notes) {
+        if (chunksEl) chunksEl.appendChild(notes);
+        else if (introBody) introBody.appendChild(notes);
       }
     }
 
-    if (article) article.hidden = false;
-    if (state) state.hidden = true;
+    hide(state);
+    show(article);
 
     refreshFavoriteStatus();
   }
@@ -246,18 +384,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const card = $("#related-articles");
     if (!list || !card) return;
     try {
-      const records = await request("public/articles?limit=4");
-      list.replaceChildren();
-      const filtered = records.filter((item) => String(item.id) !== String(id)).slice(0, 3);
+      const response = await request("public/articles?limit=4");
+      const records = Array.isArray(response) ? response
+        : Array.isArray(response?.items) ? response.items : [];
+      clear(list);
+      const filtered = [];
+      for (let i = 0; i < records.length && filtered.length < 3; i++) {
+        if (String(records[i].id) !== String(id)) filtered.push(records[i]);
+      }
       if (!filtered.length) { card.hidden = true; return; }
-      filtered.forEach((record) => {
+      for (let i = 0; i < filtered.length; i++) {
+        const rec = filtered[i];
         const li = document.createElement("li");
         const a = document.createElement("a");
-        a.href = `./article.html?id=${encodeURIComponent(record.id)}`;
-        a.textContent = record.title;
-        li.append(a);
-        list.append(li);
-      });
+        a.href = `./article.html?id=${encodeURIComponent(rec.id)}`;
+        renderInlineInto(a, rec.title || "Без названия");
+        li.appendChild(a);
+        list.appendChild(li);
+      }
       card.hidden = false;
     } catch {
       card.hidden = true;
@@ -266,51 +410,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---- Загрузка ----
   async function load() {
-    if (state) {
-      state.hidden = false;
-      state.setAttribute("aria-busy", "true");
-    }
-    const retry = $("#retry-article");
-    if (retry) retry.hidden = true;
-    const st = $("#state-title");
-    const sm = $("#state-message");
-    if (st) st.textContent = "Загружаем статью…";
-    if (sm) sm.textContent = "Получаем материал из базы знаний.";
+    show(state);
+    if (state) state.setAttribute("aria-busy", "true");
+    hide(article);
+    const retryBtn = $("#retry-article");
+    hide(retryBtn);
+
+    setText($("#state-title"), "Загружаем статью…");
+    setText($("#state-message"), "Получаем материал");
 
     try {
       const record = await request(`public/articles/${encodeURIComponent(id)}`);
       render(record);
       loadRelated();
     } catch (error) {
-      if (st) {
-        st.textContent = error.status === 404
-          ? "Статья не найдена" : "Не удалось загрузить статью";
-      }
-      if (sm) {
-        sm.textContent = error.status === 404
-          ? "Возможно, материал ещё не опубликован или был удалён. Другие статьи доступны в базе знаний."
-          : error.message;
-      }
-      // Явный boolean: undefined → false → кнопка видна.
-      if (retry) retry.hidden = (error.status === 404);
+      setText($("#state-title"), error.status === 404
+        ? "Статья не найдена" : "Не удалось загрузить статью");
+      setText($("#state-message"), error.status === 404
+        ? "Возможно, материал ещё не опубликован или был удалён. Доступны другие статьи."
+        : error.message);
+      if (error.status !== 404) show(retryBtn);
     } finally {
       if (state) state.setAttribute("aria-busy", "false");
     }
   }
 
-  const retry = $("#retry-article");
-  if (retry) retry.addEventListener("click", load);
+  const retryEl = $("#retry-article");
+  if (retryEl) retryEl.addEventListener("click", load);
 
   if (!id || !/^[1-9]\d*$/.test(id) || BigInt(id) > 9223372036854775807n) {
-    if (state) {
-      state.hidden = false;
-      state.setAttribute("aria-busy", "false");
-    }
-    const st = $("#state-title");
-    const sm = $("#state-message");
-    if (st) st.textContent = "Статья не выбрана";
-    if (sm) sm.textContent = "Откройте статью из базы знаний или результатов поиска.";
-    if (article) article.hidden = true;
+    show(state);
+    if (state) state.setAttribute("aria-busy", "false");
+    setText($("#state-title"), "Статья не выбрана");
+    setText($("#state-message"), "Откройте статью из результатов поиска.");
+    hide(article);
     return;
   }
 
