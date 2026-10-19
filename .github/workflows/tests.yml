@@ -118,6 +118,7 @@ jobs:
       - name: Build and deploy the tested commit
         env:
           DEPLOY_REVISION: ${{ github.sha }}
+          EMBEDDINGS_ENABLED: "true"
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
         run: bash deploy/k3s/publish-release.sh

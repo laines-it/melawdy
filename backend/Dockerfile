@@ -2,11 +2,13 @@ FROM python:3.12-slim AS base
 
 ARG INSTALL_EMBEDDINGS=true
 ARG DOWNLOAD_EMBEDDING_MODEL=false
+ARG EMBEDDINGS_ENABLED=true
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
-    HF_HOME=/opt/hf-cache
+    HF_HOME=/opt/hf-cache \
+    EMBEDDINGS_ENABLED=$EMBEDDINGS_ENABLED
 WORKDIR /app
 
 COPY backend/requirements.txt /tmp/requirements.txt

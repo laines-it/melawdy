@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     postgres_db: str = "melawdy"
     postgres_user: str = "melawdy_app"
     postgres_password: str = "melawdy_local_dev"
+    embeddings_enabled: bool = True
     embedding_model_path: str = ""
     embedding_device: str = "cpu"
     search_min_similarity: float = Field(default=0.40, ge=0, le=1)

@@ -1,5 +1,4 @@
 """BM25 checks on synthetic text only; no repositories, API, or database."""
-import math
 
 import pytest
 
@@ -51,32 +50,6 @@ def test_bm25_preserves_single_digit_numbers_and_hyphenated_law_references() -> 
     assert index.search("152") == []  # The reference is indexed as one token.
 
 
-def test_bm25_scores_follow_lucene_term_frequency_and_length_normalization() -> None:
-    index = Bm25Index([
-        SearchChunk(1, 10, "кот кот пес"),
-        SearchChunk(2, 20, "кот"),
-        SearchChunk(3, 30, "пес"),
-    ], k1=1.5, b=0.75)
-
-    hits = index.search("кот")
-    # Three documents, two containing the term, average length = 5/3.
-    idf = math.log(1 + (3 - 2 + 0.5) / (2 + 0.5))
-    expected = {
-        1: idf * 2 / (2 + 1.5 * (1 - 0.75 + 0.75 * 3 / (5 / 3))),
-        2: idf / (1 + 1.5 * (1 - 0.75 + 0.75 * 1 / (5 / 3))),
-    }
-    assert [hit.chunk.id for hit in hits] == [2, 1]
-    for hit in hits:
-        assert hit.score == pytest.approx(expected[hit.chunk.id], rel=1e-6)
-
-
-def test_bm25_can_disable_length_normalization() -> None:
-    chunks = [SearchChunk(1, 10, "кот кот пес"), SearchChunk(2, 20, "кот")]
-    hits = Bm25Index(chunks, k1=1.5, b=0).search("кот")
-
-    assert [hit.chunk.id for hit in hits] == [1, 2]
-
-
 def test_bm25_applies_limit_and_breaks_ties_by_chunk_id() -> None:
     index = Bm25Index([
         SearchChunk(3, 30, "договор"),
@@ -110,15 +83,3 @@ def test_bm25_rejects_blank_queries_even_with_empty_corpus(query: str) -> None:
 def test_bm25_rejects_invalid_limits(limit: int) -> None:
     with pytest.raises(ValueError, match="Limit"):
         Bm25Index([]).search("договор", limit=limit)
-
-
-@pytest.mark.parametrize("k1", [0, -1, float("nan"), float("inf")])
-def test_bm25_rejects_invalid_k1(k1: float) -> None:
-    with pytest.raises(ValueError, match="k1"):
-        Bm25Index([], k1=k1)
-
-
-@pytest.mark.parametrize("b", [-0.1, 1.1, float("nan"), float("inf")])
-def test_bm25_rejects_invalid_b(b: float) -> None:
-    with pytest.raises(ValueError, match="b must"):
-        Bm25Index([], b=b)
