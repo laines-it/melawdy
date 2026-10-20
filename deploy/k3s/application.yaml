@@ -150,6 +150,7 @@ spec:
               valueFrom:
                 secretKeyRef: {name: melawdy-secrets, key: admin-password}
             - {name: SESSION_COOKIE_SECURE, value: "true"}
+            - {name: EMBEDDINGS_ENABLED, value: "true"}
           ports:
             - containerPort: 8000
           resources:

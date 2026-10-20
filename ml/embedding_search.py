@@ -25,7 +25,13 @@ def search_embeddings(query: str, *, session: "Session | None" = None,
     from backend.config import get_settings
 
     settings = get_settings()
-    fragments = ContentSearchRepository(session).list_search_fragments()
+    repository = ContentSearchRepository(session)
+    if not settings.embeddings_enabled:
+        from ml.bm25 import Bm25Index
+        from ml.preprocessing import RUSSIAN_STOPWORDS
+
+        return Bm25Index(repository.list_chunks(), stopwords=RUSSIAN_STOPWORDS).search(query, limit)
+    fragments = repository.list_search_fragments()
     if not fragments:
         return []
     index = get_search_index(fragments)

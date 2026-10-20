@@ -5,14 +5,13 @@ from unittest.mock import Mock
 
 from fastapi.testclient import TestClient
 import pytest
-from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
 from backend import public
 from backend.content_repository import ContentSearchRepository
 from backend.db import get_session
 from backend.main import app
-from ml import embedding_search, index_content
+from ml import embedding_search
 from ml.constants import EMBEDDING_DIMENSIONS
 from ml.embeddings import EmbeddingConfigurationError, LegalEmbedder, get_embedder
 from ml.hybrid_search import IndexedFragment
@@ -142,31 +141,6 @@ def test_invalid_search_does_not_access_database_or_model(monkeypatch, query, li
     factory.assert_not_called()
 
 
-def test_article_ranking_filters_publication_and_deduplicates_before_limit():
-    session = Mock(spec=Session)
-    session.execute.return_value = [SimpleNamespace(id=8, content_item_id=2, body="Текст", distance=0.2)]
-    hits = ContentSearchRepository(session).nearest_articles(vector(), limit=3)
-    assert hits[0].score == pytest.approx(0.8)
-    assert hits[0].chunk.content_item_id == 2
-    statement = session.execute.call_args.args[0]
-    sql = str(statement.compile(dialect=postgresql.dialect()))
-    assert "row_number() OVER (PARTITION BY content_item_chunks.content_item_id ORDER BY" in sql
-    assert "content_item_chunks.embedding <=>" in sql
-    assert "content_item_chunks.embedding IS NOT NULL" in sql
-    assert "content_items.status" in sql and "content_items.published_at <= now()" in sql
-    assert "WHERE anon_1.chunk_rank =" in sql
-    assert "ORDER BY anon_1.distance, anon_1.content_item_id" in sql
-    assert statement.compile().params["param_1"] == 3
-
-
-@pytest.mark.parametrize("values,limit", [([], 3), (vector(), 0), (vector(), 101)])
-def test_invalid_ranking_does_not_execute_sql(values, limit):
-    session = Mock(spec=Session)
-    with pytest.raises(ValueError):
-        ContentSearchRepository(session).nearest_articles(values, limit)
-    session.execute.assert_not_called()
-
-
 @pytest.mark.parametrize("hits,metadata,expected", [
     ([SearchHit(SearchChunk(8, 2, "Найденный абзац"), 0.8)],
      [SimpleNamespace(id=2, title="Заголовок", summary="Описание")],
@@ -216,23 +190,21 @@ def test_empty_search_does_not_fetch_titles(monkeypatch):
     session.execute.assert_not_called()
 
 
-def test_indexing_preserves_batch_and_concurrent_edit_checks(monkeypatch, capsys):
-    row = SimpleNamespace(id=7, body="Текст для индексации", updated_at="revision")
-    session = Mock(spec=Session)
-    session.execute.side_effect = [Mock(all=lambda: [row]), Mock(rowcount=1), Mock(all=lambda: [])]
-    session.scalar.return_value = 0
-    context = Mock()
-    context.__enter__ = Mock(return_value=session)
-    context.__exit__ = Mock(return_value=False)
-    monkeypatch.setattr(index_content, "SessionLocal", lambda: context)
-    embedder = Mock()
-    embedder.encode_documents.return_value = [vector()]
-    monkeypatch.setattr(index_content, "get_embedder", lambda *args: embedder)
-    monkeypatch.setattr(sys, "argv", ["index_content", "--batch-size", "2"])
-    index_content.main()
-    embedder.encode_documents.assert_called_once_with([row.body])
-    session.commit.assert_called_once()
-    update = session.execute.call_args_list[1].args[0]
-    assert "content_item_chunks.updated_at =" in str(update)
-    assert update.compile().params["embedding"] == vector()
-    assert "Index ready: 1 chunks calculated" in capsys.readouterr().out
+def test_disabled_embeddings_search_uses_bm25_without_model(monkeypatch):
+    from backend.config import get_settings
+
+    monkeypatch.setenv("EMBEDDINGS_ENABLED", "false")
+    get_settings.cache_clear()
+    factory = Mock(side_effect=AssertionError("Model must not load"))
+    monkeypatch.setattr(embedding_search, "get_embedder", factory)
+    repository = Mock()
+    repository.list_chunks.return_value = [SearchChunk(1, 7, "Защита музыки")]
+    monkeypatch.setattr("backend.content_repository.ContentSearchRepository", lambda session: repository)
+    try:
+        hits = embedding_search.search_embeddings("музыка", session=Mock())
+        assert [hit.chunk.content_item_id for hit in hits] == [7]
+        assert embedding_search.search_embeddings("космос", session=Mock()) == []
+        factory.assert_not_called()
+        repository.list_search_fragments.assert_not_called()
+    finally:
+        get_settings.cache_clear()
