@@ -21,6 +21,10 @@ def _lookup(params: dict[str, Any], path: str) -> str:
 def _when_ok(expr: str | None, params: dict[str, Any]) -> bool:
     if not expr:
         return True
+    if "||" in expr:
+        return any(_when_ok(part.strip(), params) for part in expr.split("||"))
+    if "&&" in expr:
+        return all(_when_ok(part.strip(), params) for part in expr.split("&&"))
     m = _WHEN.match(expr.strip())
     if not m:
         return False

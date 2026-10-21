@@ -226,6 +226,9 @@ document.addEventListener("DOMContentLoaded", () => {
         input.setCustomValidity(field.required && typeof value === "string" && !value.trim() ? "Заполните поле." : "");
       }
     }
+    for (const card of document.querySelectorAll(".document-field-card")) {
+      card.hidden = [...card.querySelectorAll(".document-field")].every((field) => field.hidden);
+    }
   }
 
   function appendTemplateText(target, text) {
@@ -252,7 +255,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const heading = first && !paragraph.includes("\n") && paragraph.length < 160;
         const tag = heading ? "h2" : /^\d+\.\s+[А-ЯЁA-Z][А-ЯЁA-Z\s.,—–()]+$/.test(paragraph.trim()) ? "h3" : "p";
         const node = element(tag);
-        appendTemplateText(node, paragraph);
+        const placeAndDate = paragraph.match(/^(.*\{\{\s*city\s*\}\})[\s,]+(\{\{\s*date\s*\}\}.*)$/);
+        if (placeAndDate) {
+          node.classList.add("document-place-date");
+          const place = element("span");
+          const date = element("span", undefined, "document-preamble-date");
+          appendTemplateText(place, placeAndDate[1]);
+          appendTemplateText(date, placeAndDate[2]);
+          node.append(place, date);
+        } else {
+          appendTemplateText(node, paragraph);
+        }
         section.append(node);
         first = false;
       }

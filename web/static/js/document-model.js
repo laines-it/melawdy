@@ -35,6 +35,8 @@
   // Keep these rules aligned with backend/render.py: preview and DOCX share a contract.
   function when(expression, params) {
     if (!expression) return true;
+    if (expression.includes("||")) return expression.split("||").some((part) => when(part.trim(), params));
+    if (expression.includes("&&")) return expression.split("&&").every((part) => when(part.trim(), params));
     const match = /^([a-zA-Z0-9_]+)\s*(==|!=)\s*([\p{L}\p{N}_]+)$/u.exec(expression.trim());
     if (!match) return false;
     const [, field, operator, raw] = match;
