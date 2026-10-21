@@ -1,0 +1,53 @@
+{
+  "repository": "https://github.com/Mippia/Music-Plagiarism-Detection",
+  "commit": "109c703242546e88914d8dbf04311e06bc3113cb",
+  "original_sha256": {
+    "README.md": "f4781086df3a337dbb504f2c21fd22f96cae40342abdc9d307b1484c78482626",
+    "compare.py": "ce26ad80021441faef162c67fd1ffd98b2dda52eb46a44e7ae1f8a57cd7f59c9",
+    "compare_utils.py": "08f1ec88422318b92d45b9bdf8ce6a7080f5c3d19c8d27c060148a79723bd752",
+    "inference.py": "6b195c8f11040b2f7856acc35a04928af9c8e09d27b92969e458a9c178a88a1c",
+    "music_info.py": "4d214398c20a0c8e90cf2fb6a2489a8fe96b40700e795e2315549d9e74ad2c7c",
+    "segment_transcription.py": "741bce4abbef4bc58ea9f73399c4c977146ef8cd45e19d3f0b0a374fbeb70071",
+    "utils.py": "51f311579883dccf5fcda8e0142c8045a1b7672064f23f9e89b1a87269bbd9bc",
+    "wav_quantizer.py": "a49c38a58e46ef9fbe8fec51ff15d1c0f5569fa6003c69b81ed49737a991752e",
+    "ml_models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ml_models/DilatedTransformer.py": "a826a94fc5dfaa34a8b60e81d2eceb41fbeeed4af37d561cce0d2d02b95bb366",
+    "ml_models/DilatedTransformerLayer.py": "1deabc41d871bdce778c083bce48a2f6d38a61a99df7c86546eed532fc1a036a",
+    "ml_models/AST/do_everything.py": "14e924d3ce7c7439879a536dc760d416e3ab567e69373f9979297996b22af89d",
+    "ml_models/AST/predictor.py": "16264ccbd0b0bea435c01f58fa772f157eb829c1f9b05a4e9277ce1fbe405042",
+    "ml_models/AST/net/__init__.py": "0334d445b43cd79e684db9b411677c83e7cc938e2701024b8001c3f44a1ec0ac",
+    "ml_models/AST/net/effnet.py": "b3ec0f148a160921edcf822f856b9a134b695bd775a99adf83aff01d8ea30f76",
+    "ml_models/AST/data_utils/__init__.py": "88a7c2d6d518a6729effc8784918e4032671604abc045079013b092e5f0d67fe",
+    "ml_models/AST/data_utils/audio_dataset.py": "86009a771b3b8dea4401df944650d44e2b0a0f9eb09ff6b99b6681942b33e548",
+    "ml_models/AST/data_utils/seq_dataset.py": "782053f6186de7762de0e43e4014755a43cb0cbebdf8d5a89137645c9e292bd5",
+    "ml_models/Beat-Transformer/LICENSE": "00d28f59df6ede4917be18e57a60cef4ad97a844401037b01961f94cace98cfe"
+  },
+  "weights": [
+    {
+      "path": "ml_models/AST/models/1005_e_4",
+      "sha256": "ff9aab3de0a7c00d5946c33027cc6aa5a8c1267f297b212b7d906304b417f360",
+      "size": 17285251
+    },
+    {
+      "path": "ml_models/Beat-Transformer/checkpoint/fold_4_trf_param.pt",
+      "sha256": "b76033014dd07d12307743b92337b7dffadf1f20a6ccd5a1edb03276e99a4512",
+      "size": 37235863
+    }
+  ],
+  "modified_sha256": {
+    "compare.py": "cf8ad5521d0f4131c2c7250c9fd5e152bc78f667a1407e272c9b9d224a770dbc",
+    "segment_transcription.py": "7201b35180707504a08249d0e90758873739d5c38c9500cba1689a4df198dbd2",
+    "wav_quantizer.py": "21c7b90e9e47be77b9b837db03f7b6d9d86d524f5e71c3b4587da583f7ddc685",
+    "ml_models/AST/do_everything.py": "76a83276bca4bd509c10805df823c7e56c51525655513bfe4b8347cc738e39d6",
+    "ml_models/AST/predictor.py": "7ec7cf2aa193f84ff5df0071e047d67d6a8f2b072d03d185f2b17f83bafab027"
+  },
+  "auxiliary": {
+    "repository": "https://github.com/CPJKU/madmom_models",
+    "commit": "7e3dc1b0cad499792767074d03c38b194b9b0a79",
+    "license": "CC-BY-NC-SA-4.0",
+    "sha256": {
+      "__init__.py": "c4cf48a38310bafe13dde2c2de3c2e9faa694064141cd1860024f352c99a7a97",
+      "LICENSE": "26688e39d9446d81eb82177ce51480aea08985dc9c6b142fc53b584f1966fa63"
+    }
+  }
+}
