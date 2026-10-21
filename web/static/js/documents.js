@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const $ = (selector) => document.querySelector(selector);
   const api = window.MelawdyAPI.request;
   const model = window.DocumentModel;
+  const R = window.ZPRoutes;
   const query = new URLSearchParams(window.location.search);
   const controls = new Map();
   const form = $("#document-form");
@@ -48,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const records = await api(`public/templates?limit=24&offset=${offset}`);
       for (const record of records) {
         const card = element("a", undefined, "document-template-card");
-        card.href = `./documents.html?template=${encodeURIComponent(record.id)}`;
+        card.href = `${R.documents}?template=${encodeURIComponent(record.id)}`;
         const icon = element("span", "▤", "document-template-icon");
         icon.setAttribute("aria-hidden", "true");
         card.append(icon, element("h2", record.title),
@@ -340,7 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     documentId = String(saved.id);
     ownerId = String(window.ZPAuth.getUser().id);
-    window.history.replaceState(null, "", `./documents.html?document=${encodeURIComponent(documentId)}`);
+    window.history.replaceState(null, "", `${R.documents}?document=${encodeURIComponent(documentId)}`);
     query.delete("template");
     query.set("document", documentId);
     dirty = false;

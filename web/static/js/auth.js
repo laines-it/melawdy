@@ -2,19 +2,23 @@
   let session = null;
   let logoutPending = false;
 
+  function loginHref() {
+    return (window.ZPRoutes && window.ZPRoutes.login) || "/login";
+  }
+
   function updateUI() {
     const user = session?.user;
     document.querySelectorAll("[data-auth-action]").forEach((link) => {
       link.textContent = user ? "Выйти →" : "Войти →";
-      link.href = user ? "#logout" : "./login.html";
+      link.href = user ? "#logout" : loginHref();
       link.dataset.authState = user ? "logged-in" : "logged-out";
     });
     document.querySelectorAll("[data-user-name]").forEach((element) => {
       element.textContent = user ? user.full_name || user.email : "";
       element.hidden = !user;
     });
-    document.querySelectorAll("[data-auth-required]").forEach((element) => { element.hidden = !user; });
-    document.querySelectorAll("[data-auth-guest]").forEach((element) => { element.hidden = Boolean(user); });
+    document.querySelectorAll("[data-auth-required]").forEach((el) => { el.hidden = !user; });
+    document.querySelectorAll("[data-auth-guest]").forEach((el) => { el.hidden = Boolean(user); });
   }
 
   function setSession(value) {
@@ -27,6 +31,7 @@
     try {
       setSession(await window.MelawdyAPI.request("auth/me"));
     } catch (error) {
+      // FIX: 401 — штатная «гостевая» ситуация, не шумим.
       setSession(null);
       if (error.status !== 401) throw error;
     }
@@ -36,7 +41,8 @@
   async function login(email, password) {
     await ready.catch(() => {});
     setSession(await window.MelawdyAPI.request("auth/login", {
-      method: "POST", body: JSON.stringify({ email, password }),
+      method: "POST",
+      body: JSON.stringify({ email, password }),
     }));
     return session;
   }
@@ -49,7 +55,8 @@
   async function register(payload) {
     await ready.catch(() => {});
     setSession(await window.MelawdyAPI.request("auth/register", {
-      method: "POST", body: JSON.stringify(payload),
+      method: "POST",
+      body: JSON.stringify(payload),
     }));
     return session;
   }
@@ -77,10 +84,18 @@
     getCsrfToken: () => session?.csrf_token || "",
     isLoggedIn: () => Boolean(session?.user),
     clearSession: () => setSession(null),
-    login, register, logout, refresh, updateUI,
+    login,
+    register,
+    logout,
+    refresh,
+    updateUI,
   };
-  ready = new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve))
-    .then(refresh);
+
+  ready = (document.readyState === "loading"
+    ? new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }))
+    : Promise.resolve()
+  ).then(refresh);
+
   window.ZPAuth.ready = ready;
   ready.catch(() => {});
 })();

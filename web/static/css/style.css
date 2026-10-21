@@ -1,4 +1,6 @@
-﻿/* Главная страница */
+﻿/* ================ */
+/* ГЛАВНАЯ СТРАНИЦА */
+/* ================ */
 
 :root {
   --zp-bg: #FBF6E6;
@@ -233,7 +235,7 @@ body {
   flex: 1;
   border: none;
   background: transparent;
-  font-family: var(--zp-font-sans);
+  font-family: var(--zp-font-sans), sans-serif;
   font-size: 16px;
   color: var(--zp-text);
   outline: none;
@@ -243,6 +245,10 @@ body {
 
 .search-field input::placeholder {
   color: var(--zp-text-muted);
+}
+
+.search-field input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
 }
 
 .search-submit {
@@ -572,4 +578,47 @@ body {
   border-top: 1px solid var(--border-color);
   padding: 28px 72px;
   background: var(--surface);
+}
+
+.site-header .search-toggle {
+  text-decoration: none;
+}
+
+.search-field-clear {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: #6E7580;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  padding: 0;
+}
+
+.search-field-clear:hover {
+  background: rgba(14, 15, 18, 0.06);
+  color: #0E0F12;
+}
+
+.search-field-clear:focus-visible {
+  outline: 2px solid #93ABD8;
+  outline-offset: 2px;
+}
+
+.search-field-clear[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  .search-field-clear {
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
+  }
 }

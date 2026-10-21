@@ -1,14 +1,18 @@
 document.addEventListener("DOMContentLoaded", () => {
   const request = window.MelawdyAPI.request;
+  const R = window.ZPRoutes;
   const form = document.querySelector("#search-form");
   const input = document.querySelector("#search-query");
   const status = document.querySelector("#status");
   const results = document.querySelector("#search-results");
+  const clearBtn = document.querySelector("#search-clear");
   let searchVersion = 0;
 
-  // ---- Мини-markdown → DOM (inline) ----
-  // Поддерживает **bold**, *italic*, [text](url), `code`.
-  // Возвращает DocumentFragment с инлайн-узлами (без <p>-обёрток).
+  function updateClearVisibility() {
+    if (!clearBtn) return;
+    clearBtn.hidden = input.value.trim() === "";
+  }
+
   function renderInlineMarkdown(text) {
     const fragment = document.createDocumentFragment();
     const src = String(text ?? "");
@@ -43,13 +47,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return fragment;
   }
 
-  // Рендерит markdown в контейнер, сохраняя className.
   function setMarkdown(el, text) {
     if (!el) return;
     el.replaceChildren(renderInlineMarkdown(text));
   }
 
-  // Эвристика: бэк возвращает { article_id, title, body }.
   function labelFor(record) {
     if (record.type_label) return record.type_label;
     const map = {
@@ -78,8 +80,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function articleHref(record) {
-    if (!record.article_id) return null;
-    return `./article.html?id=${encodeURIComponent(record.article_id)}`;
+    const key = record.article_slug || record.slug || record.article_id || record.id;
+    if (!key) return null;
+    return R.article(key);
   }
 
   function renderCard(record, index) {
@@ -99,18 +102,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     head.append(arrow);
 
-    // Заголовок — markdown-inline
+    // Название ссылки: приоритетно link_title из БД, затем title
+    const linkText = record.link_title || record.title || "Без названия";
+
     const title = element("h2", "search-card-title");
     if (href) {
       const titleLink = element("a");
       titleLink.href = href;
-      titleLink.replaceChildren(renderInlineMarkdown(record.title || "Без названия"));
+      titleLink.replaceChildren(renderInlineMarkdown(linkText));
       title.append(titleLink);
     } else {
-      title.replaceChildren(renderInlineMarkdown(record.title || "Без названия"));
+      title.replaceChildren(renderInlineMarkdown(linkText));
     }
 
-    // Описание — markdown-inline
     const body = element("p", "search-card-body");
     body.replaceChildren(renderInlineMarkdown(record.body || ""));
     if (record.body) body.title = record.body;
@@ -154,6 +158,7 @@ document.addEventListener("DOMContentLoaded", () => {
         records = articles.map((r) => ({
           article_id: r.id,
           title: r.title,
+          link_title: r.link_title,
           body: r.summary || r.body || "",
           type: "article",
         }));
@@ -190,13 +195,29 @@ document.addEventListener("DOMContentLoaded", () => {
     runSearch(query);
   });
 
+  input.addEventListener("input", updateClearVisibility);
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      input.value = "";
+      updateClearVisibility();
+      input.focus();
+      const url = new URL(window.location.href);
+      url.searchParams.delete("query");
+      window.history.pushState({ query: "" }, "", url);
+      runSearch("");
+    });
+  }
+
   const initialQuery = new URLSearchParams(window.location.search).get("query") || "";
   if (initialQuery) input.value = initialQuery;
+  updateClearVisibility();
   runSearch(initialQuery.trim());
 
   window.addEventListener("popstate", () => {
     const query = new URLSearchParams(window.location.search).get("query") || "";
     input.value = query;
+    updateClearVisibility();
     runSearch(query.trim());
   });
 });

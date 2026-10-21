@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./css/style.css">
   <link rel="stylesheet" href="./css/melawdy.css">
   <link rel="stylesheet" href="./css/documents.css">
+  <link rel="stylesheet" href="./css/account.css">
 </head>
 <body class="documents-page">
   <div class="page-shell">
@@ -18,15 +19,15 @@
           <span class="brand-name">Законпозитор</span>
         </a>
         <nav class="main-nav" aria-label="Основная навигация">
-          <a href="./documents.html" class="nav-link" aria-current="page">Конструктор договоров</a>
-          <a href="./calculator.html" class="nav-link">Калькулятор</a>
-          <a href="./search.html" class="nav-link">Полезные материалы</a>
-          <a href="./admin.html" class="nav-link">О нас</a>
+          <a href="/documents" class="nav-link" aria-current="page">Конструктор договоров</a>
+          <a href="/calculator" class="nav-link">Калькулятор</a>
+          <a href="/search" class="nav-link">Полезные материалы</a>
+          <a href="/admin" class="nav-link">О нас</a>
         </nav>
         <div class="header-actions">
-          <a class="search-toggle" href="./search.html" aria-label="Поиск">⌕</a>
-          <a href="./account.html" class="user-chip" data-user-name hidden></a>
-          <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+          <a class="search-toggle" href="/search" aria-label="Поиск">⌕</a>
+          <a href="/account" class="user-chip" data-user-name hidden></a>
+          <a href="/login" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
         </div>
       </div>
     </header>
@@ -42,9 +43,9 @@
 
       <section id="editor" aria-labelledby="document-heading" hidden>
         <div class="document-topbar">
-          <a class="document-back" href="./documents.html">← <span>Выбор документа</span></a>
+          <a class="document-back" href="/documents">← <span>Выбор документа</span></a>
           <h1 id="document-heading"></h1>
-          <a class="document-account" href="./account.html">Мои документы ↗</a>
+          <a class="document-account" href="/account">Мои документы ↗</a>
         </div>
         <div class="document-workspace">
           <aside class="document-panel document-sidebar" aria-label="Навигация по документу">
@@ -121,8 +122,9 @@
       <p id="document-login-status" role="alert"></p>
       <button id="document-login-submit" class="document-primary" type="submit">Войти →</button>
     </form>
-    <p><a href="./register.html" target="_blank" rel="noopener">Создать аккаунт в новой вкладке ↗</a></p>
+    <p><a href="/register" target="_blank" rel="noopener">Создать аккаунт в новой вкладке ↗</a></p>
   </dialog>
+  <script src="./js/routes.js" defer></script>
   <script src="./js/api.js" defer></script>
   <script src="./js/auth.js" defer></script>
   <script src="./js/document-model.js" defer></script>

@@ -1,13 +1,86 @@
 document.addEventListener("DOMContentLoaded", () => {
   const request = window.MelawdyAPI.request;
   const $ = (sel) => document.querySelector(sel);
+  const R = window.ZPRoutes || {
+    login: "/login",
+    search: "/search",
+    article: (slugOrId) => `/article/${encodeURIComponent(slugOrId)}`,
+  };
+
+  // =========================================================
+  // Извлечение slug из path /article/<slug>, из ?slug= или ?id=
+  // =========================================================
+  function extractSlug() {
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    if (parts[0] === "article" && parts[1]) {
+      const candidate = decodeURIComponent(parts[1]);
+      // slug: буквы, цифры, дефисы, подчёркивания. id: только цифры.
+      if (/^[A-Za-z0-9_-]{1,200}$/.test(candidate)) return candidate;
+      if (/^\d+$/.test(candidate)) return candidate; // старый /article/17
+    }
+    const fromQuery = new URLSearchParams(window.location.search);
+    const slug = fromQuery.get("slug");
+    if (slug) return slug.trim();
+    const id = fromQuery.get("id");
+    if (id) return id.trim();
+    return "";
+  }
+
+  function isValidSlug(value) {
+    if (!value || typeof value !== "string") return false;
+    if (!/^[A-Za-z0-9_-]{1,200}$/.test(value)) return false;
+    if (/^\d+$/.test(value)) {
+      try {
+        return BigInt(value) <= 9223372036854775807n;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // =========================================================
+  // chunks: string[] | {body:string}[] | null → string[]
+  // =========================================================
+  function normalizeChunks(chunks) {
+    if (!Array.isArray(chunks)) return [];
+    const out = [];
+    for (const chunk of chunks) {
+      if (chunk == null) continue;
+      let body;
+      if (typeof chunk === "string") body = chunk;
+      else if (typeof chunk === "object" && typeof chunk.body === "string") body = chunk.body;
+      else continue;
+      if (body.trim()) out.push(body);
+    }
+    return out;
+  }
+
+  // =========================================================
+  // slug/id из записи (для рекомендаций и ссылок)
+  // =========================================================
+  function recordSlug(record) {
+    if (!record || typeof record !== "object") return "";
+    if (typeof record.slug === "string" && record.slug.trim()) return record.slug.trim();
+    // fallback: старый id
+    if (record.id != null) {
+      const s = String(record.id).split(":")[0].trim();
+      if (/^\d+$/.test(s)) return s;
+    }
+    return "";
+  }
+
+  function articleHref(record) {
+    const key = recordSlug(record);
+    return key ? R.article(key) : null;
+  }
 
   const state = $("#article-state");
   const article = $("#article");
-  const id = new URLSearchParams(window.location.search).get("id");
+  const id = extractSlug(); // фактически slug или id
   const favBtn = $("#fav-btn");
 
-  // ---- helpers, безопасные для моков ----
+  // ---- helpers ----
   function clear(el) {
     if (!el) return;
     while (el.firstChild) el.removeChild(el.firstChild);
@@ -41,15 +114,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return (el.className || "").split(/\s+/).includes(cls);
   }
 
-  // ---- Реестр сносок: один на всю статью ----
+  // ---- Реестр сносок ----
   function createFootnoteRegistry() {
-    const notes = new Map();   // id -> text
-    const order = [];          // id в порядке появления
-    const index = new Map();   // id -> номер
+    const notes = new Map();
+    const order = [];
+    const index = new Map();
 
-    function define(noteId, text) {
-      notes.set(noteId, text);
-    }
+    function define(noteId, text) { notes.set(noteId, text); }
 
     function ref(noteId) {
       if (!index.has(noteId)) {
@@ -82,7 +153,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         li.id = `fn-${noteId}`;
         const p = document.createElement("p");
-        // ВАЖНО: передаём api, а не registry (которого здесь нет)
         appendInlineInto(p, notes.get(noteId) || "", api);
         const back = document.createElement("a");
         back.href = `#fnref-${noteId}`;
@@ -101,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return api;
   }
 
-  // ---- Inline markdown с рекурсией для **bold** / *italic* ----
+  // ---- Inline markdown ----
   function appendInlineInto(target, text, registry) {
     const src = String(text ?? "");
     const re = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`|\[([^\]]+)\]\s*\(([^)\s]+)\)|\[\^([^\]]+)\]/g;
@@ -110,12 +180,10 @@ document.addEventListener("DOMContentLoaded", () => {
     while ((m = re.exec(src)) !== null) {
       target.appendChild(document.createTextNode(src.slice(offset, m.index)));
       if (m[1] !== undefined) {
-        // **bold** — рекурсивно, чтобы поймать вложенные [^N], *italic*, ссылки
         const strong = document.createElement("strong");
         appendInlineInto(strong, m[1], registry);
         target.appendChild(strong);
       } else if (m[2] !== undefined) {
-        // *italic* — тоже рекурсивно
         const em = document.createElement("em");
         appendInlineInto(em, m[2], registry);
         target.appendChild(em);
@@ -142,8 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
     target.appendChild(document.createTextNode(src.slice(offset)));
   }
 
-  // ---- Разбор одного чанка в контейнер, БЕЗ блока сносок ----
-  // Определения [^N]: text вынимаются и складываются в общий registry.
+  // ---- Один чанк → DOM ----
   function renderChunkInto(container, text, registry) {
     const raw = String(text ?? "").replace(/\r\n?/g, "\n");
     const allLines = raw.split("\n");
@@ -210,25 +277,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // ---- Рендер всего тела статьи с единым реестром сносок ----
-  // Возвращает DocumentFragment: [chunk0, chunk1, ..., section.footnotes?]
-  function renderBody(chunks) {
-    const registry = createFootnoteRegistry();
-    const fragment = document.createDocumentFragment();
-    const blocks = [];
-    for (let i = 0; i < chunks.length; i++) {
-      const section = document.createElement("section");
-      section.className = "article-chunk";
-      renderChunkInto(section, chunks[i], registry);
-      blocks.push(section);
-    }
-    for (let i = 0; i < blocks.length; i++) fragment.appendChild(blocks[i]);
-    const notes = registry.buildSection();
-    if (notes) fragment.appendChild(notes);
-    return fragment;
-  }
-
-  // inline-рендер в существующий элемент (для заголовка/summary/related)
   function renderInlineInto(el, text) {
     if (!el) return;
     clear(el);
@@ -250,7 +298,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       favBtn.disabled = false;
       const favorites = await request("cabinet/favorites?limit=100");
-      const isFav = Array.isArray(favorites) && favorites.some((f) => String(f.content_item_id) === String(id));
+      const list = Array.isArray(favorites) ? favorites
+        : Array.isArray(favorites?.items) ? favorites.items : [];
+      // сравниваем и по id, и по slug — что вернул бэкенд
+      const isFav = list.some((f) =>
+        String(f.content_item_id) === String(id) ||
+        (f.slug && String(f.slug) === String(id))
+      );
       applyFavoriteState(isFav);
     } catch (e) {
       if (favBtn) favBtn.disabled = false;
@@ -267,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (favBtn) {
     favBtn.addEventListener("click", async () => {
       if (!window.ZPAuth.isLoggedIn()) {
-        window.location.href = "./login.html";
+        window.location.href = R.login;
         return;
       }
       if (favBtn.dataset && favBtn.dataset.busy === "1") return;
@@ -277,10 +331,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const isActive = hasClass(favBtn, "is-active");
       try {
         if (isActive) {
-          await request(`cabinet/favorites/${id}`, { method: "DELETE" });
+          await request(`cabinet/favorites/${encodeURIComponent(id)}`, { method: "DELETE" });
           applyFavoriteState(false);
         } else {
-          await request(`cabinet/favorites/${id}`, { method: "POST" });
+          await request(`cabinet/favorites/${encodeURIComponent(id)}`, { method: "POST" });
           applyFavoriteState(true);
         }
       } catch (error) {
@@ -296,13 +350,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ---- Рендер статьи ----
+  // =========================================================
+  // Рендер статьи. record совместим с serialize() из admin.py:
+  //   id, slug?, title, summary, status, category_id, created_at,
+  //   chunks: string[] | {body:string}[]
+  //   category?: {id, name}
+  // =========================================================
   function render(record) {
-    document.title = `${record.title} — Законпозитор`;
+    if (!record || typeof record !== "object") {
+      throw new Error("Некорректный ответ сервера");
+    }
 
-    renderInlineInto($("#article-title"), record.title || "");
+    const title = record.title != null ? String(record.title) : "";
+    document.title = `${title || "Статья"} — Законпозитор`;
 
-    const categoryName = record.category?.name || "Полезные материалы";
+    renderInlineInto($("#article-title"), title);
+
+    const categoryName = record.category && record.category.name
+      ? String(record.category.name)
+      : "Полезные материалы";
     setText($("#article-category"), categoryName);
 
     const catPath = $("#article-category-path");
@@ -315,9 +381,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Summary
     const summaryEl = $("#article-summary");
-    const summaryText = (record.summary || "").trim();
+    const summaryText = record.summary != null ? String(record.summary).trim() : "";
     if (summaryEl) {
       if (summaryText) {
         renderInlineInto(summaryEl, summaryText);
@@ -328,8 +393,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Время чтения
-    const chunks = Array.isArray(record.chunks) ? record.chunks : [];
+    const chunks = normalizeChunks(record.chunks);
     const words = chunks.join(" ").match(/\S+/g)?.length || 0;
     const minutes = Math.max(1, Math.ceil(words / 200));
     setText($("#article-reading-time"), `${minutes} мин. чтения`);
@@ -349,22 +413,27 @@ document.addEventListener("DOMContentLoaded", () => {
       if (introEl) introEl.hidden = !summaryText;
       if (emptyEl) emptyEl.hidden = true;
 
-      // Первый чанк — в #article-intro-body (интро), остальные — в #article-chunks.
-      // Сноски собираем по ВСЕМ чанкам и добавляем один блок в конце #article-chunks.
       const registry = createFootnoteRegistry();
 
       if (introBody) {
         const introSection = document.createElement("div");
         renderChunkInto(introSection, chunks[0], registry);
         while (introSection.firstChild) introBody.appendChild(introSection.firstChild);
+      } else if (chunksEl) {
+        const section = document.createElement("section");
+        section.className = "article-chunk";
+        renderChunkInto(section, chunks[0], registry);
+        chunksEl.appendChild(section);
       }
-      for (let i = 1; i < chunks.length; i++) {
+
+      const start = introBody ? 1 : 0;
+      for (let i = start; i < chunks.length; i++) {
         const section = document.createElement("section");
         section.className = "article-chunk";
         renderChunkInto(section, chunks[i], registry);
         if (chunksEl) chunksEl.appendChild(section);
       }
-      // Один блок сносок — после всех чанков
+
       const notes = registry.buildSection();
       if (notes) {
         if (chunksEl) chunksEl.appendChild(notes);
@@ -390,15 +459,22 @@ document.addEventListener("DOMContentLoaded", () => {
       clear(list);
       const filtered = [];
       for (let i = 0; i < records.length && filtered.length < 3; i++) {
-        if (String(records[i].id) !== String(id)) filtered.push(records[i]);
+        const rec = records[i];
+        if (!rec) continue;
+        const key = recordSlug(rec);
+        if (!key || key === String(id)) continue;
+        filtered.push(rec);
       }
       if (!filtered.length) { card.hidden = true; return; }
-      for (let i = 0; i < filtered.length; i++) {
-        const rec = filtered[i];
+      for (const rec of filtered) {
         const li = document.createElement("li");
         const a = document.createElement("a");
-        a.href = `./article.html?id=${encodeURIComponent(rec.id)}`;
-        renderInlineInto(a, rec.title || "Без названия");
+        const href = articleHref(rec);
+        if (!href) continue;
+        a.href = href;
+        // Название ссылки из БД: link_title → title → дефолт
+        const linkText = rec.link_title || rec.title || "Без названия";
+        renderInlineInto(a, String(linkText));
         li.appendChild(a);
         list.appendChild(li);
       }
@@ -420,16 +496,18 @@ document.addEventListener("DOMContentLoaded", () => {
     setText($("#state-message"), "Получаем материал");
 
     try {
+      // Ключевое: грузим по slug/id — бэкенд public/articles/{key} должен
+      // принимать и slug, и (для совместимости) числовой id.
       const record = await request(`public/articles/${encodeURIComponent(id)}`);
       render(record);
       loadRelated();
     } catch (error) {
-      setText($("#state-title"), error.status === 404
-        ? "Статья не найдена" : "Не удалось загрузить статью");
-      setText($("#state-message"), error.status === 404
+      const is404 = error && error.status === 404;
+      setText($("#state-title"), is404 ? "Статья не найдена" : "Не удалось загрузить статью");
+      setText($("#state-message"), is404
         ? "Возможно, материал ещё не опубликован или был удалён. Доступны другие статьи."
-        : error.message);
-      if (error.status !== 404) show(retryBtn);
+        : (error && error.message) || "Попробуйте позже.");
+      if (!is404) show(retryBtn);
     } finally {
       if (state) state.setAttribute("aria-busy", "false");
     }
@@ -438,7 +516,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const retryEl = $("#retry-article");
   if (retryEl) retryEl.addEventListener("click", () => { load(); });
 
-  if (!id || !/^[1-9]\d*$/.test(id) || BigInt(id) > 9223372036854775807n) {
+  if (!isValidSlug(id)) {
     show(state);
     if (state) state.setAttribute("aria-busy", "false");
     setText($("#state-title"), "Статья не выбрана");

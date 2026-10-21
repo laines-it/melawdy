@@ -251,7 +251,7 @@ def _favorite_out(fav: UserFavorite) -> FavoriteOut:
         id=fav.id,
         content_item_id=item.id,
         title=item.title,
-        slug=item.slug,
+        slug=item.slug or "",
         summary=item.summary,
         type=_enum_val(item.type),
         published_at=item.published_at,

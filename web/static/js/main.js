@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const request = window.MelawdyAPI.request;
   const status = document.querySelector("#status");
+  const R = window.ZPRoutes;
 
   function message(error) {
     if (status) status.textContent = error.message;
@@ -14,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function articleLink(id, title) {
     const link = node("a", title);
-    link.href = `./article.html?id=${encodeURIComponent(id)}`;
+    link.href = R.article(id);
     return link;
   }
 
@@ -32,21 +33,42 @@ document.addEventListener("DOMContentLoaded", () => {
       const answer = node("p", record.answer);
       answer.className = "faq-answer";
       card.append(summary, answer);
-      if (record.content_item_id) {
-        card.append(articleLink(record.content_item_id, "Читать материал →"));
+      if (record.content_slug || record.content_item_id) {
+        const linkText = record.link_title || record.content_title || "Читать материал →";
+        const link = node("a", linkText);
+        link.href = R.article(record.content_slug || record.content_item_id);
+        card.append(link);
       }
       list.append(card);
     }
   }
 
-  // Поиск на главной: отправляем на search.html с параметром query
   const searchForm = document.querySelector("#search-form");
   if (searchForm) {
     searchForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const query = document.querySelector("#search-query").value.trim();
       if (!query) return;
-      window.location.href = `./search.html?query=${encodeURIComponent(query)}`;
+      window.location.href = `${R.search}?query=${encodeURIComponent(query)}`;
+    });
+  }
+
+  // Крестик очистки в поисковом поле главной
+  const searchInput = document.querySelector("#search-query");
+  const searchClear = document.querySelector("#search-clear");
+
+  if (searchInput && searchClear) {
+    const updateClearVisibility = () => {
+      searchClear.hidden = searchInput.value.trim() === "";
+    };
+
+    updateClearVisibility();
+    searchInput.addEventListener("input", updateClearVisibility);
+
+    searchClear.addEventListener("click", () => {
+      searchInput.value = "";
+      updateClearVisibility();
+      searchInput.focus();
     });
   }
 

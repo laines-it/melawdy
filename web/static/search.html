@@ -20,15 +20,15 @@
           <span class="brand-name">Законпозитор</span>
         </a>
         <nav class="main-nav" aria-label="Основная навигация">
-          <a href="./documents.html" class="nav-link">Конструктор договоров</a>
-          <a href="./calculator.html" class="nav-link">Калькулятор</a>
-          <a href="./search.html" class="nav-link">Полезные материалы</a>
-          <a href="./admin.html" class="nav-link">О нас</a>
+          <a href="/documents" class="nav-link">Конструктор договоров</a>
+          <a href="/calculator" class="nav-link">Калькулятор</a>
+          <a href="/search" class="nav-link">Полезные материалы</a>
+          <a href="/admin" class="nav-link">О нас</a>
         </nav>
         <div class="header-actions">
-          <a class="search-toggle" href="./search.html" aria-label="Поиск">⌕</a>
-          <a href="./account.html" class="user-chip" data-user-name hidden></a>
-          <a href="./login.html" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+          <a class="search-toggle" href="/search" aria-label="Поиск">⌕</a>
+          <a href="/account" class="user-chip" data-user-name hidden></a>
+          <a href="/login" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
         </div>
       </div>
     </header>
@@ -36,14 +36,14 @@
     <main class="site-main search-page">
       <!-- Хлебная крошка -->
       <div class="container">
-        <a class="search-back" href="./index.html">← На главную</a>
+        <a class="search-back" href="/">← На главную</a>
       </div>
 
       <!-- Заголовок и поисковая строка -->
       <div class="container">
         <section class="search-hero" aria-labelledby="search-title">
           <h1 class="search-title" id="search-title">Поиск по вопросу</h1>
-          <form id="search-form" class="search-bar" role="search" action="./search.html" method="get">
+          <form id="search-form" class="search-bar" role="search" action="/search" method="get">
             <span class="search-bar-icon" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="9.5" cy="9.5" r="7" stroke="#0E0F12" stroke-width="2"/>
@@ -59,10 +59,12 @@
               placeholder="Задайте вопрос о правах на музыку…"
               aria-label="Поисковый запрос"
               autocomplete="off">
+            <button type="button" class="search-bar-clear" id="search-clear" aria-label="Очистить запрос" title="Очистить" hidden>×</button>
             <button type="submit" class="search-bar-submit" aria-label="Найти">
               <span aria-hidden="true">→</span>
             </button>
           </form>
+          <p class="search-hint">Например: соавторство</p>
         </section>
       </div>
 
@@ -77,14 +79,13 @@
             <section class="search-help-card">
               <h2>Не нашли ответ?</h2>
               <p>Рассчитайте пошлину или посмотрите готовые разборы в полезных материалах.</p>
-              <a href="./calculator.html">Калькулятор пошлин →</a>
-              <a href="./index.html#articles">Все материалы →</a>
+              <a href="/calculator">Калькулятор пошлин →</a>
+              <a href="/#articles">Все материалы →</a>
             </section>
             <section class="search-help-card search-help-card--empty">
               <h2>Разберитесь в правах на музыку</h2>
               <p>Авторство, договоры и регистрация: ответы на ваши вопросы о правах на музыку.</p>
-              <a href="./documents.html">Конструктор договоров сервиса →</a>
-              <p class="search-hint">Например: соавторство</p>
+              <a href="/documents">Конструктор договоров сервиса →</a>
             </section>
           </aside>
         </div>
@@ -98,6 +99,7 @@
     </footer>
   </div>
 
+  <script src="./js/routes.js" defer></script>
   <script src="./js/api.js" defer></script>
   <script src="./js/auth.js" defer></script>
   <script src="./js/search.js" defer></script>

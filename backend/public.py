@@ -14,10 +14,41 @@ from ml.tfidf import TfidfIndex
 router = APIRouter(prefix="/api/v1/public", tags=["public"])
 
 
+
+def _published_clause():
+    """Единый фильтр: статья опубликована и дата публикации наступила."""
+    return (
+        ContentItem.status == ContentStatus.PUBLISHED,
+        ContentItem.published_at <= func.now(),
+    )
+
+
+def _slugify(value: str | None) -> str | None:
+    """Запасной slug из title, если в модели slug пуст."""
+    if not value:
+        return None
+    text = value.strip().lower()
+    cleaned = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in text)
+    cleaned = "-".join(part for part in cleaned.split("-") if part)
+    return cleaned or None
+
+
+def _article_ref(item: ContentItem) -> dict:
+    """Ссылочные поля статьи: id, slug, title, link_title."""
+    return {
+        "id": str(item.id),
+        "slug": item.slug or "",
+        "title": item.title,
+        "link_title": getattr(item, "link_title", None),
+    }
+
+
+
 @router.get("/capabilities")
 def capabilities() -> dict:
     return {"music_check": {"available": False,
                             "message": "Проверка аудиофайлов пока не подключена. Результаты проверки недоступны."}}
+
 
 
 @router.get("/faq")
@@ -26,8 +57,21 @@ def list_faq(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 4
         QAPair.content_item_id.is_(None),
         (ContentItem.status == ContentStatus.PUBLISHED) & (ContentItem.published_at <= func.now()),
     )).order_by(QAPair.sort_order, QAPair.id).limit(limit))
-    return [{"id": str(item.id), "question": item.question, "answer": item.answer,
-             "content_item_id": str(item.content_item_id) if item.content_item_id else None} for item in items]
+
+    result = []
+    for item in items:
+        article = item.content_item if item.content_item_id else None
+        ref = _article_ref(article) if article else None
+        result.append({
+            "id": str(item.id),
+            "question": item.question,
+            "answer": item.answer,
+            "content_item_id": ref["id"] if ref else None,
+            "content_slug": ref["slug"] if ref else None,
+            "content_title": ref["title"] if ref else None,
+            "link_title": ref["link_title"] if ref else None,
+        })
+    return result
 
 
 @router.get("/search")
@@ -35,15 +79,49 @@ def search(session: SessionDep, query: Annotated[str, Query(min_length=1, max_le
            limit: Annotated[int, Query(ge=1, le=100)] = 10) -> list[dict]:
     if not query.strip():
         raise HTTPException(422, "Введите поисковый запрос")
+
     hits = TfidfIndex(ContentSearchRepository(session).list_chunks()).search(query, limit)
     if not hits:
         return []
-    titles = dict(session.execute(select(ContentItem.id, ContentItem.title).where(
-        ContentItem.id.in_({hit.chunk.content_item_id for hit in hits}),
-        ContentItem.status == ContentStatus.PUBLISHED, ContentItem.published_at <= func.now(),
-    )).all())
-    return [{"article_id": str(hit.chunk.content_item_id), "title": titles[hit.chunk.content_item_id],
-             "body": hit.chunk.body, "score": hit.score} for hit in hits if hit.chunk.content_item_id in titles]
+
+    article_ids = {hit.chunk.content_item_id for hit in hits}
+    rows = session.execute(
+        select(
+            ContentItem.id,
+            ContentItem.title,
+            ContentItem.slug,
+            getattr(ContentItem, "link_title", None) if hasattr(ContentItem, "link_title") else ContentItem.title,
+        ).where(
+            ContentItem.id.in_(article_ids),
+            *_published_clause(),
+        )
+    ).all()
+
+    by_id = {}
+    for row in rows:
+        item_id, title, slug, link_title = row
+        by_id[item_id] = {
+            "id": str(item_id),
+            "title": title,
+            "slug": slug or _slugify(title),
+            "link_title": link_title,
+        }
+
+    result = []
+    for hit in hits:
+        ref = by_id.get(hit.chunk.content_item_id)
+        if not ref:
+            continue
+        result.append({
+            "article_id": ref["id"],
+            "article_slug": ref["slug"],
+            "title": ref["title"],
+            "link_title": ref["link_title"],
+            "body": hit.chunk.body,
+            "score": hit.score,
+        })
+    return result
+
 
 
 @router.get("/templates")
@@ -65,28 +143,64 @@ def read_template(template_id: int, session: SessionDep) -> dict:
             "schema_json": item.schema_json or {}, "structure_json": item.structure_json or {}}
 
 
+
 @router.get("/articles")
 def list_articles(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 25,
                   offset: Annotated[int, Query(ge=0)] = 0) -> list[dict]:
     items = session.scalars(select(ContentItem).where(
-        ContentItem.status == ContentStatus.PUBLISHED, ContentItem.published_at <= func.now()
+        *_published_clause(),
     ).order_by(ContentItem.published_at.desc(), ContentItem.id.desc()).limit(limit).offset(offset))
-    return [{"id": str(item.id), "title": item.title, "slug": item.slug,
-             "summary": item.summary, "published_at": item.published_at} for item in items]
+
+    result = []
+    for item in items:
+        ref = _article_ref(item)
+        result.append({
+            **ref,
+            "summary": item.summary,
+            "published_at": item.published_at,
+        })
+    return result
 
 
-@router.get("/articles/{article_id}")
-def read_article(article_id: int, session: SessionDep) -> dict:
-    item = session.scalar(select(ContentItem).options(
-        selectinload(ContentItem.chunks), selectinload(ContentItem.category),
-    ).where(
-        ContentItem.id == article_id, ContentItem.status == ContentStatus.PUBLISHED,
-        ContentItem.published_at <= func.now()))
+@router.get("/articles/{key}")
+def read_article(key: str, session: SessionDep) -> dict:
+    """
+    Принимает и slug (kak-zashchitit-pesnyu), и числовой id (17).
+    Число → поиск по id. Иначе → поиск по slug.
+    """
+    if not key:
+        raise HTTPException(404, "Статья не найдена")
+
+    stmt = select(ContentItem).options(
+        selectinload(ContentItem.chunks),
+        selectinload(ContentItem.category),
+    ).where(*_published_clause())
+
+    if key.isdigit():
+        stmt = stmt.where(ContentItem.id == int(key))
+    else:
+        if not all(ch.isalnum() or ch in "-_" for ch in key):
+            raise HTTPException(404, "Статья не найдена")
+        stmt = stmt.where(ContentItem.slug == key)
+
+    item = session.scalar(stmt)
     if item is None:
         raise HTTPException(404, "Статья не найдена")
-    return {"id": str(item.id), "title": item.title, "summary": item.summary,
-            "category": {"id": str(item.category.id), "name": item.category.name} if item.category else None,
-            "chunks": [chunk.body for chunk in sorted(item.chunks, key=lambda chunk: chunk.chunk_index)]}
+
+    category = None
+    if item.category is not None:
+        category = {"id": str(item.category.id), "name": item.category.name or ""}
+
+    chunks = [chunk.body for chunk in sorted(item.chunks, key=lambda c: c.chunk_index) if chunk.body]
+
+    return {
+        **_article_ref(item),
+        "summary": item.summary,
+        "published_at": item.published_at,
+        "category": category,
+        "chunks": chunks,
+    }
+
 
 
 @router.get("/surveys")

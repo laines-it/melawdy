@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   const request = window.MelawdyAPI.request;
+  const R = window.ZPRoutes;
   const status = document.querySelector("#upload-status");
   const list = document.querySelector("#templates-list");
   const more = document.querySelector("#more-templates");
@@ -31,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
         description.className = "template-desc";
         card.append(title, description);
         const button = element("a", "Создать документ →");
-        button.href = `./documents.html?template=${encodeURIComponent(template.id)}`;
+        button.href = `${R.documents}?template=${encodeURIComponent(template.id)}`;
         button.className = "template-download";
         card.append(button);
         list.append(card);

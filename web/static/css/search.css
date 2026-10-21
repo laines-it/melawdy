@@ -382,3 +382,34 @@
     font-size: 15px;
   }
 }
+
+.search-bar-clear {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: #646D7B;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  padding: 0;
+}
+
+.search-bar-clear:hover {
+  background: rgba(14, 15, 18, 0.06);
+  color: #0E0F12;
+}
+
+.search-bar-clear:focus-visible {
+  outline: 2px solid #93ABD8;
+  outline-offset: 2px;
+}
+
+.search-bar-clear[hidden] {
+  display: none !important;
+}
