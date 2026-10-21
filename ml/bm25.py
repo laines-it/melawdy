@@ -1,42 +1,30 @@
 """In-process BM25 search over a caller-supplied corpus, without database access."""
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 import math
-import re
-import unicodedata
 
 import bm25s
 from bm25s.tokenization import Tokenizer
 import Stemmer
 
 from ml.tfidf import SearchChunk, SearchHit
-
-
-_TOKEN_PATTERN = re.compile(r"(?u)\b[^\W_]+(?:-[^\W_]+)*\b")
-_DASHES = str.maketrans("‐‑‒–—−", "------")
-
-
-def _normalize(text: str) -> str:
-    return unicodedata.normalize("NFKC", text).casefold().replace("ё", "е").translate(_DASHES)
+from ml.preprocessing import normalize_text, words
 
 
 class Bm25Index:
-    """Lucene BM25 with Russian stemming and the same result types as TfidfIndex.
+    """Lucene BM25 with Russian stemming and reusable corpus statistics."""
 
-    Build once and reuse for queries. The caller selects eligible chunks and
-    rebuilds the index when the corpus changes. Stopwords are retained, including
-    negations; numbers and hyphenated references such as 152-ФЗ remain searchable.
-    """
-
-    def __init__(self, chunks: Sequence[SearchChunk], *, k1: float = 1.5, b: float = 0.75) -> None:
+    def __init__(self, chunks: Sequence[SearchChunk], *, k1: float = 1.5, b: float = 0.75,
+                 stopwords: Collection[str] = ()) -> None:
         if not math.isfinite(k1) or k1 <= 0:
             raise ValueError("k1 must be finite and greater than zero")
         if not math.isfinite(b) or not 0 <= b <= 1:
             raise ValueError("b must be finite and between zero and one")
 
         self.chunks = tuple(chunks)
+        self.stopwords = frozenset(normalize_text(word) for word in stopwords)
         self._stemmer = Stemmer.Stemmer("russian")
         tokenizer = Tokenizer(
-            lower=False, splitter=_TOKEN_PATTERN.findall,
+            lower=False, splitter=self.words,
             stopwords=[], stemmer=self._stemmer,
         )
         self._index = None
@@ -44,7 +32,7 @@ class Bm25Index:
         if not self.chunks:
             return
         tokens = tokenizer.tokenize(
-            [_normalize(chunk.body) for chunk in self.chunks],
+            [normalize_text(chunk.body) for chunk in self.chunks],
             update_vocab=True, return_as="tuple", show_progress=False, allow_empty=False,
         )
         if any(tokens.ids):
@@ -59,7 +47,7 @@ class Bm25Index:
             raise ValueError("Limit must be between 1 and 100")
         if self._index is None:
             return []
-        stems = self._stemmer.stemWords(_TOKEN_PATTERN.findall(_normalize(query)))
+        stems = self.terms(query)
         tokens = [self._vocab[stem] for stem in stems if stem in self._vocab]
         if not tokens:
             return []
@@ -69,3 +57,9 @@ class Bm25Index:
             key=lambda index: (-float(scores[index]), self.chunks[index].id),
         )[:limit]
         return [SearchHit(self.chunks[index], float(scores[index])) for index in ranked]
+
+    def terms(self, text: str) -> list[str]:
+        return self._stemmer.stemWords(self.words(text))
+
+    def words(self, text: str) -> list[str]:
+        return [word for word in words(text) if word not in self.stopwords]

@@ -1,6 +1,6 @@
 # MeLawDy
 
-Стартовый каркас сайта MeLawDy: статический web, один Python API на FastAPI, PostgreSQL с pgvector и MinIO. Код поиска и ранжирования лежит в `ml/` и вызывается внутри API без отдельного сетевого сервиса.
+Стартовый каркас сайта MeLawDy: статический web, один Python API на FastAPI, PostgreSQL с pgvector. Код поиска и ранжирования лежит в `ml/` и вызывается внутри API без отдельного сетевого сервиса.
 
 ## Запуск
 
@@ -10,14 +10,21 @@
 docker compose up --build
 ```
 
+Для разработки без загрузки модели эмбеддингов в RAM:
+
+```bash
+EMBEDDINGS_ENABLED=false docker compose up --build -d
+```
+
+Или задайте `EMBEDDINGS_ENABLED=false` в `.env`. При сборке не устанавливаются PyTorch и SentenceTransformers, индексация эмбеддингов при старте пропускается, поиск использует BM25 и не загружает модель. Веса на диске сохраняются. Для включения модели задайте `EMBEDDINGS_ENABLED=true` и пересоберите API: `docker compose up --build -d api`.
+
+
 `.env` для локального запуска необязателен. Чтобы изменить порты или учётные данные, скопируйте `.env.example` в `.env` и отредактируйте значения.
 Если вы ранее запускали версию с отдельным `ml`-контейнером, один раз выполните `docker compose down --remove-orphans` перед новым запуском; данные в томах при этом сохранятся.
 
 - Сайт: http://localhost:8080
 - Панель администратора: http://localhost:8080/admin.html
 - API и документация OpenAPI: http://localhost:8081/docs
-- MinIO Console: http://localhost:9001
-- MinIO S3 API: http://localhost:9000
 - PostgreSQL: `localhost:5432`, база `melawdy`, пользователь `melawdy_app`
 
 Nginx передаёт `/api/` в Python API. Все опубликованные порты привязаны к `127.0.0.1` хоста. Для доступа из интернета потребуется отдельная настройка домена, TLS и reverse proxy.
@@ -46,7 +53,7 @@ docker compose ps -a
 
 ```powershell
 docker compose ps -a
-docker compose logs --tail=100 api postgres web minio
+docker compose logs --tail=100 api postgres web
 ```
 
 Если проблема возникает при сборке, отдельно выполните `docker compose --progress plain build` и сохраните последние строки вывода. Ошибки скачивания образов или пакетов требуют проверки сети Docker Desktop; смена `entrypoint.sh` их не исправляет.
@@ -54,7 +61,7 @@ docker compose logs --tail=100 api postgres web minio
 ## Управление
 
 ```sh
-# Остановить контейнеры, сохранив PostgreSQL и MinIO
+# Остановить контейнеры, сохранив данные PostgreSQL и кэш модели
 docker compose down
 
 # Пересобрать и запустить в фоне
@@ -64,11 +71,11 @@ docker compose up --build -d
 docker compose logs -f
 ```
 
-`docker compose down -v` дополнительно удаляет локальные данные PostgreSQL и MinIO.
+`docker compose down -v` дополнительно удаляет локальные данные PostgreSQL и кэш модели.
 
 ## Администратор и базовый интерфейс
 
-Статический интерфейс использует HTML, CSS и JavaScript без frontend-фреймворков, сборки и внешних CDN. Главная страница загружает опубликованные материалы, Q&A и активные assessment-опросы из API; поиск вызывает существующий TF-IDF по опубликованным разделам статей. В админ-панели доступны создание, редактирование и удаление статей, категорий, тегов, терминов, Q&A, опросов, вопросов, вариантов, результатов, правил, шаблонов и справочников пошлин.
+Статический интерфейс использует HTML, CSS и JavaScript без frontend-фреймворков, сборки и внешних CDN. Главная страница загружает опубликованные материалы, Q&A и активные assessment-опросы из API; поиск использует локальный SentenceTransformer `alekseevpavel04/multilingual-e5-small-ru-law`. При каждом запуске API скрипт `ml.index_content` рассчитывает недостающие векторы чанков до старта сервера; подробности — в [настройке поиска](docs/search.md). В админ-панели доступны создание, редактирование и удаление статей, категорий, тегов, терминов, Q&A, опросов, вопросов, вариантов, результатов, правил, шаблонов и справочников пошлин.
 
 Статьи открываются на `/article.html?id=<id>` через `GET /api/v1/public/articles/{id}`. Страница показывает категорию, описание, время чтения и текст из `content_item_chunks` в порядке `chunk_index`, а также ссылки на другие опубликованные материалы. Первый чанк выделен как вводный раздел; правила оформления текста описаны в [инструкции администратора](docs/admin.md#статья).
 
@@ -100,6 +107,8 @@ Email по умолчанию — `admin@melawdy.local`. Сгенерирова�
 
 ## Тесты
 
+Тестируем поведение API, права доступа, расчёты, поиск и сохранность данных при сбоях. Не фиксируем число таблиц, текущий ID последней миграции, точный SQL и внутренние вызовы библиотек без необходимости.
+
 Локально, из корня проекта:
 
 ```sh
@@ -128,7 +137,7 @@ web/          интерфейс и Nginx reverse proxy
 backend/      FastAPI, SQLAlchemy-модели, схемы запросов и доступ к БД
 ml/           TF-IDF, локальные embeddings, индексация и поиск по контенту
 migrations/   версионированные Alembic-миграции
-deploy/       Dockerfile для PostgreSQL/MinIO и заметки для деплоя
+deploy/       Dockerfile для PostgreSQL и заметки для деплоя
 docs/         исходная ER-схема, принятые допущения и инструкции по поиску
 ```
 
@@ -142,7 +151,7 @@ docs/         исходная ER-схема, принятые допущени�
 
 Миграция `0003_admin_sessions` добавляет серверные сессии администратора. Пароли хранятся как Argon2id-хеши, в базе сохраняется только хеш токена сессии. Операции изменения в админ-API и создание legacy-документа требуют действующую сессию администратора и CSRF-токен.
 
-Цепочка миграций продолжается до `0006_user_favorites` и совместима с `main`: CSRF-хеши сессий, защита входа и таблица избранного. Если после переключения на `frontlayout` старый API-образ пишет `Can't locate revision identified by '0006_user_favorites'`, пересоберите его: `docker compose up --build -d api web`. Существующий том PostgreSQL и его данные сохраняются.
+Цепочка миграций продолжается до `0007_e5_embeddings`: после схемы `main` она меняет размерность embeddings с 1024 на 384, очищает несовместимые векторы и пересоздаёт HNSW-индекс. Тексты и остальные данные сохраняются; embeddings нужно рассчитать заново. При ошибке `Can't locate revision` пересоберите API: `docker compose up --build -d api web`.
 
 API выполняет `alembic upgrade head` при запуске. Это применяет недостающие миграции и к уже существующему тому PostgreSQL. Пример: `docker compose run --rm api alembic current` показывает текущую ревизию.
 
@@ -153,8 +162,8 @@ python -m alembic upgrade head
 python -m alembic current
 ```
 
-`content_item_chunks.embedding` хранит `vector(1024)` для `Roflmax/bge-m3-russian-legal`, индекс HNSW использует cosine distance. TF-IDF выполняется через scikit-learn. Установка модели на VPS, предварительный расчёт embeddings и команды поиска описаны в [инструкции по поиску](docs/search.md). Веса и PyTorch не требуются для обычного запуска и юнит-тестов.
+`content_item_chunks.embedding` хранит `vector(384)` для `alekseevpavel04/multilingual-e5-small-ru-law`, индекс HNSW использует cosine distance. TF-IDF выполняется через scikit-learn. Установка модели, предварительный расчёт embeddings и команды поиска описаны в [инструкции по поиску](docs/search.md). Docker устанавливает CPU PyTorch и sentence-transformers; юнит-тесты используют заглушку модели без скачивания весов.
 
-`POST /api/v1/documents`, `GET /api/v1/documents` и `GET /api/v1/documents/{id}` — минимальный пример работы с записями. `POST /api/v1/analyze` пока явно сообщает, что ML-пайплайн не настроен. MinIO запущен как хранилище, но загрузка файлов ещё не реализована.
+`POST /api/v1/documents`, `GET /api/v1/documents` и `GET /api/v1/documents/{id}` — минимальный пример работы с записями. `POST /api/v1/analyze` пока явно сообщает, что ML-пайплайн не настроен. Загрузка файлов ещё не реализована.
 
-Учётные данные в Compose предназначены только для локальной разработки. Перед публикацией задайте отдельные секреты, настройте TLS, доступ к MinIO и резервное копирование данных.
+Учётные данные в Compose предназначены только для локальной разработки. Перед публикацией задайте отдельные секреты, настройте TLS и резервное копирование данных.

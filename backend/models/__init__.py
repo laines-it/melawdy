@@ -5,6 +5,7 @@ from backend.models.enums import (
 from backend.models.users import User
 from backend.models.content import (
     ContentCategory, ContentItem, ContentItemChunk, ContentItemTag, ContentTag,
+    ContentSearchIndex, ContentSearchFragment,
     GlossaryTerm, GlossaryTermContent, QAPair,
 )
 from backend.models.documents import DocumentStatusHistory, DocumentTemplate, RequestHistory, UserDocument
@@ -23,7 +24,7 @@ from backend.render import render_structure
 __all__ = [
     "Base", "User", "UserType", "ContentType", "ContentStatus", "QuestionType", "DocumentType",
     "DocumentStatus", "DeadlineStatus", "ContentCategory", "ContentItem", "ContentItemChunk",
-    "ContentItemTag", "ContentTag", "GlossaryTerm", "GlossaryTermContent", "QAPair",
+    "ContentItemTag", "ContentTag", "ContentSearchIndex", "ContentSearchFragment", "GlossaryTerm", "GlossaryTermContent", "QAPair",
     "DocumentTemplate", "UserDocument", "DocumentStatusHistory", "RequestHistory",
     "AssessmentOption", "AssessmentQuestion", "AssessmentResult", "AssessmentResultRule",
     "AssessmentSurvey", "UserAssessment", "ApplicationType", "FeeCalculation",

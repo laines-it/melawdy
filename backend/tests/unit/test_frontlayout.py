@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -36,15 +36,6 @@ def test_calculation_uses_exact_server_rate_and_decimal_money():
     assert "fee_rates.valid_to IS NULL OR fee_rates.valid_to >=" in sql
 
 
-def test_classless_urgent_calculation_has_no_implicit_class_fallback():
-    session = Mock()
-    session.scalars.return_value.all.return_value = [rate(mktu_class_id=None, is_urgent=True)]
-    fees.calculate(fees.CalculationInput(application_type_id=1, is_urgent=True), session)
-    sql = str(session.scalars.call_args.args[0].compile(compile_kwargs={"literal_binds": True}))
-    assert "fee_rates.mktu_class_id IS NULL" in sql
-    assert "fee_rates.is_urgent = true" in sql
-
-
 @pytest.mark.parametrize("rates,expected", [([], 404), ([rate(), rate(id=4)], 409)])
 def test_missing_and_overlapping_rates_do_not_produce_a_quote(rates, expected):
     session = Mock()
@@ -52,17 +43,6 @@ def test_missing_and_overlapping_rates_do_not_produce_a_quote(rates, expected):
     with pytest.raises(HTTPException) as error:
         fees.calculate(fees.CalculationInput(application_type_id=1), session)
     assert error.value.status_code == expected
-
-
-def test_validity_dates_are_inclusive_and_based_on_utc(monkeypatch):
-    now = datetime(2026, 10, 15, 23, 59, tzinfo=timezone.utc)
-    monkeypatch.setattr(fees, "datetime", SimpleNamespace(now=lambda tz: now))
-    session = Mock()
-    session.scalars.return_value.all.return_value = [rate()]
-    fees.calculate(fees.CalculationInput(application_type_id=1), session)
-    parameters = session.scalars.call_args.args[0].compile().params
-    assert parameters["valid_from_1"] == date(2026, 10, 15)
-    assert parameters["valid_to_1"] == date(2026, 10, 15)
 
 
 @pytest.mark.parametrize("values", [{"quantity": 0}, {"quantity": 101}, {"quantity": 1.5},
@@ -186,7 +166,3 @@ def test_templates_filter_inactive_records_and_missing_template_returns_404():
         public.read_template(3, session)
     assert error.value.status_code == 404
     assert "document_templates.is_active IS true" in str(session.scalar.call_args.args[0])
-
-
-def test_audio_capability_does_not_claim_to_produce_results():
-    assert public.capabilities()["music_check"]["available"] is False

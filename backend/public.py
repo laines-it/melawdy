@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, or_, select
@@ -9,6 +9,9 @@ from backend.content_repository import ContentSearchRepository
 from backend.models import (
     AssessmentQuestion, AssessmentSurvey, ContentItem, ContentStatus, DocumentTemplate, QAPair,
 )
+from backend.schemas import SearchResponse
+from ml.embedding_search import search_embeddings
+from ml.embeddings import EmbeddingConfigurationError
 from ml.tfidf import TfidfIndex
 
 router = APIRouter(prefix="/api/v1/public", tags=["public"])
@@ -64,9 +67,10 @@ def list_faq(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 4
     return result
 
 
-@router.get("/search")
+@router.get("/search", response_model=list[SearchResponse])
 def search(session: SessionDep, query: Annotated[str, Query(min_length=1, max_length=1000)],
-           limit: Annotated[int, Query(ge=1, le=100)] = 10) -> list[dict]:
+           limit: Annotated[int, Query(ge=1, le=100)] = 10,
+           method: Literal["embeddings", "tfidf"] = "embeddings") -> list[dict]:
     if not query.strip():
         raise HTTPException(422, "Введите поисковый запрос")
 

@@ -1,4 +1,17 @@
 erDiagram
+    CONTENT_SEARCH_INDEXES {
+        bigint content_item_id PK,FK
+        varchar source_hash
+    }
+    CONTENT_SEARCH_FRAGMENTS {
+        bigint id PK
+        bigint content_item_id FK
+        int position
+        text body
+        vector embedding
+    }
+    CONTENT_ITEMS ||--o| CONTENT_SEARCH_INDEXES : indexed_as
+    CONTENT_SEARCH_INDEXES ||--o{ CONTENT_SEARCH_FRAGMENTS : contains
     USERS {
         bigint id PK
         varchar email UK

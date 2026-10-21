@@ -3,7 +3,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "0009_fee_procedures"
-down_revision = "0008_template_constructor"
+down_revision = "0009_merge_search_main"
 branch_labels = None
 depends_on = None
 

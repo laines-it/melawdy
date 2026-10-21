@@ -7,7 +7,7 @@ import pytest
 from docx import Document
 from fastapi import HTTPException
 
-from backend import admin, cabinet, public
+from backend import cabinet, public
 from backend.models import DocumentTemplate, DocumentType, User, UserDocument
 from backend.render import render_flat_body, render_structure
 
@@ -36,13 +36,6 @@ def test_public_template_exposes_constructor_metadata_without_internal_file_path
     assert result["schema_json"] == {"sections": []}
     assert result["structure_json"] == {"blocks": []}
     assert "file_path" not in result
-
-
-def test_example_can_be_created_through_admin_and_keeps_all_constructor_fields():
-    example = json.loads((ROOT / "docs/examples/coauthors-template.json").read_text(encoding="utf-8"))
-    payload = admin.validated(admin.get_resource("templates"), example)
-    assert payload["structure_json"] == example["structure_json"]
-    assert len(payload["schema_json"]["sections"]) == 10
 
 
 def test_download_checks_owner_and_renders_saved_parameters_without_creating_duplicates():

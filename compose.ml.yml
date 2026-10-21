@@ -3,9 +3,9 @@ services:
   api:
     build:
       args:
-        INSTALL_EMBEDDINGS: "true"
+        EMBEDDINGS_ENABLED: ${EMBEDDINGS_ENABLED:-true}
     environment:
-      EMBEDDING_MODEL_PATH: /models/bge-m3-russian-legal
+      EMBEDDING_MODEL_PATH: /models/multilingual-e5-small-ru-law
       EMBEDDING_DEVICE: cpu
     volumes:
       - ./models:/models:ro

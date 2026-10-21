@@ -1,7 +1,8 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.models import ContentItem, ContentItemChunk, ContentStatus
+from backend.models import ContentItem, ContentItemChunk, ContentStatus, ContentSearchFragment
+from ml.hybrid_search import IndexedFragment
 from ml.embeddings import validate_embedding
 from ml.tfidf import SearchChunk, SearchHit
 
@@ -24,6 +25,17 @@ class ContentSearchRepository:
         )
         return [SearchChunk(*row) for row in self.session.execute(statement)]
 
+    def list_search_fragments(self) -> tuple[IndexedFragment, ...]:
+        statement = (
+            select(ContentSearchFragment.id, ContentSearchFragment.content_item_id,
+                   ContentItem.title, ContentSearchFragment.body, ContentSearchFragment.embedding)
+            .join(ContentItem, ContentItem.id == ContentSearchFragment.content_item_id)
+            .where(*self._published()).order_by(ContentSearchFragment.id)
+        )
+        return tuple(IndexedFragment(row.id, row.content_item_id, row.title, row.body,
+                                     tuple(float(value) for value in row.embedding))
+                     for row in self.session.execute(statement))
+
     def nearest(self, embedding: list[float], limit: int = 10) -> list[SearchHit]:
         validate_embedding(embedding)
         if not 1 <= limit <= 100:
@@ -37,6 +49,35 @@ class ContentSearchRepository:
             .join(ContentItem)
             .where(*self._published(), ContentItemChunk.embedding.is_not(None))
             .order_by(distance).limit(limit)
+        )
+        return [
+            SearchHit(SearchChunk(row.id, row.content_item_id, row.body), 1 - float(row.distance))
+            for row in self.session.execute(statement)
+        ]
+
+    def nearest_articles(self, embedding: list[float], limit: int = 10) -> list[SearchHit]:
+        validate_embedding(embedding)
+        if not 1 <= limit <= 100:
+            raise ValueError("Limit must be between 1 and 100")
+        distance = ContentItemChunk.embedding.cosine_distance(embedding)
+        candidates = (
+            select(
+                ContentItemChunk.id, ContentItemChunk.content_item_id, ContentItemChunk.body,
+                distance.label("distance"),
+                func.row_number().over(
+                    partition_by=ContentItemChunk.content_item_id,
+                    order_by=(distance, ContentItemChunk.id),
+                ).label("chunk_rank"),
+            )
+            .join(ContentItem)
+            .where(*self._published(), ContentItemChunk.embedding.is_not(None))
+            .subquery()
+        )
+        statement = (
+            select(candidates.c.id, candidates.c.content_item_id, candidates.c.body, candidates.c.distance)
+            .where(candidates.c.chunk_rank == 1)
+            .order_by(candidates.c.distance, candidates.c.content_item_id)
+            .limit(limit)
         )
         return [
             SearchHit(SearchChunk(row.id, row.content_item_id, row.body), 1 - float(row.distance))

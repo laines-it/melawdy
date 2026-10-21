@@ -18,7 +18,7 @@ def request():
     return Request({"type": "http", "method": "POST", "path": "/api/v1/auth/login", "headers": []})
 
 
-def test_migration_chain_contains_the_existing_main_database_revision():
+def test_migrations_have_one_head_and_can_upgrade_existing_fee_database():
     script = ScriptDirectory.from_config(Config("alembic.ini"))
     assert len(script.get_heads()) == 1
     assert script.get_revision("0010_backfill_content_item_slugs") is not None

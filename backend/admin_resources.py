@@ -54,7 +54,7 @@ LABELS = {
     "description": "Описание", "recommended_content_id": "Рекомендованная статья",
     "recommended_document_template_id": "Рекомендованный шаблон", "result_id": "Результат",
     "condition_json": "Условие (JSON)", "priority": "Приоритет",
-    "document_type": "Тип документа", "file_path": "Ключ файла в MinIO (необязательно)",
+    "document_type": "Тип документа", "file_path": "Путь или ключ файла (необязательно)",
     "schema_json": "Разделы и поля конструктора (JSON)", "structure_json": "Блоки документа (JSON)",
     "class_number": "Номер класса МКТУ", "application_type_id": "Тип заявки",
     "mktu_class_id": "Класс МКТУ", "is_urgent": "Срочно", "amount": "Сумма",
