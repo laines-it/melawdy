@@ -7,21 +7,43 @@ const vm = require("node:vm");
 class Element {
   constructor(tag = "div") {
     this.tagName = tag.toUpperCase();
-    this.children = [];
+    this.childNodes = [];
     this.hidden = false;
     this.attributes = {};
     this.listeners = {};
-    this.text = "";
+    this.dataset = {};
   }
-  set textContent(value) { this.text = value; this.children = []; }
-  get textContent() { return this.text + this.children.map((child) => child.textContent).join(""); }
-  append(...children) { this.children.push(...children); }
-  replaceChildren(...children) { this.text = ""; this.children = children; }
+  get children() { return this.childNodes.filter((child) => child.tagName); }
+  get firstChild() { return this.childNodes[0] || null; }
+  set textContent(value) {
+    this.replaceChildren();
+    if (String(value)) this.appendChild({ textContent: String(value) });
+  }
+  get textContent() { return this.childNodes.map((child) => child.textContent).join(""); }
+  appendChild(child) {
+    if (child.parentNode) child.parentNode.removeChild(child);
+    child.parentNode = this;
+    this.childNodes.push(child);
+    return child;
+  }
+  removeChild(child) {
+    const index = this.childNodes.indexOf(child);
+    assert.notEqual(index, -1, "Cannot remove a node from a different parent");
+    this.childNodes.splice(index, 1);
+    child.parentNode = null;
+    return child;
+  }
+  append(...children) { children.forEach((child) => this.appendChild(child)); }
+  replaceChildren(...children) {
+    while (this.firstChild) this.removeChild(this.firstChild);
+    this.append(...children);
+  }
   setAttribute(name, value) { this.attributes[name] = value; }
+  removeAttribute(name) { delete this.attributes[name]; }
   addEventListener(name, callback) { this.listeners[name] = callback; }
 }
 
-async function runtime(search, responses) {
+async function runtime(search, responses, pathname = "/article.html", loggedIn = false) {
   const elements = new Map();
   const calls = [];
   let start;
@@ -38,7 +60,7 @@ async function runtime(search, responses) {
   for (const selector of ["#article", "#retry-article", "#related-articles", "#article-empty"]) {
     document.querySelector(selector).hidden = true;
   }
-  const window = { location: { search }, MelawdyAPI: { async request(url) {
+  const window = { location: { search, pathname, hash: "" }, history: { replaceState(_state, _title, url) { window.location.pathname = url; } }, ZPAuth: { ready: Promise.resolve(), isLoggedIn: () => loggedIn }, MelawdyAPI: { async request(url) {
     calls.push(url);
     const next = responses.shift();
     assert.ok(next, `Unexpected request: ${url}`);
@@ -49,18 +71,19 @@ async function runtime(search, responses) {
                     { window, document, URLSearchParams });
   start();
   await new Promise(setImmediate);
-  return { document, calls, get: (selector) => document.querySelector(selector) };
+  return { document, window, calls, get: (selector) => document.querySelector(selector) };
 }
 
-const article = { id: "42", title: "Как оформить соавторство", summary: "Описание статьи",
+const article = { id: "42", slug: "coauthors-agreement", title: "Как оформить соавторство", summary: "Описание статьи",
                   category: { id: "3", name: "Договорённости" },
                   chunks: ["## Равные права\n\nВводный раздел.",
                            "Первый абзац.\nПродолжение.\n\nВторой абзац.",
                            "## Следующий раздел\n\n- Исходники\n- Переписка\n\n<script>alert(1)</script>"] };
 
 test("loads the URL id, renders every chunk in order and keeps stored HTML as text", async () => {
-  const { get, document, calls } = await runtime("?id=42", [article, []]);
+  const { get, document, window, calls } = await runtime("?id=42", [article, []]);
   assert.equal(calls[0], "public/articles/42");
+  assert.equal(window.location.pathname, "/article/coauthors-agreement");
   assert.equal(document.title, `${article.title} — Законпозитор`);
   assert.equal(get("#article-title").textContent, article.title);
   assert.equal(get("#article-summary").textContent, article.summary);
@@ -102,10 +125,17 @@ test("a missing article shows a useful 404 state", async () => {
 });
 
 test("network errors can be retried successfully", async () => {
-  const { get, calls } = await runtime("?id=42", [new Error("Сервер недоступен"), article, []]);
+  let resolveArticle;
+  const pendingArticle = new Promise((resolve) => { resolveArticle = resolve; });
+  const { get, calls } = await runtime("?id=42", [new Error("Сервер недоступен"), pendingArticle, []]);
   assert.equal(get("#state-message").textContent, "Сервер недоступен");
   assert.equal(get("#retry-article").hidden, false);
-  await get("#retry-article").listeners.click();
+  const retry = get("#retry-article").listeners.click();
+  assert.equal(get("#article").hidden, true);
+  assert.equal(get("#article-state").attributes["aria-busy"], "true");
+  assert.equal(typeof retry?.then, "function");
+  resolveArticle(article);
+  await retry;
   assert.equal(calls[1], "public/articles/42");
   assert.equal(get("#article").hidden, false);
   assert.equal(get("#retry-article").hidden, true);
@@ -122,7 +152,7 @@ test("recommendations link to other article ids and exclude the current article"
   const { get } = await runtime("?id=42", [article, [article, { id: "7", title: "Авторство" }]]);
   const items = get("#related-articles-list").children;
   assert.equal(items.length, 1);
-  assert.equal(items[0].children[0].href, "./article.html?id=7");
+  assert.equal(items[0].children[0].href, "/article/7");
   assert.equal(get("#related-articles").hidden, false);
 });
 
@@ -132,4 +162,48 @@ test("an article without chunks or a category renders an explicit empty state", 
   assert.equal(get("#article-intro").hidden, true);
   assert.equal(get("#article-summary").hidden, true);
   assert.equal(get("#article-category-path").hidden, true);
+});
+
+test("Markdown titles, summaries and footnotes survive DOM node moves and reloads", async () => {
+  const record = { ...article, title: "**Соавторство**", summary: "*Описание*",
+    chunks: ["Текст[^law]\n\n[^law]: Правило **закона**"] };
+  const { get } = await runtime("?id=42", [record, [], article, []]);
+  assert.equal(get("#article-title").children[0].tagName, "STRONG");
+  assert.equal(get("#article-title").textContent, "Соавторство");
+  assert.equal(get("#article-summary").children[0].tagName, "EM");
+  const intro = get("#article-intro-body");
+  const ref = intro.children[0].children[0].children[0];
+  assert.equal(ref.href, "#fn-law");
+  const notes = get("#article-chunks").children[0];
+  assert.equal(notes.className, "article-footnotes");
+  const note = notes.children[1].children[0];
+  assert.equal(note.id, "fn-law");
+  assert.equal(note.textContent, "Правило закона ↩");
+  await get("#retry-article").listeners.click();
+  assert.equal(get("#article-title").textContent, article.title);
+  assert.equal(get("#article-title").children.length, 0);
+  assert.equal(get("#article-summary").textContent, article.summary);
+  assert.equal(intro.children.length, 2);
+  assert.equal(intro.children[0].tagName, "H2");
+  assert.equal(get("#article-chunks").children.length, 2);
+});
+
+for (const slug of ["coauthors-agreement", "авторство-песни"]) {
+  test(`loads the stored slug and excludes itself from related articles: ${slug}`, async () => {
+    const current = { ...article, slug };
+    const { calls, get } = await runtime("", [current, [current, { id: "7", slug: "other", title: "Другая" }]],
+                                         `/article/${encodeURIComponent(slug)}`);
+    assert.equal(calls[0], `public/articles/${encodeURIComponent(slug)}`);
+    assert.equal(get("#article").hidden, false);
+    assert.equal(get("#related-articles-list").children.length, 1);
+    assert.equal(get("#related-articles-list").children[0].children[0].href, "/article/other");
+  });
+}
+
+test("favorites use the article ID when opened by slug", async () => {
+  const { calls, get } = await runtime("", [article, [], [{ content_item_id: "42" }], {}],
+                                     "/article/coauthors-agreement", true);
+  assert.equal(get("#fav-btn").attributes["aria-pressed"], "true");
+  await get("#fav-btn").listeners.click();
+  assert.equal(calls.at(-1), "cabinet/favorites/42");
 });

@@ -157,6 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const articles = await request("public/articles?limit=50&offset=0");
         records = articles.map((r) => ({
           article_id: r.id,
+          article_slug: r.slug,
           title: r.title,
           link_title: r.link_title,
           body: r.summary || r.body || "",

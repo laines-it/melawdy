@@ -1,521 +1,251 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const request = window.MelawdyAPI.request;
-  const $ = (sel) => document.querySelector(sel);
-  const R = window.ZPRoutes || {
-    login: "/login",
-    search: "/search",
-    article: (id) => `/article/${encodeURIComponent(id)}`,
-  };
+  const $ = (selector) => document.querySelector(selector);
+  let resources = [];
+  let current = null;
+  let editingId = null;
+  let offset = 0;
+  let formVersion = 0;
+  const pageSize = 25;
+  const controls = new Map();
 
-  // =========================================================
-  // Нормализация id: из path /article/17, из ?id=17,
-  // либо из составного "17:0" (берём первый сегмент).
-  // =========================================================
-  function normalizeId(value) {
-    if (value === null || value === undefined) return "";
-    if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
-    const text = String(value).trim();
-    if (!text) return "";
-    // Составной PK вида "17:0" → берём первый числовой сегмент
-    const first = text.split(":")[0].trim();
-    return first;
+  function element(tag, text) {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    return node;
   }
-
-  function isValidId(value) {
-    const text = normalizeId(value);
-    if (!/^[1-9]\d*$/.test(text)) return false;
-    try {
-      return BigInt(text) <= 9223372036854775807n;
-    } catch {
-      return false;
-    }
+  function status(text) { $("#status").textContent = text; }
+  function showLogin() {
+    formVersion++;
+    current = null;
+    $("#login-section").hidden = false;
+    $("#workspace").hidden = true;
   }
+  const api = window.MelawdyAPI.request;
+  const recordsBody = $("#records-table-body") || $("#records");
+  function handle(error) { status(error.message); }
+  function sectionPath() { return `admin/${encodeURIComponent(current.key)}`; }
 
-  function readArticleId() {
-    const parts = window.location.pathname.split("/").filter(Boolean);
-    // /article/17
-    if (parts[0] === "article" && parts[1] && /^\d+$/.test(parts[1])) {
-      return parts[1];
-    }
-    // /article?id=17  или  ?id=17 (на любой странице)
-    const fromQuery = new URLSearchParams(window.location.search).get("id");
-    return normalizeId(fromQuery);
-  }
-
-  // =========================================================
-  // Нормализация chunks: string[] | {body:string}[] | null → string[]
-  // =========================================================
-  function normalizeChunks(chunks) {
-    if (!Array.isArray(chunks)) return [];
-    const result = [];
-    for (const chunk of chunks) {
-      if (chunk === null || chunk === undefined) continue;
-      let body;
-      if (typeof chunk === "string") body = chunk;
-      else if (typeof chunk === "object" && typeof chunk.body === "string") body = chunk.body;
-      else continue;
-      if (body.trim()) result.push(body);
-    }
-    return result;
-  }
-
-  const state = $("#article-state");
-  const article = $("#article");
-  const id = readArticleId();
-  const favBtn = $("#fav-btn");
-
-  // ---- helpers ----
-  function clear(el) {
-    if (!el) return;
-    while (el.firstChild) el.removeChild(el.firstChild);
-  }
-  function setText(el, text) {
-    if (el) el.textContent = String(text ?? "");
-  }
-  function show(el) {
-    if (!el) return;
-    el.hidden = false;
-    if (typeof el.removeAttribute === "function") el.removeAttribute("hidden");
-  }
-  function hide(el) {
-    if (!el) return;
-    el.hidden = true;
-    if (typeof el.setAttribute === "function") el.setAttribute("hidden", "");
-  }
-  function addClass(el, cls) {
-    if (!el) return;
-    if (el.classList && typeof el.classList.add === "function") el.classList.add(cls);
-    else el.className = ((el.className || "") + " " + cls).trim();
-  }
-  function removeClass(el, cls) {
-    if (!el) return;
-    if (el.classList && typeof el.classList.remove === "function") el.classList.remove(cls);
-    else el.className = (el.className || "").split(/\s+/).filter((c) => c && c !== cls).join(" ");
-  }
-  function hasClass(el, cls) {
-    if (!el) return false;
-    if (el.classList && typeof el.classList.contains === "function") return el.classList.contains(cls);
-    return (el.className || "").split(/\s+/).includes(cls);
-  }
-
-  // =========================================================
-  // Реестр сносок
-  // =========================================================
-  function createFootnoteRegistry() {
-    const notes = new Map();
-    const order = [];
-    const index = new Map();
-
-    function define(noteId, text) { notes.set(noteId, text); }
-
-    function ref(noteId) {
-      if (!index.has(noteId)) {
-        index.set(noteId, order.length + 1);
-        order.push(noteId);
-      }
-      const n = index.get(noteId);
-      const sup = document.createElement("sup");
-      const a = document.createElement("a");
-      a.id = `fnref-${noteId}`;
-      a.href = `#fn-${noteId}`;
-      a.textContent = String(n);
-      a.className = "footnote-ref";
-      sup.appendChild(a);
-      return sup;
-    }
-
-    const api = { notes, order, index, define, ref, buildSection };
-
-    function buildSection() {
-      if (!order.length) return null;
-      const section = document.createElement("section");
-      section.className = "article-footnotes";
-      const h = document.createElement("h2");
-      h.textContent = "Сноски";
-      section.appendChild(h);
-      const ol = document.createElement("ol");
-      for (let i = 0; i < order.length; i++) {
-        const noteId = order[i];
-        const li = document.createElement("li");
-        li.id = `fn-${noteId}`;
-        const p = document.createElement("p");
-        appendInlineInto(p, notes.get(noteId) || "", api);
-        const back = document.createElement("a");
-        back.href = `#fnref-${noteId}`;
-        back.className = "footnote-back";
-        back.textContent = "↩";
-        back.setAttribute("aria-label", "Вернуться к тексту");
-        p.appendChild(document.createTextNode(" "));
-        p.appendChild(back);
-        li.appendChild(p);
-        ol.appendChild(li);
-      }
-      section.appendChild(ol);
-      return section;
-    }
-
-    return api;
-  }
-
-  // =========================================================
-  // Inline markdown: **bold**, *italic*, `code`,
-  // [text](url), [^N] сноски
-  // =========================================================
-  function appendInlineInto(target, text, registry) {
-    const src = String(text ?? "");
-    const re = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`|\[([^\]]+)\]\s*\(([^)\s]+)\)|\[\^([^\]]+)\]/g;
-    let offset = 0;
-    let m;
-    while ((m = re.exec(src)) !== null) {
-      target.appendChild(document.createTextNode(src.slice(offset, m.index)));
-      if (m[1] !== undefined) {
-        const strong = document.createElement("strong");
-        appendInlineInto(strong, m[1], registry);
-        target.appendChild(strong);
-      } else if (m[2] !== undefined) {
-        const em = document.createElement("em");
-        appendInlineInto(em, m[2], registry);
-        target.appendChild(em);
-      } else if (m[3] !== undefined) {
-        const code = document.createElement("code");
-        code.textContent = m[3];
-        target.appendChild(code);
-      } else if (m[4] !== undefined) {
-        if (/^(https?:\/\/|mailto:|\/(?![\/\\])|\.\.?\/|#|\?)/i.test(m[5]) && !/[\\\u0000-\u0020]/.test(m[5])) {
-          const link = document.createElement("a");
-          link.textContent = m[4];
-          link.href = m[5];
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          target.appendChild(link);
-        } else {
-          target.appendChild(document.createTextNode(m[0]));
+  async function buildForm(record = null) {
+    const version = ++formVersion;
+    const selected = current;
+    const foreignKeys = [...new Set(selected.fields.filter((field) => field.kind === "foreign").map((field) => field.resource))];
+    const lookups = new Map(await Promise.all(foreignKeys.map(async (key) => [key, await api(`admin/lookups/${key}`)])));
+    if (version !== formVersion || selected !== current) return;
+    controls.clear();
+    $("#fields").replaceChildren();
+    editingId = record?.id ?? null;
+    $("#form-title").textContent = editingId ? `Редактирование записи ${editingId}` : "Новая запись";
+    for (const field of selected.fields) {
+      const value = record ? record[field.name] : field.default;
+      const wrapper = element("p");
+      const label = element("label", field.label + (field.required ? " *" : ""));
+      const id = `field-${field.name}`;
+      label.htmlFor = id;
+      wrapper.append(label, element("br"));
+      let input;
+      if (field.kind === "texts") {
+        const block = element("fieldset");
+        block.id = id;
+        const list = element("div");
+        function addBody(body = "") {
+          const row = element("div");
+          const area = element("textarea");
+          area.rows = 8;
+          area.cols = 80;
+          area.required = true;
+          area.value = body;
+          area.setAttribute("aria-label", "Текст раздела статьи");
+          const remove = element("button", "Удалить раздел");
+          remove.type = "button";
+          remove.addEventListener("click", () => row.remove());
+          row.append(area, remove, element("br"));
+          list.append(row);
         }
-      } else if (m[6] !== undefined) {
-        target.appendChild(registry.ref(m[6]));
-      }
-      offset = m.index + m[0].length;
-    }
-    target.appendChild(document.createTextNode(src.slice(offset)));
-  }
-
-  // =========================================================
-  // Один чанк → DOM. Определения [^N] собираются в registry.
-  // =========================================================
-  function renderChunkInto(container, text, registry) {
-    const raw = String(text ?? "").replace(/\r\n?/g, "\n");
-    const allLines = raw.split("\n");
-    const lines = [];
-    for (let i = 0; i < allLines.length; i++) {
-      const m = /^\s*\[\^([^\]]+)\]:\s*(.+)$/.exec(allLines[i]);
-      if (m) registry.define(m[1], m[2].trim());
-      else lines.push(allLines[i]);
-    }
-
-    let paragraph = [];
-    let list = null;
-
-    function flushParagraph() {
-      if (paragraph.length) {
-        const p = document.createElement("p");
-        appendInlineInto(p, paragraph.join("\n"), registry);
-        container.appendChild(p);
-        paragraph = [];
-      }
-    }
-    function flushList() {
-      if (list) { container.appendChild(list); list = null; }
-    }
-
-    for (let i = 0; i < lines.length; i++) {
-      const trimmed = lines[i].trim();
-      if (!trimmed) { flushParagraph(); flushList(); continue; }
-
-      const heading = /^(#{1,6})\s+(.+)$/.exec(trimmed);
-      if (heading) {
-        flushParagraph(); flushList();
-        const tag = heading[1].length <= 2 ? "h2" : "h3";
-        const h = document.createElement(tag);
-        appendInlineInto(h, heading[2], registry);
-        container.appendChild(h);
+        for (const body of value?.length ? value : [""]) addBody(body);
+        const add = element("button", "Добавить текстовый раздел");
+        add.type = "button";
+        add.addEventListener("click", () => addBody());
+        block.append(list, add);
+        wrapper.append(block);
+        controls.set(field.name, { field, read: () => [...list.querySelectorAll("textarea")].map((area) => area.value) });
+        $("#fields").append(wrapper);
         continue;
       }
-
-      const bullet = /^([-*]|\d+\.)\s+(.+)$/.exec(trimmed);
-      if (bullet) {
-        flushParagraph();
-        const isOrdered = /^\d/.test(bullet[1]);
-        const tag = isOrdered ? "ol" : "ul";
-        if (!list || list.tagName.toLowerCase() !== tag) {
-          flushList();
-          list = document.createElement(tag);
+      if (field.kind === "foreign" || field.kind === "enum") {
+        input = element("select");
+        if (field.nullable || field.kind === "foreign") {
+          const empty = element("option", "— Выберите —");
+          empty.value = "";
+          input.append(empty);
         }
-        const li = document.createElement("li");
-        appendInlineInto(li, bullet[2], registry);
-        list.appendChild(li);
-        continue;
-      }
-
-      flushList();
-      paragraph.push(trimmed);
-    }
-    flushParagraph(); flushList();
-
-    if (!container.firstChild && String(text).trim()) {
-      const p = document.createElement("p");
-      appendInlineInto(p, text, registry);
-      container.appendChild(p);
-    }
-  }
-
-  function renderInlineInto(el, text) {
-    if (!el) return;
-    clear(el);
-    const registry = createFootnoteRegistry();
-    appendInlineInto(el, text ?? "", registry);
-  }
-
-  // =========================================================
-  // Избранное
-  // =========================================================
-  async function refreshFavoriteStatus() {
-    if (!favBtn) return;
-    try {
-      await window.ZPAuth.ready;
-      if (!window.ZPAuth.isLoggedIn()) {
-        favBtn.disabled = true;
-        favBtn.title = "Войдите, чтобы добавить в избранное";
-        removeClass(favBtn, "is-active");
-        favBtn.setAttribute("aria-pressed", "false");
-        return;
-      }
-      favBtn.disabled = false;
-      const favorites = await request("cabinet/favorites?limit=100");
-      const list = Array.isArray(favorites) ? favorites
-        : Array.isArray(favorites?.items) ? favorites.items : [];
-      const isFav = list.some((f) => String(f.content_item_id) === String(id));
-      applyFavoriteState(isFav);
-    } catch (e) {
-      if (favBtn) favBtn.disabled = false;
-    }
-  }
-
-  function applyFavoriteState(isFav) {
-    if (!favBtn) return;
-    if (isFav) addClass(favBtn, "is-active"); else removeClass(favBtn, "is-active");
-    favBtn.setAttribute("aria-pressed", String(isFav));
-    favBtn.title = isFav ? "Удалить из избранного" : "Добавить в избранное";
-  }
-
-  if (favBtn) {
-    favBtn.addEventListener("click", async () => {
-      if (!window.ZPAuth.isLoggedIn()) {
-        window.location.href = R.login;
-        return;
-      }
-      if (favBtn.dataset && favBtn.dataset.busy === "1") return;
-      if (favBtn.dataset) favBtn.dataset.busy = "1";
-      favBtn.disabled = true;
-
-      const isActive = hasClass(favBtn, "is-active");
-      try {
-        if (isActive) {
-          await request(`cabinet/favorites/${id}`, { method: "DELETE" });
-          applyFavoriteState(false);
-        } else {
-          await request(`cabinet/favorites/${id}`, { method: "POST" });
-          applyFavoriteState(true);
+        const options = field.kind === "foreign" ? lookups.get(field.resource) : field.choices.map((choice) => ({ id: choice, label: choice }));
+        for (const option of options) {
+          const node = element("option", field.kind === "foreign" ? `${option.id}: ${option.label}` : option.label);
+          node.value = option.id;
+          input.append(node);
         }
-      } catch (error) {
-        if (error.status === 409 && !isActive) applyFavoriteState(true);
-        else {
-          const statusEl = $("#status");
-          if (statusEl) statusEl.textContent = "Ошибка: " + error.message;
+        if (value !== null && value !== undefined && ![...input.options].some((option) => option.value === String(value))) {
+          const missing = element("option", `ID ${value}`);
+          missing.value = String(value);
+          input.append(missing);
         }
-      } finally {
-        if (favBtn.dataset) favBtn.dataset.busy = "";
-        favBtn.disabled = false;
-      }
-    });
-  }
-
-  // =========================================================
-  // Рендер статьи. record — ответ public/articles/{id},
-  // совместимый с serialize() из admin.py:
-  //   id: string|number
-  //   title, summary, status, published_at, category_id, ...
-  //   category?: {id, name}  (если selectinload)
-  //   chunks: string[] | {body:string}[] | null
-  // =========================================================
-  function render(record) {
-    if (!record || typeof record !== "object") {
-      throw new Error("Некорректный ответ сервера");
-    }
-
-    const title = record.title != null ? String(record.title) : "";
-    document.title = `${title || "Статья"} — Законпозитор`;
-
-    renderInlineInto($("#article-title"), title);
-
-    const categoryName = record.category && record.category.name
-      ? String(record.category.name)
-      : "Полезные материалы";
-    setText($("#article-category"), categoryName);
-
-    const catPath = $("#article-category-path");
-    if (catPath) {
-      if (record.category) {
-        catPath.textContent = `/ ${categoryName}`;
-        catPath.hidden = false;
+      } else if (field.kind === "textarea" || field.kind === "json") {
+        input = element("textarea");
+        input.rows = field.kind === "json" ? 6 : 8;
+        input.cols = 80;
       } else {
-        catPath.hidden = true;
+        input = element("input");
+        input.type = field.kind === "boolean" ? "checkbox" : field.kind === "decimal" ? "text" : field.kind;
+        if (field.kind === "decimal") input.inputMode = "decimal";
+        if (field.kind === "number") input.step = "1";
       }
+      input.id = id;
+      input.name = field.name;
+      input.required = field.required && field.kind !== "boolean";
+      if (field.max_length) input.maxLength = field.max_length;
+      if (field.minimum !== null && field.minimum !== undefined) input.min = field.minimum;
+      if (field.maximum !== null && field.maximum !== undefined) input.max = field.maximum;
+      if (field.kind === "boolean") input.checked = Boolean(value);
+      else if (field.kind === "json") input.value = JSON.stringify(value ?? {}, null, 2);
+      else if (field.kind === "datetime-local" && value) {
+        const date = new Date(value);
+        input.value = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      } else if (value !== null && value !== undefined) input.value = value;
+      wrapper.append(input);
+      if (field.kind === "foreign") wrapper.append(element("small", " Сначала создайте связанную запись в соответствующем разделе. В списке — последние 500 записей."));
+      controls.set(field.name, { field, input });
+      $("#fields").append(wrapper);
     }
+  }
 
-    const summaryEl = $("#article-summary");
-    const summaryText = record.summary != null ? String(record.summary).trim() : "";
-    if (summaryEl) {
-      if (summaryText) {
-        renderInlineInto(summaryEl, summaryText);
-        summaryEl.hidden = false;
+  function readForm() {
+    const payload = {};
+    for (const [name, control] of controls) {
+      const { field, input } = control;
+      let value = control.read ? control.read() : field.kind === "boolean" ? input.checked : input.value;
+      if (field.kind === "texts" && !value.length) throw new Error("Добавьте хотя бы один текстовый раздел статьи.");
+      if (value === "" && field.nullable) value = null;
+      else if (field.kind === "json") {
+        try { value = JSON.parse(value); } catch { throw new Error(`${field.label}: некорректный JSON`); }
+      } else if (field.kind === "number" || field.kind === "foreign") {
+        if (value === "") throw new Error(`${field.label}: выберите значение`);
+        value = Number(value);
+        if (!Number.isSafeInteger(value)) throw new Error(`${field.label}: укажите целое число`);
+      } else if (field.kind === "datetime-local" && value) value = new Date(value).toISOString();
+      payload[name] = value;
+    }
+    return payload;
+  }
+
+  async function loadRecords() {
+    const selected = current;
+    const result = await api(`${sectionPath()}?limit=${pageSize}&offset=${offset}`);
+    if (selected !== current) return;
+    recordsBody.replaceChildren();
+    for (const record of result.items) {
+      const row = element("tr");
+      const label = record.title ?? record.name ?? record.term ?? record.question ?? record.text ?? record.legal_basis ?? record.code ?? record.survey_id ?? record.content_item_id ?? record.id;
+      row.append(element("td", record.id), element("td", String(label).slice(0, 140)));
+      const actions = element("td");
+      const edit = element("button", "Изменить");
+      edit.type = "button";
+      edit.addEventListener("click", () => api(`${sectionPath()}/${encodeURIComponent(record.id)}`).then(buildForm).catch(handle));
+      const remove = element("button", "Удалить");
+      remove.type = "button";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm(`Удалить запись ${record.id}?`)) return;
+        try {
+          await api(`${sectionPath()}/${encodeURIComponent(record.id)}`, { method: "DELETE" });
+          if (editingId === record.id) await buildForm();
+          if (result.items.length === 1 && offset > 0) offset = Math.max(0, offset - pageSize);
+          await loadRecords();
+          status("Запись удалена.");
+        } catch (error) { handle(error); }
+      });
+      actions.append(edit, document.createTextNode(" "), remove);
+      row.append(actions);
+      recordsBody.append(row);
+    }
+    if (!result.items.length) {
+      const row = element("tr");
+      const cell = element("td", "Пока нет записей.");
+      cell.colSpan = 3;
+      row.append(cell);
+      recordsBody.append(row);
+    }
+    $("#page-status").textContent = result.total ? `${offset + 1}–${offset + result.items.length} из ${result.total}` : "0 записей";
+    $("#previous-page").disabled = offset === 0;
+    $("#next-page").disabled = offset + pageSize >= result.total;
+  }
+
+  async function selectResource() {
+    current = resources.find((resource) => resource.key === $("#resource-select").value);
+    offset = 0;
+    status("");
+    $("#resource-title").textContent = current.title;
+    await Promise.all([buildForm(), loadRecords()]);
+  }
+  async function enter(session) {
+    if (!session) { showLogin(); return; }
+    status("");
+    if ($("#admin-controls")) $("#admin-controls").hidden = session.user.user_type !== "admin";
+    if (session.user.user_type !== "admin") {
+      if ($("#account-documents")) {
+        $("#login-section").hidden = true;
+        $("#workspace").hidden = false;
       } else {
-        clear(summaryEl);
-        summaryEl.hidden = true;
+        showLogin();
+        status("Для этой страницы нужны права администратора.");
       }
+      return;
     }
-
-    const chunks = normalizeChunks(record.chunks);
-    const words = chunks.join(" ").match(/\S+/g)?.length || 0;
-    const minutes = Math.max(1, Math.ceil(words / 200));
-    setText($("#article-reading-time"), `${minutes} мин. чтения`);
-
-    const introEl = $("#article-intro");
-    const introBody = $("#article-intro-body");
-    const chunksEl = $("#article-chunks");
-    const emptyEl = $("#article-empty");
-
-    if (introBody) clear(introBody);
-    if (chunksEl) clear(chunksEl);
-
-    if (!chunks.length) {
-      if (introEl) introEl.hidden = true;
-      if (emptyEl) emptyEl.hidden = false;
-    } else {
-      if (introEl) introEl.hidden = !summaryText;
-      if (emptyEl) emptyEl.hidden = true;
-
-      const registry = createFootnoteRegistry();
-
-      // Первый чанк — в интро (если есть контейнер), иначе — в chunks
-      if (introBody) {
-        const introSection = document.createElement("div");
-        renderChunkInto(introSection, chunks[0], registry);
-        while (introSection.firstChild) introBody.appendChild(introSection.firstChild);
-      } else if (chunksEl) {
-        const section = document.createElement("section");
-        section.className = "article-chunk";
-        renderChunkInto(section, chunks[0], registry);
-        chunksEl.appendChild(section);
-      }
-
-      const start = introBody ? 1 : 0;
-      for (let i = start; i < chunks.length; i++) {
-        const section = document.createElement("section");
-        section.className = "article-chunk";
-        renderChunkInto(section, chunks[i], registry);
-        if (chunksEl) chunksEl.appendChild(section);
-      }
-
-      const notes = registry.buildSection();
-      if (notes) {
-        if (chunksEl) chunksEl.appendChild(notes);
-        else if (introBody) introBody.appendChild(notes);
-      }
+    if ($("#current-user")) $("#current-user").textContent = `${session.user.full_name} (${session.user.email})`;
+    resources = await api("admin/resources");
+    if (window.ZPAuth.getUser() !== session.user) return;
+    $("#resource-select").replaceChildren();
+    for (const resource of resources) {
+      const option = element("option", resource.title);
+      option.value = resource.key;
+      $("#resource-select").append(option);
     }
-
-    hide(state);
-    show(article);
-
-    refreshFavoriteStatus();
+    $("#login-section").hidden = true;
+    $("#workspace").hidden = false;
+    await selectResource();
   }
-
-  // =========================================================
-  // Рекомендации
-  // =========================================================
-  async function loadRelated() {
-    const list = $("#related-articles-list");
-    const card = $("#related-articles");
-    if (!list || !card) return;
+  $("#login-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector("button");
+    button.disabled = true;
     try {
-      const response = await request("public/articles?limit=4");
-      const records = Array.isArray(response) ? response
-        : Array.isArray(response?.items) ? response.items : [];
-      clear(list);
-      const filtered = [];
-      for (let i = 0; i < records.length && filtered.length < 3; i++) {
-        const rec = records[i];
-        if (!rec) continue;
-        const recId = normalizeId(rec.id);
-        if (recId !== String(id)) filtered.push({ rec, recId });
-      }
-      if (!filtered.length) { card.hidden = true; return; }
-      for (const { rec, recId } of filtered) {
-        const li = document.createElement("li");
-        const a = document.createElement("a");
-        a.href = R.article(recId);
-        // Текст ссылки: link_title (если бэкенд отдаёт) → title → дефолт
-        const linkText = rec.link_title || rec.title || "Без названия";
-        renderInlineInto(a, String(linkText));
-        li.appendChild(a);
-        list.appendChild(li);
-      }
-      card.hidden = false;
-    } catch {
-      card.hidden = true;
-    }
-  }
-
-  // =========================================================
-  // Загрузка
-  // =========================================================
-  async function load() {
-    show(state);
-    if (state) state.setAttribute("aria-busy", "true");
-    hide(article);
-    const retryBtn = $("#retry-article");
-    hide(retryBtn);
-
-    setText($("#state-title"), "Загружаем статью…");
-    setText($("#state-message"), "Получаем материал");
-
+      const data = new FormData(event.currentTarget);
+      await window.ZPAuth.login(data.get("email"), data.get("password"));
+      $("#login-form").reset();
+    } catch (error) { handle(error); }
+    finally { button.disabled = false; }
+  });
+  if ($("#logout")) $("#logout").addEventListener("click", async () => {
+    try { await window.ZPAuth.logout(); status("Вы вышли из аккаунта."); }
+    catch (error) { handle(error); }
+  });
+  $("#resource-select").addEventListener("change", () => selectResource().catch(handle));
+  for (const selector of ["#new-record", "#cancel-edit"]) $(selector).addEventListener("click", () => buildForm().catch(handle));
+  $("#refresh-list").addEventListener("click", () => loadRecords().catch(handle));
+  $("#previous-page").addEventListener("click", () => { offset = Math.max(0, offset - pageSize); loadRecords().catch(handle); });
+  $("#next-page").addEventListener("click", () => { offset += pageSize; loadRecords().catch(handle); });
+  $("#record-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = $("#save-record");
+    button.disabled = true;
     try {
-      const record = await request(`public/articles/${encodeURIComponent(id)}`);
-      render(record);
-      loadRelated();
-    } catch (error) {
-      const is404 = error && error.status === 404;
-      setText($("#state-title"), is404 ? "Статья не найдена" : "Не удалось загрузить статью");
-      setText($("#state-message"), is404
-        ? "Возможно, материал ещё не опубликован или был удалён. Доступны другие статьи."
-        : (error && error.message) || "Попробуйте позже.");
-      if (!is404) show(retryBtn);
-    } finally {
-      if (state) state.setAttribute("aria-busy", "false");
-    }
-  }
-
-  const retryEl = $("#retry-article");
-  if (retryEl) retryEl.addEventListener("click", () => { load(); });
-
-  // Валидация id: если пусто или не число — сразу показываем заглушку
-  if (!isValidId(id)) {
-    show(state);
-    if (state) state.setAttribute("aria-busy", "false");
-    setText($("#state-title"), "Статья не выбрана");
-    setText($("#state-message"), "Откройте статью из результатов поиска.");
-    hide(article);
-    return;
-  }
-
-  load();
+      const payload = readForm();
+      await api(sectionPath() + (editingId ? `/${encodeURIComponent(editingId)}` : ""), {
+        method: editingId ? "PUT" : "POST", body: JSON.stringify(payload),
+      });
+      await Promise.all([buildForm(), loadRecords()]);
+      status("Запись сохранена.");
+    } catch (error) { handle(error); }
+    finally { button.disabled = false; }
+  });
+  document.addEventListener("auth-change", (event) => enter(event.detail).catch(handle));
+  window.ZPAuth.ready.catch(handle);
 });

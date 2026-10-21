@@ -148,10 +148,11 @@ def test_search_reuses_published_corpus_and_does_not_return_hidden_articles(monk
     repository.list_chunks.return_value = [SearchChunk(1, 4, "музыка права"), SearchChunk(2, 5, "музыка")]
     monkeypatch.setattr(public, "ContentSearchRepository", lambda session: repository)
     session = Mock()
-    session.execute.return_value.all.return_value = [(4, "Права на музыку")]
+    session.execute.return_value.all.return_value = [(4, "Права на музыку", "music-rights", "Права на музыку")]
     result = public.search(session, query="музыка", limit=10)
     assert len(result) == 1
     assert result[0]["article_id"] == "4"
+    assert result[0]["article_slug"] == "music-rights"
     assert result[0]["title"] == "Права на музыку"
     assert result[0]["score"] > 0
     sql = str(session.execute.call_args.args[0])

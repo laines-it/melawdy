@@ -15,8 +15,6 @@ depends_on = None
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-
     # Транслитерация RU→LAT + ASCII-нормализация. Дублируем в SQL, чтобы
     # не тянуть Python-код в миграцию: миграция должна быть самодостаточной.
     op.execute(sa.text("""
@@ -67,59 +65,30 @@ def upgrade() -> None:
         $$;
     """))
 
-    # 1) Базовый slug для всех, у кого он пуст
-    op.execute(sa.text("""
-        UPDATE content_items
-        SET slug = pg_temp.melawdy_slugify(title, id)
-        WHERE slug IS NULL OR slug = '';
-    """))
-
-    # 2) Разрешаем коллизии: если два одинаковых базовых slug, добавляем -<id>
-    op.execute(sa.text("""
-        WITH dup AS (
-            SELECT slug
-            FROM content_items
-            GROUP BY slug
-            HAVING count(*) > 1
-        )
-        UPDATE content_items ci
-        SET slug = ci.slug || '-' || ci.id::text
-        FROM dup
-        WHERE ci.slug = dup.slug;
-    """))
-
-    # 3) Если и после этого есть коллизии — добиваем -<id>-2, -<id>-3, ...
+    # Resolve collisions before writing into the existing unique slug column.
     op.execute(sa.text("""
         DO $$
         DECLARE
             r record;
+            base text;
             candidate text;
             suffix int;
         BEGIN
-            FOR r IN
-                SELECT id, slug FROM content_items
-                WHERE slug IN (
-                    SELECT slug FROM content_items GROUP BY slug HAVING count(*) > 1
-                )
-                ORDER BY id
+            FOR r IN SELECT id, title FROM content_items
+                     WHERE slug IS NULL OR slug = '' ORDER BY id FOR UPDATE
             LOOP
-                candidate := r.slug;
-                suffix := 2;
+                base := pg_temp.melawdy_slugify(r.title, r.id);
+                candidate := base;
+                suffix := 0;
                 WHILE EXISTS (SELECT 1 FROM content_items WHERE slug = candidate AND id <> r.id) LOOP
-                    candidate := r.slug || '-' || suffix::text;
                     suffix := suffix + 1;
+                    candidate := base || '-' || r.id::text
+                                 || CASE WHEN suffix = 1 THEN '' ELSE '-' || suffix::text END;
                 END LOOP;
                 UPDATE content_items SET slug = candidate WHERE id = r.id;
             END LOOP;
         END $$;
     """))
-
-    # 4) Страховка: NULL больше не должно быть
-    remaining = bind.execute(sa.text(
-        "SELECT count(*) FROM content_items WHERE slug IS NULL OR slug = ''"
-    )).scalar_one()
-    if remaining:
-        raise RuntimeError(f"После бэкфилла осталось {remaining} статей без slug")
 
 
 def downgrade() -> None:

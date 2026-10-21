@@ -12,29 +12,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================================================
   function extractSlug() {
     const parts = window.location.pathname.split("/").filter(Boolean);
-    if (parts[0] === "article" && parts[1]) {
-      const candidate = decodeURIComponent(parts[1]);
-      // slug: буквы, цифры, дефисы, подчёркивания. id: только цифры.
-      if (/^[A-Za-z0-9_-]{1,200}$/.test(candidate)) return candidate;
-      if (/^\d+$/.test(candidate)) return candidate; // старый /article/17
+    if (parts[0] === "article" && parts.length === 2) {
+      try { return decodeURIComponent(parts[1]); } catch { return ""; }
     }
-    const fromQuery = new URLSearchParams(window.location.search);
-    const slug = fromQuery.get("slug");
-    if (slug) return slug.trim();
-    const id = fromQuery.get("id");
-    if (id) return id.trim();
-    return "";
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("slug")) return params.get("slug").trim();
+    const legacyId = params.get("id") || "";
+    return /^[1-9]\d*$/.test(legacyId) ? legacyId : "";
   }
 
   function isValidSlug(value) {
-    if (!value || typeof value !== "string") return false;
-    if (!/^[A-Za-z0-9_-]{1,200}$/.test(value)) return false;
-    if (/^\d+$/.test(value)) {
-      try {
-        return BigInt(value) <= 9223372036854775807n;
-      } catch {
-        return false;
-      }
+    if (!/^[\p{L}\p{N}_-]{1,255}$/u.test(value)) return false;
+    if (/^[0-9]+$/.test(value)) {
+      return BigInt(value) > 0n && BigInt(value) <= 9223372036854775807n;
     }
     return true;
   }
@@ -77,7 +67,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const state = $("#article-state");
   const article = $("#article");
-  const id = extractSlug(); // фактически slug или id
+  const id = extractSlug();
+  let articleId = null;
   const favBtn = $("#fav-btn");
 
   // ---- helpers ----
@@ -300,11 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const favorites = await request("cabinet/favorites?limit=100");
       const list = Array.isArray(favorites) ? favorites
         : Array.isArray(favorites?.items) ? favorites.items : [];
-      // сравниваем и по id, и по slug — что вернул бэкенд
-      const isFav = list.some((f) =>
-        String(f.content_item_id) === String(id) ||
-        (f.slug && String(f.slug) === String(id))
-      );
+      const isFav = list.some((f) => String(f.content_item_id) === articleId);
       applyFavoriteState(isFav);
     } catch (e) {
       if (favBtn) favBtn.disabled = false;
@@ -324,17 +311,17 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.href = R.login;
         return;
       }
-      if (favBtn.dataset && favBtn.dataset.busy === "1") return;
+      if (!articleId || (favBtn.dataset && favBtn.dataset.busy === "1")) return;
       if (favBtn.dataset) favBtn.dataset.busy = "1";
       favBtn.disabled = true;
 
       const isActive = hasClass(favBtn, "is-active");
       try {
         if (isActive) {
-          await request(`cabinet/favorites/${encodeURIComponent(id)}`, { method: "DELETE" });
+          await request(`cabinet/favorites/${encodeURIComponent(articleId)}`, { method: "DELETE" });
           applyFavoriteState(false);
         } else {
-          await request(`cabinet/favorites/${encodeURIComponent(id)}`, { method: "POST" });
+          await request(`cabinet/favorites/${encodeURIComponent(articleId)}`, { method: "POST" });
           applyFavoriteState(true);
         }
       } catch (error) {
@@ -361,6 +348,10 @@ document.addEventListener("DOMContentLoaded", () => {
       throw new Error("Некорректный ответ сервера");
     }
 
+    articleId = String(record.id);
+    if (record.slug && isValidSlug(record.slug)) {
+      window.history.replaceState(null, "", R.article(record.slug) + window.location.hash);
+    }
     const title = record.title != null ? String(record.title) : "";
     document.title = `${title || "Статья"} — Законпозитор`;
 
@@ -419,11 +410,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const introSection = document.createElement("div");
         renderChunkInto(introSection, chunks[0], registry);
         while (introSection.firstChild) introBody.appendChild(introSection.firstChild);
-      } else if (chunksEl) {
-        const section = document.createElement("section");
-        section.className = "article-chunk";
-        renderChunkInto(section, chunks[0], registry);
-        chunksEl.appendChild(section);
       }
 
       const start = introBody ? 1 : 0;
@@ -462,7 +448,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const rec = records[i];
         if (!rec) continue;
         const key = recordSlug(rec);
-        if (!key || key === String(id)) continue;
+        if (!key || String(rec.id) === articleId) continue;
         filtered.push(rec);
       }
       if (!filtered.length) { card.hidden = true; return; }
@@ -496,8 +482,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setText($("#state-message"), "Получаем материал");
 
     try {
-      // Ключевое: грузим по slug/id — бэкенд public/articles/{key} должен
-      // принимать и slug, и (для совместимости) числовой id.
       const record = await request(`public/articles/${encodeURIComponent(id)}`);
       render(record);
       loadRelated();
@@ -514,7 +498,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const retryEl = $("#retry-article");
-  if (retryEl) retryEl.addEventListener("click", () => { load(); });
+  if (retryEl) retryEl.addEventListener("click", load);
 
   if (!isValidSlug(id)) {
     show(state);

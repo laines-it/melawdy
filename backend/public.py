@@ -23,16 +23,6 @@ def _published_clause():
     )
 
 
-def _slugify(value: str | None) -> str | None:
-    """Запасной slug из title, если в модели slug пуст."""
-    if not value:
-        return None
-    text = value.strip().lower()
-    cleaned = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in text)
-    cleaned = "-".join(part for part in cleaned.split("-") if part)
-    return cleaned or None
-
-
 def _article_ref(item: ContentItem) -> dict:
     """Ссылочные поля статьи: id, slug, title, link_title."""
     return {
@@ -103,7 +93,7 @@ def search(session: SessionDep, query: Annotated[str, Query(min_length=1, max_le
         by_id[item_id] = {
             "id": str(item_id),
             "title": title,
-            "slug": slug or _slugify(title),
+            "slug": slug or "",
             "link_title": link_title,
         }
 
@@ -164,11 +154,9 @@ def list_articles(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)
 
 @router.get("/articles/{key}")
 def read_article(key: str, session: SessionDep) -> dict:
-    """
-    Принимает и slug (kak-zashchitit-pesnyu), и числовой id (17).
-    Число → поиск по id. Иначе → поиск по slug.
-    """
-    if not key:
+    """Read a published article by its stored slug or legacy numeric ID."""
+    key = str(key)
+    if not key or len(key) > 255 or not all(ch.isalnum() or ch in "-_" for ch in key):
         raise HTTPException(404, "Статья не найдена")
 
     stmt = select(ContentItem).options(
@@ -176,11 +164,11 @@ def read_article(key: str, session: SessionDep) -> dict:
         selectinload(ContentItem.category),
     ).where(*_published_clause())
 
-    if key.isdigit():
+    if key.isascii() and key.isdigit():
+        if not 1 <= int(key) <= 9223372036854775807:
+            raise HTTPException(404, "Статья не найдена")
         stmt = stmt.where(ContentItem.id == int(key))
     else:
-        if not all(ch.isalnum() or ch in "-_" for ch in key):
-            raise HTTPException(404, "Статья не найдена")
         stmt = stmt.where(ContentItem.slug == key)
 
     item = session.scalar(stmt)
