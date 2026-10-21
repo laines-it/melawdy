@@ -44,7 +44,7 @@ test("inferred boolean conditions permit both true and false", () => {
 test("configured sections keep order and only unconfigured placeholders are appended", () => {
   const fixture = require("../../docs/examples/coauthors-template.json");
   const sections = model.sections(fixture);
-  assert.equal(sections.length, 10);
+  assert.equal(sections.length, 12);
   assert.equal(sections[0].id, "preamble");
   assert.equal(sections.at(-1).id, "signatures");
   assert.ok(sections[0].fields.some((field) => field.when === "author1_representation == proxy"));
