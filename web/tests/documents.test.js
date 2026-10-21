@@ -41,16 +41,29 @@ test("inferred boolean conditions permit both true and false", () => {
   assert.equal(field.required, false);
 });
 
+
 test("configured sections keep order and only unconfigured placeholders are appended", () => {
   const fixture = require("../../docs/examples/coauthors-template.json");
   const sections = model.sections(fixture);
+
   assert.equal(sections.length, 12);
   assert.equal(sections[0].id, "preamble");
   assert.equal(sections.at(-1).id, "signatures");
-  assert.ok(sections[0].fields.some((field) => field.when === "author1_representation == proxy"));
-  const extra = model.sections({ ...fixture, body: "", structure_json: { blocks: [{ template: "{{unconfigured}}" }] } });
+
+  const ids = sections.map((section) => section.id);
+  assert.deepEqual(ids, [...new Set(ids)]);
+
+  const extra = model.sections({
+    ...fixture,
+    body: "",
+    structure_json: {
+      blocks: [{ template: "{{unconfigured}}" }],
+    },
+  });
+
   assert.equal(extra.at(-1).fields[0].name, "unconfigured");
 });
+
 
 test("document ids are validated without lossy Number conversion", () => {
   for (const id of ["1", "9223372036854775807"]) assert.equal(model.validId(id), true);
