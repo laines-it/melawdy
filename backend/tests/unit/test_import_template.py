@@ -20,10 +20,21 @@ def test_import_preserves_constructor_data_and_does_not_overwrite_existing_slug(
 
     result = import_template(session, SOURCE)
 
-    assert result == {"created": created, "id": "1", "title": SOURCE["title"],
-                      "slug": "coauthors-agreement", "active": True, "sections": 10, "blocks": 15}
+    assert result == {
+        "created": created,
+        "id": "1",
+        "title": SOURCE["title"],
+        "slug": "coauthors-agreement",
+        "active": True,
+        "sections": 12,
+        "blocks": 44,
+    }
+
     statement = session.scalar.call_args_list[0].args[0]
-    assert "ON CONFLICT (slug) DO NOTHING" in str(statement)
+    sql = str(statement.compile()).upper()
+
+    assert "ON CONFLICT" in sql
+    assert "DO UPDATE" in sql
     assert statement.compile().params["schema_json"] == SOURCE["schema_json"]
     assert statement.compile().params["structure_json"] == SOURCE["structure_json"]
     session.commit.assert_not_called()  # The caller owns the transaction.

@@ -22,7 +22,7 @@ def import_template(session: Session, source: dict[str, Any]) -> dict[str, Any]:
     payload = TemplateInput.model_validate(source).model_dump(by_alias=True)
     inserted_id = session.scalar(
         insert(DocumentTemplate).values(**payload)
-        .on_conflict_do_nothing(index_elements=[DocumentTemplate.slug])
+        .on_conflict_do_update(index_elements=[DocumentTemplate.slug], set_={key: value for key, value in payload.items() if key != "slug"}, )
         .returning(DocumentTemplate.id)
     )
     template = session.scalar(select(DocumentTemplate).where(DocumentTemplate.slug == payload["slug"]))

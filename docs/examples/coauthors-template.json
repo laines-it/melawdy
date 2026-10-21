@@ -2,8 +2,8 @@
   "title": "Соглашение соавторов произведения",
   "slug": "coauthors-agreement",
   "document_type": "contract",
-  "description": "Определите условия использования совместного произведения и договорённости между соавторами.",
-  "body": "СОГЛАШЕНИЕ СОАВТОРОВ ПРОИЗВЕДЕНИЯ\n\nг. {{city}}, {{date}}\n\n{{author1}} и {{author2}} заключили настоящее соглашение.",
+  "description": "Соглашение соавторов с выбором от 2 до 5 участников, типа лица, гибким выбором объектов (произведение/исполнение/фонограмма) и заполнением реквизитов.",
+  "body": "СОГЛАШЕНИЕ СОАВТОРОВ ПРОИЗВЕДЕНИЯ\n\nг. {{city}}, {{date}}\n\nСтороны заключили настоящее соглашение.",
   "is_active": true,
   "schema_json": {
     "sections": [
@@ -11,60 +11,1169 @@
         "id": "preamble",
         "title": "Преамбула",
         "fields": [
-          { "name": "city", "label": "Город заключения", "required": true, "placeholder": "Например, Москва" },
-          { "name": "date", "label": "Дата соглашения", "required": true, "placeholder": "18 октября 2026 г." },
-          { "name": "author1", "label": "Ф. И. О.", "group": "Соавтор 1", "required": true },
-          { "name": "author1_type", "label": "Тип лица", "type": "radio", "group": "Соавтор 1", "default": "individual", "options": [{ "value": "individual", "label": "Физическое лицо" }, { "value": "entrepreneur", "label": "Индивидуальный предприниматель" }] },
-          { "name": "author1_representation", "label": "Лицо, действующее от имени соавтора", "type": "radio", "group": "Соавтор 1", "default": "personal", "options": [{ "value": "personal", "label": "Лично" }, { "value": "proxy", "label": "Представитель по доверенности" }] },
-          { "name": "representative1", "label": "Ф. И. О. представителя и реквизиты доверенности", "group": "Соавтор 1", "when": "author1_representation == proxy", "required": true },
-          { "name": "author2", "label": "Ф. И. О.", "group": "Соавтор 2", "required": true },
-          { "name": "author2_type", "label": "Тип лица", "type": "radio", "group": "Соавтор 2", "default": "individual", "options": [{ "value": "individual", "label": "Физическое лицо" }, { "value": "entrepreneur", "label": "Индивидуальный предприниматель" }] },
-          { "name": "author2_representation", "label": "Лицо, действующее от имени соавтора", "type": "radio", "group": "Соавтор 2", "default": "personal", "options": [{ "value": "personal", "label": "Лично" }, { "value": "proxy", "label": "Представитель по доверенности" }] },
-          { "name": "representative2", "label": "Ф. И. О. представителя и реквизиты доверенности", "group": "Соавтор 2", "when": "author2_representation == proxy", "required": true }
+          {
+            "name": "authors_count",
+            "label": "Количество соавторов",
+            "type": "select",
+            "group": "Общие сведения",
+            "default": "2",
+            "required": true,
+            "options": [
+              {"value": "2", "label": "2 соавтора"},
+              {"value": "3", "label": "3 соавтора"},
+              {"value": "4", "label": "4 соавтора"},
+              {"value": "5", "label": "5 соавторов"}
+            ]
+          },
+          {
+            "name": "city",
+            "label": "Город заключения",
+            "required": true,
+            "placeholder": "Например, Москва"
+          },
+          {
+            "name": "date",
+            "label": "Дата соглашения",
+            "required": true,
+            "placeholder": "18 октября 2026 г."
+          },
+          {
+            "name": "author1_type",
+            "label": "Тип лица",
+            "type": "radio",
+            "group": "Соавтор 1",
+            "default": "individual",
+            "required": true,
+            "options": [
+              {"value": "individual", "label": "Физическое лицо"},
+              {"value": "legal_entity", "label": "Юридическое лицо"}
+            ]
+          },
+          {
+            "name": "author1",
+            "label": "Ф. И. О. / наименование организации",
+            "group": "Соавтор 1",
+            "required": true
+          },
+          {
+            "name": "passport_series1",
+            "label": "Паспорт: серия",
+            "group": "Соавтор 1",
+            "required": true,
+            "when": "author1_type == individual"
+          },
+          {
+            "name": "passport_number1",
+            "label": "Паспорт: номер",
+            "group": "Соавтор 1",
+            "required": true,
+            "when": "author1_type == individual"
+          },
+          {
+            "name": "passport_issued1",
+            "label": "Кем и когда выдан паспорт",
+            "group": "Соавтор 1",
+            "required": true,
+            "when": "author1_type == individual"
+          },
+          {
+            "name": "address1",
+            "label": "Адрес проживания / адрес",
+            "group": "Соавтор 1",
+            "required": true
+          },
+          {
+            "name": "author1_inn",
+            "label": "ИНН",
+            "group": "Соавтор 1",
+            "when": "author1_type == legal_entity"
+          },
+          {
+            "name": "author1_kpp",
+            "label": "КПП",
+            "group": "Соавтор 1",
+            "when": "author1_type == legal_entity"
+          },
+          {
+            "name": "author1_ogrn",
+            "label": "ОГРН",
+            "group": "Соавтор 1",
+            "when": "author1_type == legal_entity"
+          },
+          {
+            "name": "author2_type",
+            "label": "Тип лица",
+            "type": "radio",
+            "group": "Соавтор 2",
+            "default": "individual",
+            "required": true,
+            "options": [
+              {"value": "individual", "label": "Физическое лицо"},
+              {"value": "legal_entity", "label": "Юридическое лицо"}
+            ]
+          },
+          {
+            "name": "author2",
+            "label": "Ф. И. О. / наименование организации",
+            "group": "Соавтор 2",
+            "required": true
+          },
+          {
+            "name": "passport_series2",
+            "label": "Паспорт: серия",
+            "group": "Соавтор 2",
+            "required": true,
+            "when": "author2_type == individual"
+          },
+          {
+            "name": "passport_number2",
+            "label": "Паспорт: номер",
+            "group": "Соавтор 2",
+            "required": true,
+            "when": "author2_type == individual"
+          },
+          {
+            "name": "passport_issued2",
+            "label": "Кем и когда выдан паспорт",
+            "group": "Соавтор 2",
+            "required": true,
+            "when": "author2_type == individual"
+          },
+          {
+            "name": "address2",
+            "label": "Адрес проживания / адрес",
+            "group": "Соавтор 2",
+            "required": true
+          },
+          {
+            "name": "author2_inn",
+            "label": "ИНН",
+            "group": "Соавтор 2",
+            "when": "author2_type == legal_entity"
+          },
+          {
+            "name": "author2_kpp",
+            "label": "КПП",
+            "group": "Соавтор 2",
+            "when": "author2_type == legal_entity"
+          },
+          {
+            "name": "author2_ogrn",
+            "label": "ОГРН",
+            "group": "Соавтор 2",
+            "when": "author2_type == legal_entity"
+          },
+          {
+            "name": "author3_type",
+            "label": "Тип лица",
+            "type": "radio",
+            "group": "Соавтор 3",
+            "default": "individual",
+            "required": true,
+            "options": [
+              {"value": "individual", "label": "Физическое лицо"},
+              {"value": "legal_entity", "label": "Юридическое лицо"}
+            ],
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "author3",
+            "label": "Ф. И. О. / наименование организации",
+            "group": "Соавтор 3",
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "passport_series3",
+            "label": "Паспорт: серия",
+            "group": "Соавтор 3",
+            "required": true,
+            "when": "authors_count >= 3 && author3_type == individual"
+          },
+          {
+            "name": "passport_number3",
+            "label": "Паспорт: номер",
+            "group": "Соавтор 3",
+            "required": true,
+            "when": "authors_count >= 3 && author3_type == individual"
+          },
+          {
+            "name": "passport_issued3",
+            "label": "Кем и когда выдан паспорт",
+            "group": "Соавтор 3",
+            "required": true,
+            "when": "authors_count >= 3 && author3_type == individual"
+          },
+          {
+            "name": "address3",
+            "label": "Адрес проживания / адрес",
+            "group": "Соавтор 3",
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "author3_inn",
+            "label": "ИНН",
+            "group": "Соавтор 3",
+            "when": "authors_count >= 3 && author3_type == legal_entity"
+          },
+          {
+            "name": "author3_kpp",
+            "label": "КПП",
+            "group": "Соавтор 3",
+            "when": "authors_count >= 3 && author3_type == legal_entity"
+          },
+          {
+            "name": "author3_ogrn",
+            "label": "ОГРН",
+            "group": "Соавтор 3",
+            "when": "authors_count >= 3 && author3_type == legal_entity"
+          },
+          {
+            "name": "author4_type",
+            "label": "Тип лица",
+            "type": "radio",
+            "group": "Соавтор 4",
+            "default": "individual",
+            "required": true,
+            "options": [
+              {"value": "individual", "label": "Физическое лицо"},
+              {"value": "legal_entity", "label": "Юридическое лицо"}
+            ],
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "author4",
+            "label": "Ф. И. О. / наименование организации",
+            "group": "Соавтор 4",
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "passport_series4",
+            "label": "Паспорт: серия",
+            "group": "Соавтор 4",
+            "required": true,
+            "when": "authors_count >= 4 && author4_type == individual"
+          },
+          {
+            "name": "passport_number4",
+            "label": "Паспорт: номер",
+            "group": "Соавтор 4",
+            "required": true,
+            "when": "authors_count >= 4 && author4_type == individual"
+          },
+          {
+            "name": "passport_issued4",
+            "label": "Кем и когда выдан паспорт",
+            "group": "Соавтор 4",
+            "required": true,
+            "when": "authors_count >= 4 && author4_type == individual"
+          },
+          {
+            "name": "address4",
+            "label": "Адрес проживания / адрес",
+            "group": "Соавтор 4",
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "author4_inn",
+            "label": "ИНН",
+            "group": "Соавтор 4",
+            "when": "authors_count >= 4 && author4_type == legal_entity"
+          },
+          {
+            "name": "author4_kpp",
+            "label": "КПП",
+            "group": "Соавтор 4",
+            "when": "authors_count >= 4 && author4_type == legal_entity"
+          },
+          {
+            "name": "author4_ogrn",
+            "label": "ОГРН",
+            "group": "Соавтор 4",
+            "when": "authors_count >= 4 && author4_type == legal_entity"
+          },
+          {
+            "name": "author5_type",
+            "label": "Тип лица",
+            "type": "radio",
+            "group": "Соавтор 5",
+            "default": "individual",
+            "required": true,
+            "options": [
+              {"value": "individual", "label": "Физическое лицо"},
+              {"value": "legal_entity", "label": "Юридическое лицо"}
+            ],
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "author5",
+            "label": "Ф. И. О. / наименование организации",
+            "group": "Соавтор 5",
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "passport_series5",
+            "label": "Паспорт: серия",
+            "group": "Соавтор 5",
+            "required": true,
+            "when": "authors_count >= 5 && author5_type == individual"
+          },
+          {
+            "name": "passport_number5",
+            "label": "Паспорт: номер",
+            "group": "Соавтор 5",
+            "required": true,
+            "when": "authors_count >= 5 && author5_type == individual"
+          },
+          {
+            "name": "passport_issued5",
+            "label": "Кем и когда выдан паспорт",
+            "group": "Соавтор 5",
+            "required": true,
+            "when": "authors_count >= 5 && author5_type == individual"
+          },
+          {
+            "name": "address5",
+            "label": "Адрес проживания / адрес",
+            "group": "Соавтор 5",
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "author5_inn",
+            "label": "ИНН",
+            "group": "Соавтор 5",
+            "when": "authors_count >= 5 && author5_type == legal_entity"
+          },
+          {
+            "name": "author5_kpp",
+            "label": "КПП",
+            "group": "Соавтор 5",
+            "when": "authors_count >= 5 && author5_type == legal_entity"
+          },
+          {
+            "name": "author5_ogrn",
+            "label": "ОГРН",
+            "group": "Соавтор 5",
+            "when": "authors_count >= 5 && author5_type == legal_entity"
+          }
         ]
       },
       {
-        "id": "terms", "title": "Определение терминов",
+        "id": "terms",
+        "title": "Определение терминов и Объекты",
         "fields": [
-          { "name": "work_title", "label": "Название произведения", "required": true },
-          { "name": "work_type", "label": "Тип произведения", "type": "select", "default": "Музыкальное произведение с текстом", "required": true, "options": ["Музыкальное произведение с текстом", "Музыкальное произведение без текста"] }
+          {
+            "name": "include_work",
+            "label": "Включить Произведение",
+            "type": "boolean",
+            "default": true,
+            "group": "Выбор объектов"
+          },
+          {
+            "name": "include_performance",
+            "label": "Включить Исполнение",
+            "type": "boolean",
+            "default": true,
+            "group": "Выбор объектов"
+          },
+          {
+            "name": "include_phonogram",
+            "label": "Включить Фонограмму",
+            "type": "boolean",
+            "default": true,
+            "group": "Выбор объектов"
+          },
+          {
+            "name": "work_title",
+            "label": "Название произведения",
+            "group": "Параметры Произведения",
+            "required": true,
+            "when": "include_work == true"
+          },
+          {
+            "name": "work_type",
+            "label": "Тип произведения",
+            "type": "select",
+            "group": "Параметры Произведения",
+            "default": "with_text",
+            "required": true,
+            "options": [
+              {"value": "with_text", "label": "Музыкальное произведение с текстом"},
+              {"value": "without_text", "label": "Музыкальное произведение без текста"}
+            ],
+            "when": "include_work == true"
+          },
+          {
+            "name": "music_authors",
+            "label": "Автор(ы) музыки",
+            "group": "Параметры Произведения",
+            "required": true,
+            "placeholder": "Ф. И. О.",
+            "when": "include_work == true"
+          },
+          {
+            "name": "text_authors",
+            "label": "Автор(ы) текста",
+            "group": "Параметры Произведения",
+            "when": "include_work == true && work_type == with_text",
+            "required": true,
+            "placeholder": "Ф. И. О."
+          },
+          {
+            "name": "creation_date",
+            "label": "Дата создания",
+            "group": "Параметры Произведения",
+            "required": true,
+            "when": "include_work == true"
+          },
+          {
+            "name": "copies_count",
+            "label": "Количество экземпляров произведения",
+            "group": "Параметры Произведения",
+            "type": "number",
+            "min": 1,
+            "step": 1,
+            "required": true,
+            "when": "include_work == true"
+          },
+          {
+            "name": "medium",
+            "label": "Материальный носитель",
+            "group": "Параметры Произведения",
+            "required": true,
+            "when": "include_work == true"
+          },
+          {
+            "name": "work_location",
+            "label": "Адрес, по которому находится произведение",
+            "group": "Параметры Произведения",
+            "required": true,
+            "when": "include_work == true"
+          },
+          {
+            "name": "phonogram_title",
+            "label": "Название фонограммы",
+            "group": "Параметры Записи",
+            "required": true,
+            "when": "include_phonogram == true || include_performance == true"
+          },
+          {
+            "name": "performers",
+            "label": "Исполнители",
+            "group": "Параметры Записи",
+            "required": true,
+            "placeholder": "Ф. И. О.",
+            "when": "include_performance == true"
+          },
+          {
+            "name": "genre",
+            "label": "Жанр",
+            "group": "Параметры Записи",
+            "required": true,
+            "when": "include_phonogram == true || include_performance == true"
+          },
+          {
+            "name": "bpm",
+            "label": "BPM",
+            "group": "Параметры Записи",
+            "required": true,
+            "when": "include_phonogram == true || include_performance == true"
+          },
+          {
+            "name": "kbps",
+            "label": "Kbps",
+            "group": "Параметры Записи",
+            "required": true,
+            "when": "include_phonogram == true || include_performance == true"
+          },
+          {
+            "name": "musical_key",
+            "label": "Тональность",
+            "group": "Параметры Записи",
+            "required": true,
+            "when": "include_phonogram == true || include_performance == true"
+          },
+          {
+            "name": "duration_minutes",
+            "label": "Продолжительность: минут",
+            "group": "Параметры Записи",
+            "type": "number",
+            "min": 0,
+            "step": 1,
+            "required": true,
+            "when": "include_phonogram == true || include_performance == true"
+          },
+          {
+            "name": "duration_seconds",
+            "label": "Продолжительность: секунд",
+            "group": "Параметры Записи",
+            "type": "number",
+            "min": 0,
+            "max": 59,
+            "step": 1,
+            "required": true,
+            "when": "include_phonogram == true || include_performance == true"
+          },
+          {
+            "name": "producers",
+            "label": "Изготовитель(и) фонограммы",
+            "group": "Параметры Записи",
+            "required": true,
+            "placeholder": "Ф. И. О.",
+            "when": "include_phonogram == true"
+          },
+          {
+            "name": "copyright_term",
+            "label": "Срок действия авторских прав, лет",
+            "group": "Сроки",
+            "type": "number",
+            "min": 1,
+            "step": 1,
+            "required": true
+          }
         ]
       },
-      { "id": "subject", "title": "Предмет соглашения", "fields": [{ "name": "territory", "label": "Территория использования", "required": true, "placeholder": "Укажите согласованную территорию" }] },
-      { "id": "rights", "title": "Права и обязанности", "fields": [] },
-      { "id": "income", "title": "Распределение доходов", "fields": [{ "name": "distribution", "label": "Порядок распределения вознаграждения", "type": "textarea", "required": true, "hint": "Укажите согласованные соавторами доли и порядок распределения." }] },
-      { "id": "liability", "title": "Ответственность", "fields": [] },
-      { "id": "protection", "title": "Защита прав", "fields": [] },
-      { "id": "duration", "title": "Срок действия", "fields": [{ "name": "duration", "label": "Срок действия соглашения, лет", "type": "number", "min": 1, "max": 100, "step": 1, "required": true }] },
-      { "id": "other", "title": "Прочие условия", "fields": [] },
       {
-        "id": "signatures", "title": "Реквизиты и подписи",
+        "id": "subject",
+        "title": "Предмет соглашения",
         "fields": [
-          { "name": "details1", "label": "Паспортные данные и адрес", "group": "Соавтор 1", "type": "textarea", "required": true },
-          { "name": "email1", "label": "Электронная почта", "group": "Соавтор 1", "type": "email", "required": true },
-          { "name": "details2", "label": "Паспортные данные и адрес", "group": "Соавтор 2", "type": "textarea", "required": true },
-          { "name": "email2", "label": "Электронная почта", "group": "Соавтор 2", "type": "email", "required": true }
+          {
+            "name": "territory",
+            "label": "Территория использования",
+            "required": true,
+            "placeholder": "Укажите согласованную территорию"
+          }
+        ]
+      },
+      {
+        "id": "liability",
+        "title": "Ответственность",
+        "fields": []
+      },
+      {
+        "id": "income",
+        "title": "Поступления, расходы",
+        "fields": [
+          {
+            "name": "license_share1",
+            "label": "Доля Соавтора 1, %",
+            "group": "Вознаграждение за лицензии",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true
+          },
+          {
+            "name": "license_share2",
+            "label": "Доля Соавтора 2, %",
+            "group": "Вознаграждение за лицензии",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true
+          },
+          {
+            "name": "transfer_share1",
+            "label": "Доля Соавтора 1, %",
+            "group": "Вознаграждение за отчуждение",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true
+          },
+          {
+            "name": "transfer_share2",
+            "label": "Доля Соавтора 2, %",
+            "group": "Вознаграждение за отчуждение",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true
+          },
+          {
+            "name": "other_share1",
+            "label": "Доля Соавтора 1, %",
+            "group": "Иные доходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true
+          },
+          {
+            "name": "other_share2",
+            "label": "Доля Соавтора 2, %",
+            "group": "Иные доходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true
+          },
+          {
+            "name": "expenses_share1",
+            "label": "Доля Соавтора 1, %",
+            "group": "Расходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true
+          },
+          {
+            "name": "expenses_share2",
+            "label": "Доля Соавтора 2, %",
+            "group": "Расходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true
+          },
+          {
+            "name": "license_share3",
+            "label": "Доля Соавтора 3, %",
+            "group": "Вознаграждение за лицензии",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "license_share4",
+            "label": "Доля Соавтора 4, %",
+            "group": "Вознаграждение за лицензии",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "license_share5",
+            "label": "Доля Соавтора 5, %",
+            "group": "Вознаграждение за лицензии",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "transfer_share3",
+            "label": "Доля Соавтора 3, %",
+            "group": "Вознаграждение за отчуждение",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "transfer_share4",
+            "label": "Доля Соавтора 4, %",
+            "group": "Вознаграждение за отчуждение",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "transfer_share5",
+            "label": "Доля Соавтора 5, %",
+            "group": "Вознаграждение за отчуждение",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "other_share3",
+            "label": "Доля Соавтора 3, %",
+            "group": "Иные доходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "other_share4",
+            "label": "Доля Соавтора 4, %",
+            "group": "Иные доходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "other_share5",
+            "label": "Доля Соавтора 5, %",
+            "group": "Иные доходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "expenses_share3",
+            "label": "Доля Соавтора 3, %",
+            "group": "Расходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "expenses_share4",
+            "label": "Доля Соавтора 4, %",
+            "group": "Расходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "expenses_share5",
+            "label": "Доля Соавтора 5, %",
+            "group": "Расходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 5"
+          }
+        ]
+      },
+      {
+        "id": "force_majeure",
+        "title": "Форс-мажор",
+        "fields": [
+          {
+            "name": "force_majeure_months",
+            "label": "Срок действия форс-мажора, после которого стороны ведут переговоры, мес.",
+            "type": "number",
+            "min": 1,
+            "step": 1,
+            "required": true
+          }
+        ]
+      },
+      {
+        "id": "protection",
+        "title": "Защита прав",
+        "fields": []
+      },
+      {
+        "id": "duration",
+        "title": "Срок действия",
+        "fields": [
+          {
+            "name": "duration",
+            "label": "Срок действия соглашения, лет",
+            "type": "number",
+            "min": 1,
+            "max": 100,
+            "step": 1,
+            "required": true
+          }
+        ]
+      },
+      {
+        "id": "confidentiality",
+        "title": "Конфиденциальность",
+        "fields": []
+      },
+      {
+        "id": "disputes",
+        "title": "Разрешение споров",
+        "fields": []
+      },
+      {
+        "id": "other",
+        "title": "Прочие условия",
+        "fields": []
+      },
+      {
+        "id": "signatures",
+        "title": "Реквизиты и подписи",
+        "fields": [
+          {
+            "name": "phone1",
+            "label": "Телефон",
+            "group": "Соавтор 1",
+            "type": "tel",
+            "required": true
+          },
+          {
+            "name": "email1",
+            "label": "Электронная почта",
+            "group": "Соавтор 1",
+            "type": "email",
+            "required": true
+          },
+          {
+            "name": "phone2",
+            "label": "Телефон",
+            "group": "Соавтор 2",
+            "type": "tel",
+            "required": true
+          },
+          {
+            "name": "email2",
+            "label": "Электронная почта",
+            "group": "Соавтор 2",
+            "type": "email",
+            "required": true
+          },
+          {
+            "name": "author1_postal_address",
+            "label": "Почтовый адрес",
+            "group": "Соавтор 1"
+          },
+          {
+            "name": "author2_postal_address",
+            "label": "Почтовый адрес",
+            "group": "Соавтор 2"
+          },
+          {
+            "name": "phone3",
+            "label": "Телефон",
+            "group": "Соавтор 3",
+            "type": "tel",
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "email3",
+            "label": "Электронная почта",
+            "group": "Соавтор 3",
+            "type": "email",
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "author3_postal_address",
+            "label": "Почтовый адрес",
+            "group": "Соавтор 3",
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "phone4",
+            "label": "Телефон",
+            "group": "Соавтор 4",
+            "type": "tel",
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "email4",
+            "label": "Электронная почта",
+            "group": "Соавтор 4",
+            "type": "email",
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "author4_postal_address",
+            "label": "Почтовый адрес",
+            "group": "Соавтор 4",
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "phone5",
+            "label": "Телефон",
+            "group": "Соавтор 5",
+            "type": "tel",
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "email5",
+            "label": "Электронная почта",
+            "group": "Соавтор 5",
+            "type": "email",
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "author5_postal_address",
+            "label": "Почтовый адрес",
+            "group": "Соавтор 5",
+            "when": "authors_count >= 5"
+          }
         ]
       }
     ]
   },
   "structure_json": {
     "blocks": [
-      { "id": "title", "section": "preamble", "template": "СОГЛАШЕНИЕ СОАВТОРОВ ПРОИЗВЕДЕНИЯ" },
-      { "id": "preamble", "template": "г. {{city}}                                    {{date}}\n\n{{author1}} и {{author2}}, именуемые в дальнейшем «Стороны», заключили настоящее соглашение о нижеследующем:" },
-      { "id": "entrepreneur1", "section": "preamble", "when": "author1_type == entrepreneur", "template": "Соавтор 1 действует в качестве индивидуального предпринимателя." },
-      { "id": "proxy1", "section": "preamble", "when": "author1_representation == proxy", "template": "От имени Соавтора 1 действует представитель: {{representative1}}." },
-      { "id": "entrepreneur2", "section": "preamble", "when": "author2_type == entrepreneur", "template": "Соавтор 2 действует в качестве индивидуального предпринимателя." },
-      { "id": "proxy2", "section": "preamble", "when": "author2_representation == proxy", "template": "От имени Соавтора 2 действует представитель: {{representative2}}." },
-      { "id": "terms", "template": "1. ОПРЕДЕЛЕНИЕ ТЕРМИНОВ СОГЛАШЕНИЯ\n\n1.1. Стороны совместно создали произведение «{{work_title}}». Тип: {{work_type}}.\n\n1.2. Права на произведение принадлежат соавторам совместно." },
-      { "id": "subject", "template": "2. ПРЕДМЕТ СОГЛАШЕНИЯ\n\n2.1. Каждый из соавторов может использовать произведение по своему усмотрению, в пределах, установленных Гражданским кодексом Российской Федерации и настоящим соглашением.\n\n2.2. Территория, на которой допускается использование произведения: {{territory}}." },
-      { "id": "rights", "template": "3. ПРАВА И ОБЯЗАННОСТИ\n\n3.1. Каждый соавтор обязан соблюдать права и законные интересы другого соавтора, установленные законом и настоящим соглашением, в том числе и после его расторжения.\n\n3.2. Соавторы обязуются совместно распоряжаться исключительным правом на произведение.\n\n3.3. Соавторы обязуются уведомлять друг друга обо всех угрозах утраты или оспаривания прав на произведение." },
-      { "id": "income", "template": "4. ПОСТУПЛЕНИЯ, РАСХОДЫ\n\n4.1. Вознаграждение за предоставленные на произведение лицензии стороны распределяют в следующем порядке: {{distribution}}.\n\n4.2. Все сборы, налоги и другие расходы, связанные с заключением и выполнением настоящего соглашения, стороны несут самостоятельно в соответствии с действующим законодательством." },
-      { "id": "liability", "template": "5. ОТВЕТСТВЕННОСТЬ СОАВТОРОВ\n\n5.1. Сторона, которая не выполнила обязательства по соглашению, обязана возместить другой Стороне причинённые ей убытки.\n\n5.2. Уплата неустойки и возмещение убытков в случае ненадлежащего исполнения или неисполнения обязательства не освобождают Сторону от исполнения обязательства в натуре." },
-      { "id": "protection", "template": "6. ЗАЩИТА ПРАВ НА ПРОИЗВЕДЕНИЕ\n\n6.1. Если после заключения соглашения какое-либо третье лицо оспорит права авторов на произведение, то Стороны незамедлительно, после того как им станет об этом известно, предпримут совместные действия по защите своих прав." },
-      { "id": "duration", "template": "7. СРОК ДЕЙСТВИЯ СОГЛАШЕНИЯ\n\n7.1. Соглашение вступает в силу и становится обязательным для сторон с момента его заключения.\n\n7.2. Соглашение действует в течение {{duration}} лет с момента заключения.\n\n7.3. В случае прекращения исключительного права соглашение прекращается.\n\n7.4. Окончание срока действия соглашения не освобождает стороны от ответственности за его нарушение." },
-      { "id": "other", "template": "8. ПРОЧИЕ УСЛОВИЯ\n\n8.1. Все изменения и дополнения к настоящему соглашению должны быть совершены в письменной форме.\n\n8.2. Настоящее соглашение совершено в двух экземплярах — по одному экземпляру для каждой Стороны, причём оба текста имеют одинаковую силу." },
-      { "id": "signatures", "template": "9. РЕКВИЗИТЫ И ПОДПИСИ СТОРОН\n\nСоавтор 1: {{author1}}\n{{details1}}\nЭлектронная почта: {{email1}}\n\nПодпись: ____________________\n\nСоавтор 2: {{author2}}\n{{details2}}\nЭлектронная почта: {{email2}}\n\nПодпись: ____________________" }
+      {
+        "id": "title",
+        "section": "preamble",
+        "template": "СОГЛАШЕНИЕ СОАВТОРОВ ПРОИЗВЕДЕНИЯ"
+      },
+      {
+        "id": "preamble",
+        "section": "preamble",
+        "template": "г. {{city}}    {{date}}\n\nСтороны заключили настоящее соглашение о нижеследующем:"
+      },
+      {
+        "id": "party1_individual",
+        "section": "preamble",
+        "when": "author1_type == individual",
+        "template": "{{author1}}, паспорт: серия {{passport_series1}}, № {{passport_number1}}, выданный {{passport_issued1}}, адрес: {{address1}}, именуемый(ая) в дальнейшем «Соавтор 1»."
+      },
+      {
+        "id": "party1_legal_entity",
+        "section": "preamble",
+        "when": "author1_type == legal_entity",
+        "template": "{{author1}}, ИНН {{author1_inn}}, КПП {{author1_kpp}}, ОГРН {{author1_ogrn}}, адрес: {{address1}}, именуемое в дальнейшем «Соавтор 1»."
+      },
+      {
+        "id": "party2_individual",
+        "section": "preamble",
+        "when": "author2_type == individual",
+        "template": "{{author2}}, паспорт: серия {{passport_series2}}, № {{passport_number2}}, выданный {{passport_issued2}}, адрес: {{address2}}, именуемый(ая) в дальнейшем «Соавтор 2»."
+      },
+      {
+        "id": "party2_legal_entity",
+        "section": "preamble",
+        "when": "author2_type == legal_entity",
+        "template": "{{author2}}, ИНН {{author2_inn}}, КПП {{author2_kpp}}, ОГРН {{author2_ogrn}}, адрес: {{address2}}, именуемое в дальнейшем «Соавтор 2»."
+      },
+      {
+        "id": "party3_individual",
+        "section": "preamble",
+        "when": "authors_count >= 3 && author3_type == individual",
+        "template": "{{author3}}, паспорт: серия {{passport_series3}}, № {{passport_number3}}, выданный {{passport_issued3}}, адрес: {{address3}}, именуемый(ая) в дальнейшем «Соавтор 3»."
+      },
+      {
+        "id": "party3_legal_entity",
+        "section": "preamble",
+        "when": "authors_count >= 3 && author3_type == legal_entity",
+        "template": "{{author3}}, ИНН {{author3_inn}}, КПП {{author3_kpp}}, ОГРН {{author3_ogrn}}, адрес: {{address3}}, именуемое в дальнейшем «Соавтор 3»."
+      },
+      {
+        "id": "party4_individual",
+        "section": "preamble",
+        "when": "authors_count >= 4 && author4_type == individual",
+        "template": "{{author4}}, паспорт: серия {{passport_series4}}, № {{passport_number4}}, выданный {{passport_issued4}}, адрес: {{address4}}, именуемый(ая) в дальнейшем «Соавтор 4»."
+      },
+      {
+        "id": "party4_legal_entity",
+        "section": "preamble",
+        "when": "authors_count >= 4 && author4_type == legal_entity",
+        "template": "{{author4}}, ИНН {{author4_inn}}, КПП {{author4_kpp}}, ОГРН {{author4_ogrn}}, адрес: {{address4}}, именуемое в дальнейшем «Соавтор 4»."
+      },
+      {
+        "id": "party5_individual",
+        "section": "preamble",
+        "when": "authors_count >= 5 && author5_type == individual",
+        "template": "{{author5}}, паспорт: серия {{passport_series5}}, № {{passport_number5}}, выданный {{passport_issued5}}, адрес: {{address5}}, именуемый(ая) в дальнейшем «Соавтор 5»."
+      },
+      {
+        "id": "party5_legal_entity",
+        "section": "preamble",
+        "when": "authors_count >= 5 && author5_type == legal_entity",
+        "template": "{{author5}}, ИНН {{author5_inn}}, КПП {{author5_kpp}}, ОГРН {{author5_ogrn}}, адрес: {{address5}}, именуемое в дальнейшем «Соавтор 5»."
+      },
+      {
+        "id": "recitals",
+        "section": "preamble",
+        "template": "– стороны являются соавторами объекта(ов), указанного(ых) в п. 1 настоящего соглашения;\n\n– для возникновения, осуществления и защиты прав не требуется регистрация или соблюдение иных формальностей;\n\n– объекты не отчуждены, на них не выдана лицензия третьим лицам;\n\n– права на объекты принадлежат соавторам совместно."
+      },
+      {
+        "id": "terms",
+        "section": "terms",
+        "template": "1. ОПРЕДЕЛЕНИЕ ТЕРМИНОВ И ОБЪЕКТЫ СОГЛАШЕНИЯ\n\nСледующие термины, используемые в настоящем соглашении, означают:"
+      },
+      {
+        "id": "terms_objects_001",
+        "section": "terms",
+        "when": "include_work == false && include_performance == false && include_phonogram == true",
+        "template": "1.1. «Фонограмма» – звуковая запись, осуществлённая Сторонами jointly, зафиксированная на материальном носителе и (или) в электронной форме.\n\n1.2. Стороны совместно изготовили фонограмму (далее – «Объект»). \n\n1.3. Спецификация Объекта:\nНазвание фонограммы: «{{phonogram_title}}».\nХарактеристики: жанр — {{genre}}; BPM — {{bpm}}; Kbps — {{kbps}}; тональность — {{musical_key}}.\nПродолжительность: {{duration_minutes}} мин {{duration_seconds}} сек.\nИзготовитель(и): {{producers}}."
+      },
+      {
+        "id": "terms_objects_010",
+        "section": "terms",
+        "when": "include_work == false && include_performance == true && include_phonogram == false",
+        "template": "1.1. «Исполнение» – запись исполнения, осуществлённая Сторонами jointly, зафиксированная на материальном носителе и (или) в электронной форме.\n\n1.2. Стороны совместно осуществили запись исполнения (далее – «Объект»). \n\n1.3. Спецификация Объекта:\nИсполнители: {{performers}}.\nХарактеристики: жанр — {{genre}}; BPM — {{bpm}}; Kbps — {{kbps}}; тональность — {{musical_key}}.\nПродолжительность: {{duration_minutes}} мин {{duration_seconds}} сек."
+      },
+      {
+        "id": "terms_objects_011",
+        "section": "terms",
+        "when": "include_work == false && include_performance == true && include_phonogram == true",
+        "template": "1.1. «Исполнение» – запись исполнения, осуществлённая Сторонами jointly.\n«Фонограмма» – звуковая запись Исполнения, изготовленная Сторонами jointly.\n\n1.2. Стороны совместно создали Исполнение и Фонограмму (далее вместе – «Объекты»). \n\n1.3. Спецификация Объектов:\nНазвание фонограммы: «{{phonogram_title}}».\nИсполнители: {{performers}}.\nХарактеристики: жанр — {{genre}}; BPM — {{bpm}}; Kbps — {{kbps}}; тональность — {{musical_key}}.\nПродолжительность: {{duration_minutes}} мин {{duration_seconds}} сек.\nИзготовитель(и): {{producers}}."
+      },
+      {
+        "id": "terms_objects_100_with_text",
+        "section": "terms",
+        "when": "include_work == true && include_performance == false && include_phonogram == false && work_type == with_text",
+        "template": "1.1. «Произведение» – музыкальное произведение с текстом под названием «{{work_title}}».\n\n1.2. Стороны совместно создали Произведение (далее – «Объект»). \n\n1.3. Спецификация Объекта:\nНазвание: «{{work_title}}».\nТип: музыкальное произведение с текстом.\nАвтор(ы) музыки: {{music_authors}}.\nАвтор(ы) текста: {{text_authors}}.\nДата создания: {{creation_date}}.\n\n1.4. Материальный носитель: {{copies_count}} экз. на {{medium}}.\n1.5. Адрес хранения: {{work_location}}."
+      },
+      {
+        "id": "terms_objects_100_without_text",
+        "section": "terms",
+        "when": "include_work == true && include_performance == false && include_phonogram == false && work_type == without_text",
+        "template": "1.1. «Произведение» – музыкальное произведение без текста под названием «{{work_title}}».\n\n1.2. Стороны совместно создали Произведение (далее – «Объект»). \n\n1.3. Спецификация Объекта:\nНазвание: «{{work_title}}».\nТип: музыкальное произведение без текста.\nАвтор(ы) музыки: {{music_authors}}.\nДата создания: {{creation_date}}.\n\n1.4. Материальный носитель: {{copies_count}} экз. на {{medium}}.\n1.5. Адрес хранения: {{work_location}}."
+      },
+      {
+        "id": "terms_objects_101_with_text",
+        "section": "terms",
+        "when": "include_work == true && include_performance == false && include_phonogram == true && work_type == with_text",
+        "template": "1.1. «Произведение» – музыкальное произведение с текстом «{{work_title}}».\n«Фонограмма» – звуковая запись, изготовленная Сторонами.\n\n1.2. Стороны создали Произведение и изготовили Фонограмму (далее – «Объекты»). \n\n1.3. Спецификация:\nПроизведение: «{{work_title}}», тип: с текстом.\nАвторы музыки: {{music_authors}}; текста: {{text_authors}}.\nДата создания: {{creation_date}}.\n\nФонограмма: «{{phonogram_title}}».\nХарактеристики: жанр — {{genre}}; BPM — {{bpm}}; Kbps — {{kbps}}; тональность — {{musical_key}}.\nПродолжительность: {{duration_minutes}} мин {{duration_seconds}} сек.\nИзготовитель(и): {{producers}}.\n\n1.4. Материальный носитель произведения: {{copies_count}} экз. на {{medium}}.\n1.5. Адрес хранения: {{work_location}}."
+      },
+      {
+        "id": "terms_objects_101_without_text",
+        "section": "terms",
+        "when": "include_work == true && include_performance == false && include_phonogram == true && work_type == without_text",
+        "template": "1.1. «Произведение» – музыкальное произведение без текста «{{work_title}}».\n«Фонограмма» – звуковая запись, изготовленная Сторонами.\n\n1.2. Стороны создали Произведение и изготовили Фонограмму (далее – «Объекты»). \n\n1.3. Спецификация:\nПроизведение: «{{work_title}}», тип: без текста.\nАвторы музыки: {{music_authors}}.\nДата создания: {{creation_date}}.\n\nФонограмма: «{{phonogram_title}}».\nХарактеристики: жанр — {{genre}}; BPM — {{bpm}}; Kbps — {{kbps}}; тональность — {{musical_key}}.\nПродолжительность: {{duration_minutes}} мин {{duration_seconds}} сек.\nИзготовитель(и): {{producers}}.\n\n1.4. Материальный носитель произведения: {{copies_count}} экз. на {{medium}}.\n1.5. Адрес хранения: {{work_location}}."
+      },
+      {
+        "id": "terms_objects_110_with_text",
+        "section": "terms",
+        "when": "include_work == true && include_performance == true && include_phonogram == false && work_type == with_text",
+        "template": "1.1. «Произведение» – музыкальное произведение с текстом «{{work_title}}».\n«Исполнение» – запись исполнения, осуществлённая Сторонами.\n\n1.2. Стороны создали Произведение и Исполнение (далее – «Объекты»). \n\n1.3. Спецификация:\nПроизведение: «{{work_title}}», тип: с текстом.\nАвторы музыки: {{music_authors}}; текста: {{text_authors}}.\nДата создания: {{creation_date}}.\n\nИсполнение:\nИсполнители: {{performers}}.\nХарактеристики: жанр — {{genre}}; BPM — {{bpm}}; Kbps — {{kbps}}; тональность — {{musical_key}}.\nПродолжительность: {{duration_minutes}} мин {{duration_seconds}} сек.\n\n1.4. Материальный носитель произведения: {{copies_count}} экз. на {{medium}}.\n1.5. Адрес хранения: {{work_location}}."
+      },
+      {
+        "id": "terms_objects_110_without_text",
+        "section": "terms",
+        "when": "include_work == true && include_performance == true && include_phonogram == false && work_type == without_text",
+        "template": "1.1. «Произведение» – музыкальное произведение без текста «{{work_title}}».\n«Исполнение» – запись исполнения, осуществлённая Сторонами.\n\n1.2. Стороны создали Произведение и Исполнение (далее – «Объекты»). \n\n1.3. Спецификация:\nПроизведение: «{{work_title}}», тип: без текста.\nАвторы музыки: {{music_authors}}.\nДата создания: {{creation_date}}.\n\nИсполнение:\nИсполнители: {{performers}}.\nХарактеристики: жанр — {{genre}}; BPM — {{bpm}}; Kbps — {{kbps}}; тональность — {{musical_key}}.\nПродолжительность: {{duration_minutes}} мин {{duration_seconds}} сек.\n\n1.4. Материальный носитель произведения: {{copies_count}} экз. на {{medium}}.\n1.5. Адрес хранения: {{work_location}}."
+      },
+      {
+        "id": "terms_objects_111_with_text",
+        "section": "terms",
+        "when": "include_work == true && include_performance == true && include_phonogram == true && work_type == with_text",
+        "template": "1.1. «Произведение» – музыкальное произведение с текстом «{{work_title}}».\n«Исполнение» – запись исполнения.\n«Фонограмма» – звуковая запись Исполнения.\n\n1.2. Стороны создали Произведение, Исполнение и Фонограмму (далее – «Объекты»). \n\n1.3. Спецификация:\nПроизведение: «{{work_title}}», тип: с текстом.\nАвторы музыки: {{music_authors}}; текста: {{text_authors}}.\nДата создания: {{creation_date}}.\n\nИсполнение и Фонограмма: «{{phonogram_title}}».\nИсполнители: {{performers}}.\nХарактеристики: жанр — {{genre}}; BPM — {{bpm}}; Kbps — {{kbps}}; тональность — {{musical_key}}.\nПродолжительность: {{duration_minutes}} мин {{duration_seconds}} сек.\nИзготовитель(и): {{producers}}.\n\n1.4. Материальный носитель произведения: {{copies_count}} экз. на {{medium}}.\n1.5. Адрес хранения: {{work_location}}."
+      },
+      {
+        "id": "terms_objects_111_without_text",
+        "section": "terms",
+        "when": "include_work == true && include_performance == true && include_phonogram == true && work_type == without_text",
+        "template": "1.1. «Произведение» – музыкальное произведение без текста «{{work_title}}».\n«Исполнение» – запись исполнения.\n«Фонограмма» – звуковая запись Исполнения.\n\n1.2. Стороны создали Произведение, Исполнение и Фонограмму (далее – «Объекты»). \n\n1.3. Спецификация:\nПроизведение: «{{work_title}}», тип: без текста.\nАвторы музыки: {{music_authors}}.\nДата создания: {{creation_date}}.\n\nИсполнение и Фонограмма: «{{phonogram_title}}».\nИсполнители: {{performers}}.\nХарактеристики: жанр — {{genre}}; BPM — {{bpm}}; Kbps — {{kbps}}; тональность — {{musical_key}}.\nПродолжительность: {{duration_minutes}} мин {{duration_seconds}} сек.\nИзготовитель(и): {{producers}}.\n\n1.4. Материальный носитель произведения: {{copies_count}} экз. на {{medium}}.\n1.5. Адрес хранения: {{work_location}}."
+      },
+      {
+        "id": "terms_tail",
+        "section": "terms",
+        "template": "\n1.4. Срок действия авторских прав составляет {{copyright_term}} лет."
+      },
+      {
+        "id": "subject",
+        "section": "subject",
+        "template": "2. ПРЕДМЕТ СОГЛАШЕНИЯ\n\n2.1. Соавторы подтверждают, что Объект создан их совместным творческим трудом и является объектом авторского и/или смежных прав, и определяют порядок осуществления прав, распределения доходов и распоряжения исключительным правом.\n\n2.2. Соглашение не изменяет принадлежность личных неимущественных прав, которые сохраняются за каждым из Соавторов.\n\n2.3. Каждый Соавтор может использовать Объект в пределах, установленных законодательством РФ и настоящим соглашением.\n\n2.4. Каждый Соавтор обязан соблюдать права и интересы других Соавторов, совместно распоряжаться исключительным правом, не препятствовать осуществлению прав других Соавторов.\n\n2.5. Каждый Соавтор имеет право использовать Объект в личных целях без извлечения прибыли.\n\n2.6. В случае утраты одним из Соавторов экземпляра Объекта Стороны совместно восстанавливают такой экземпляр.\n\n2.7. Территория использования Объекта: {{territory}}.\n\n2.8. Переход исключительного права к новому правообладателю не является основанием для изменения или расторжения настоящего соглашения."
+      },
+      {
+        "id": "liability",
+        "section": "liability",
+        "template": "3. ОТВЕТСТВЕННОСТЬ СОАВТОРОВ\n\n3.1. Каждый Соавтор несёт ответственность по принятым на себя обязательствам перед третьими лицами в пределах принадлежащего ему имущества.\n\n3.2. Сторона, не выполнившая обязательства, обязана возместить другой Стороне причинённые убытки.\n\n3.3. Уплата неустойки и возмещение убытков не освобождают Сторону от исполнения обязательства в натуре."
+      },
+      {
+        "id": "income_2_authors",
+        "when": "authors_count == 2",
+        "template": "4. ПОСТУПЛЕНИЯ, РАСХОДЫ\n\n4.1. Вознаграждение за лицензии распределяется следующим образом: Соавтору 1 — {{license_share1}}%, Соавтору 2 — {{license_share2}}%.\n\n4.2. Вознаграждение за отчуждение Объекта распределяется следующим образом: Соавтору 1 — {{transfer_share1}}%, Соавтору 2 — {{transfer_share2}}%.\n\n4.3. Иные доходы от использования Объекта распределяются следующим образом: Соавтору 1 — {{other_share1}}%, Соавтору 2 — {{other_share2}}%.\n\n4.4. Расходы, связанные с созданием Объекта и поддержанием прав, распределяются следующим образом: Соавтор 1 — {{expenses_share1}}%, Соавтор 2 — {{expenses_share2}}%.\n\n4.5. Сборы, налоги и другие расходы Стороны несут самостоятельно."
+      },
+      {
+        "id": "income_3_authors",
+        "when": "authors_count == 3",
+        "template": "4. ПОСТУПЛЕНИЯ, РАСХОДЫ\n\n4.1. Вознаграждение за лицензии распределяется следующим образом: Соавтору 1 — {{license_share1}}%, Соавтору 2 — {{license_share2}}%, Соавтору 3 — {{license_share3}}%.\n\n4.2. Вознаграждение за отчуждение Объекта распределяется следующим образом: Соавтору 1 — {{transfer_share1}}%, Соавтору 2 — {{transfer_share2}}%, Соавтору 3 — {{transfer_share3}}%.\n\n4.3. Иные доходы от использования Объекта распределяются следующим образом: Соавтору 1 — {{other_share1}}%, Соавтору 2 — {{other_share2}}%, Соавтору 3 — {{other_share3}}%.\n\n4.4. Расходы, связанные с созданием Объекта и поддержанием прав, распределяются следующим образом: Соавтор 1 — {{expenses_share1}}%, Соавтор 2 — {{expenses_share2}}%, Соавтор 3 — {{expenses_share3}}%.\n\n4.5. Сборы, налоги и другие расходы Стороны несут самостоятельно."
+      },
+      {
+        "id": "income_4_authors",
+        "when": "authors_count == 4",
+        "template": "4. ПОСТУПЛЕНИЯ, РАСХОДЫ\n\n4.1. Вознаграждение за лицензии распределяется следующим образом: Соавтору 1 — {{license_share1}}%, Соавтору 2 — {{license_share2}}%, Соавтору 3 — {{license_share3}}%, Соавтору 4 — {{license_share4}}%.\n\n4.2. Вознаграждение за отчуждение Объекта распределяется следующим образом: Соавтору 1 — {{transfer_share1}}%, Соавтору 2 — {{transfer_share2}}%, Соавтору 3 — {{transfer_share3}}%, Соавтору 4 — {{transfer_share4}}%.\n\n4.3. Иные доходы от использования Объекта распределяются следующим образом: Соавтору 1 — {{other_share1}}%, Соавтору 2 — {{other_share2}}%, Соавтору 3 — {{other_share3}}%, Соавтору 4 — {{other_share4}}%.\n\n4.4. Расходы, связанные с созданием Объекта и поддержанием прав, распределяются следующим образом: Соавтор 1 — {{expenses_share1}}%, Соавтор 2 — {{expenses_share2}}%, Соавтор 3 — {{expenses_share3}}%, Соавтор 4 — {{expenses_share4}}%.\n\n4.5. Сборы, налоги и другие расходы Стороны несут самостоятельно."
+      },
+      {
+        "id": "income_5_authors",
+        "when": "authors_count == 5",
+        "template": "4. ПОСТУПЛЕНИЯ, РАСХОДЫ\n\n4.1. Вознаграждение за лицензии распределяется следующим образом: Соавтору 1 — {{license_share1}}%, Соавтору 2 — {{license_share2}}%, Соавтору 3 — {{license_share3}}%, Соавтору 4 — {{license_share4}}%, Соавтору 5 — {{license_share5}}%.\n\n4.2. Вознаграждение за отчуждение Объекта распределяется следующим образом: Соавтору 1 — {{transfer_share1}}%, Соавтору 2 — {{transfer_share2}}%, Соавтору 3 — {{transfer_share3}}%, Соавтору 4 — {{transfer_share4}}%, Соавтору 5 — {{transfer_share5}}%.\n\n4.3. Иные доходы от использования Объекта распределяются следующим образом: Соавтору 1 — {{other_share1}}%, Соавтору 2 — {{other_share2}}%, Соавтору 3 — {{other_share3}}%, Соавтору 4 — {{other_share4}}%, Соавтору 5 — {{other_share5}}%.\n\n4.4. Расходы, связанные с созданием Объекта и поддержанием прав, распределяются следующим образом: Соавтор 1 — {{expenses_share1}}%, Соавтор 2 — {{expenses_share2}}%, Соавтор 3 — {{expenses_share3}}%, Соавтор 4 — {{expenses_share4}}%, Соавтор 5 — {{expenses_share5}}%.\n\n4.5. Сборы, налоги и другие расходы Стороны несут самостоятельно."
+      },
+      {
+        "id": "force_majeure",
+        "section": "force_majeure",
+        "template": "5. ФОРС-МАЖОР\n\n5.1. Стороны освобождаются от ответственности за неисполнение обязательств, вызванное обстоятельствами непреодолимой силы.\n\n5.2. Сторона, для которой возникли такие обстоятельства, должна без промедления письменно известить другую Сторону.\n\n5.3. После прекращения таких обстоятельств Сторона должна без промедления письменно известить другую Сторону.\n\n5.4. За несвоевременное извещение Сторона возмещает убытки.\n\n5.5. Обстоятельства подтверждаются документом компетентной организации.\n\n5.6. Срок исполнения обязательств продлевается соразмерно времени действия обстоятельств.\n\n5.7. Если обстоятельства продолжаются более {{force_majeure_months}} месяцев, Стороны проводят переговоры. Любая Сторона вправе отказаться от исполнения соглашения."
+      },
+      {
+        "id": "protection",
+        "section": "protection",
+        "template": "6. ЗАЩИТА ПРАВ НА ОБЪЕКТ\n\n6.1. Если третье лицо оспорит права, Стороны незамедлительно предпримут совместные действия по защите.\n\n6.2. Расходы и убытки при урегулировании споров распределяются между Сторонами пропорционально их долям в расходах (п. 4.4)."
+      },
+      {
+        "id": "duration",
+        "section": "duration",
+        "template": "7. СРОК ДЕЙСТВИЯ СОГЛАШЕНИЯ\n\n7.1. Соглашение вступает в силу с момента его заключения.\n\n7.2. Соглашение действует в течение {{duration}} лет с момента заключения.\n\n7.3. В случае прекращения исключительного права соглашение прекращается.\n\n7.4. Окончание срока действия соглашения не освобождает Стороны от ответственности за его нарушение."
+      },
+      {
+        "id": "confidentiality",
+        "section": "confidentiality",
+        "template": "8. КОНФИДЕНЦИАЛЬНОСТЬ\n\n8.1. Условия настоящего соглашения конфиденциальны и не подлежат разглашению, кроме случаев, предусмотренных законом."
+      },
+      {
+        "id": "disputes",
+        "section": "disputes",
+        "template": "9. РАЗРЕШЕНИЕ СПОРОВ\n\n9.1. Споры разрешаются путём переговоров.\n\n9.2. Если спор не урегулирован, он разрешается в суде в установленном законом порядке."
+      },
+      {
+        "id": "other",
+        "section": "other",
+        "template": "10. ПРОЧИЕ УСЛОВИЯ\n\n10.1. К вопросам, не урегулированным соглашением, применяется законодательство РФ.\n\n10.2. Изменения совершаются в письменной форме.\n\n10.3. Соглашение составлено в экземплярах равной юридической силы, по одному для каждого Соавтора."
+      },
+      {
+        "id": "signatures_heading",
+        "template": "11. РЕКВИЗИТЫ И ПОДПИСИ СТОРОН"
+      },
+      {
+        "id": "signature_author1",
+        "template": "Соавтор 1: {{author1}}\n{{address1}}\nТелефон: {{phone1}}; электронная почта: {{email1}}\nПочтовый адрес: {{author1_postal_address}}\n\nПодпись: __________________"
+      },
+      {
+        "id": "signature_author2",
+        "template": "Соавтор 2: {{author2}}\n{{address2}}\nТелефон: {{phone2}}; электронная почта: {{email2}}\nПочтовый адрес: {{author2_postal_address}}\n\nПодпись: __________________"
+      },
+      {
+        "id": "signature_author3",
+        "template": "Соавтор 3: {{author3}}\n{{address3}}\nТелефон: {{phone3}}; электронная почта: {{email3}}\nПочтовый адрес: {{author3_postal_address}}\n\nПодпись: __________________",
+        "when": "authors_count >= 3"
+      },
+      {
+        "id": "signature_author4",
+        "template": "Соавтор 4: {{author4}}\n{{address4}}\nТелефон: {{phone4}}; электронная почта: {{email4}}\nПочтовый адрес: {{author4_postal_address}}\n\nПодпись: __________________",
+        "when": "authors_count >= 4"
+      },
+      {
+        "id": "signature_author5",
+        "template": "Соавтор 5: {{author5}}\n{{address5}}\nТелефон: {{phone5}}; электронная почта: {{email5}}\nПочтовый адрес: {{author5_postal_address}}\n\nПодпись: __________________",
+        "when": "authors_count >= 5"
+      }
     ]
   }
 }
