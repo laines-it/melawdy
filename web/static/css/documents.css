@@ -50,6 +50,8 @@
 .document-paper h2 { font-size: 13px; text-align: center; line-height: 1.6; margin-bottom: 28px; }
 .document-paper h3 { font-size: 11px; line-height: 1.8; margin: 24px 0 12px; }
 .document-paper p { white-space: pre-wrap; margin: 0 0 14px; }
+.document-paper .document-place-date { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.document-preamble-date { margin-left: auto; text-align: right; }
 .document-paper-section { scroll-margin-top: 18px; border-radius: 4px; padding: 1px 8px; margin-inline: -8px; transition: background .15s; }
 .document-paper-section.is-active { background: #f7f2e3; }
 .document-paper mark { color: inherit; background: #f2ebd5; padding: 1px 2px; border-radius: 2px; }

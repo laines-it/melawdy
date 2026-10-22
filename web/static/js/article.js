@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const id = new URLSearchParams(window.location.search).get("id");
   const favBtn = $("#fav-btn");
 
-  // ---- helpers, безопасные для моков ----
+  // ---- helpers ----
   function clear(el) {
     if (!el) return;
     while (el.firstChild) el.removeChild(el.firstChild);
@@ -41,11 +41,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return (el.className || "").split(/\s+/).includes(cls);
   }
 
-  // ---- Реестр сносок: один на всю статью ----
+  // ---- Реестр сносок ----
   function createFootnoteRegistry() {
-    const notes = new Map();   // id -> text
-    const order = [];          // id в порядке появления
-    const index = new Map();   // id -> номер
+    const notes = new Map();
+    const order = [];
+    const index = new Map();
 
     function define(noteId, text) {
       notes.set(noteId, text);
@@ -67,8 +67,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return sup;
     }
 
-    const api = { notes, order, index, define, ref, buildSection };
-
     function buildSection() {
       if (!order.length) return null;
       const section = document.createElement("section");
@@ -82,7 +80,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         li.id = `fn-${noteId}`;
         const p = document.createElement("p");
-        // ВАЖНО: передаём api, а не registry (которого здесь нет)
         appendInlineInto(p, notes.get(noteId) || "", api);
         const back = document.createElement("a");
         back.href = `#fnref-${noteId}`;
@@ -98,10 +95,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return section;
     }
 
+    const api = { notes, order, index, define, ref, buildSection };
     return api;
   }
 
-  // ---- Inline markdown с рекурсией для **bold** / *italic* ----
+  // ---- Inline markdown с рекурсией ----
   function appendInlineInto(target, text, registry) {
     const src = String(text ?? "");
     const re = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`|\[([^\]]+)\]\s*\(([^)\s]+)\)|\[\^([^\]]+)\]/g;
@@ -110,12 +108,10 @@ document.addEventListener("DOMContentLoaded", () => {
     while ((m = re.exec(src)) !== null) {
       target.appendChild(document.createTextNode(src.slice(offset, m.index)));
       if (m[1] !== undefined) {
-        // **bold** — рекурсивно, чтобы поймать вложенные [^N], *italic*, ссылки
         const strong = document.createElement("strong");
         appendInlineInto(strong, m[1], registry);
         target.appendChild(strong);
       } else if (m[2] !== undefined) {
-        // *italic* — тоже рекурсивно
         const em = document.createElement("em");
         appendInlineInto(em, m[2], registry);
         target.appendChild(em);
@@ -142,8 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
     target.appendChild(document.createTextNode(src.slice(offset)));
   }
 
-  // ---- Разбор одного чанка в контейнер, БЕЗ блока сносок ----
-  // Определения [^N]: text вынимаются и складываются в общий registry.
+  // ---- Разбор чанка ----
   function renderChunkInto(container, text, registry) {
     const raw = String(text ?? "").replace(/\r\n?/g, "\n");
     const allLines = raw.split("\n");
@@ -210,8 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // ---- Рендер всего тела статьи с единым реестром сносок ----
-  // Возвращает DocumentFragment: [chunk0, chunk1, ..., section.footnotes?]
+  // ---- Рендер тела статьи с единым реестром ----
   function renderBody(chunks) {
     const registry = createFootnoteRegistry();
     const fragment = document.createDocumentFragment();
@@ -228,7 +222,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return fragment;
   }
 
-  // inline-рендер в существующий элемент (для заголовка/summary/related)
   function renderInlineInto(el, text) {
     if (!el) return;
     clear(el);
@@ -249,8 +242,9 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       favBtn.disabled = false;
-      const favorites = await request("cabinet/favorites?limit=100");
-      const isFav = Array.isArray(favorites) && favorites.some((f) => String(f.content_item_id) === String(id));
+      const raw = await request("cabinet/favorites?limit=100");
+      const favorites = Array.isArray(raw) ? raw : (raw?.items || []);
+      const isFav = favorites.some((f) => f && String(f.content_item_id) === String(id));
       applyFavoriteState(isFav);
     } catch (e) {
       if (favBtn) favBtn.disabled = false;
@@ -298,16 +292,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---- Рендер статьи ----
   function render(record) {
-    document.title = `${record.title} — Законпозитор`;
+    if (!record || typeof record !== "object") {
+      throw Object.assign(new Error("Статья не найдена"), { status: 404 });
+    }
+
+    document.title = `${record.title || "Статья"} — Законпозитор`;
 
     renderInlineInto($("#article-title"), record.title || "");
 
-    const categoryName = record.category?.name || "Полезные материалы";
+    const category = record.category && typeof record.category === "object" ? record.category : null;
+    const categoryName = (category && category.name) || "Полезные материалы";
     setText($("#article-category"), categoryName);
 
     const catPath = $("#article-category-path");
     if (catPath) {
-      if (record.category) {
+      if (category) {
         catPath.textContent = `/ ${categoryName}`;
         catPath.hidden = false;
       } else {
@@ -328,11 +327,41 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // Чанки
+    const rawChunks = record.chunks ?? record.body ?? record.content;
+    const chunks = Array.isArray(rawChunks)
+      ? rawChunks.map((c) => String(c ?? ""))
+      : typeof rawChunks === "string"
+        ? [rawChunks]
+        : [];
+
     // Время чтения
-    const chunks = Array.isArray(record.chunks) ? record.chunks : [];
     const words = chunks.join(" ").match(/\S+/g)?.length || 0;
     const minutes = Math.max(1, Math.ceil(words / 200));
     setText($("#article-reading-time"), `${minutes} мин. чтения`);
+
+    // Дата публикации/проверки
+    const datesEl = $("#article-dates");
+    if (datesEl) {
+      const fmt = (value) => {
+        if (!value) return "";
+        const d = new Date(value);
+        return Number.isNaN(d.getTime())
+          ? ""
+          : d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+      };
+      const published = fmt(record.published_at);
+      const checked = fmt(record.checked_at || record.reviewed_at || record.updated_at);
+      const parts = [];
+      if (published) parts.push(`Дата публикации/проверки: ${published}`);
+      if (checked && checked !== published) parts.push(`Проверено: ${checked}`);
+      if (parts.length) {
+        datesEl.textContent = parts.join(" · ");
+        datesEl.hidden = false;
+      } else {
+        datesEl.hidden = true;
+      }
+    }
 
     const introEl = $("#article-intro");
     const introBody = $("#article-intro-body");
@@ -349,8 +378,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (introEl) introEl.hidden = !summaryText;
       if (emptyEl) emptyEl.hidden = true;
 
-      // Первый чанк — в #article-intro-body (интро), остальные — в #article-chunks.
-      // Сноски собираем по ВСЕМ чанкам и добавляем один блок в конце #article-chunks.
       const registry = createFootnoteRegistry();
 
       if (introBody) {
@@ -364,7 +391,6 @@ document.addEventListener("DOMContentLoaded", () => {
         renderChunkInto(section, chunks[i], registry);
         if (chunksEl) chunksEl.appendChild(section);
       }
-      // Один блок сносок — после всех чанков
       const notes = registry.buildSection();
       if (notes) {
         if (chunksEl) chunksEl.appendChild(notes);
@@ -384,9 +410,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const card = $("#related-articles");
     if (!list || !card) return;
     try {
-      const response = await request("public/articles?limit=4");
-      const records = Array.isArray(response) ? response
-        : Array.isArray(response?.items) ? response.items : [];
+      const raw = await request("public/articles?limit=4");
+      const records = Array.isArray(raw) ? raw : (raw?.items || []);
       clear(list);
       const filtered = [];
       for (let i = 0; i < records.length && filtered.length < 3; i++) {
@@ -421,6 +446,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const record = await request(`public/articles/${encodeURIComponent(id)}`);
+      if (!record || typeof record !== "object") {
+        throw Object.assign(new Error("Статья не найдена"), { status: 404 });
+      }
       render(record);
       loadRelated();
     } catch (error) {
