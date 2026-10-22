@@ -27,7 +27,7 @@ def test_import_preserves_constructor_data_and_does_not_overwrite_existing_slug(
         "slug": "coauthors-agreement",
         "active": True,
         "sections": 12,
-        "blocks": 30,
+        "blocks": 44,
     }
 
     statement = session.scalar.call_args_list[0].args[0]
