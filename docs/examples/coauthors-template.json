@@ -2,8 +2,8 @@
   "title": "Соглашение соавторов произведения",
   "slug": "coauthors-agreement",
   "document_type": "contract",
-  "description": "Соглашение соавторов с выбором физического лица или юридического лица и заполнением реквизитов.",
-  "body": "СОГЛАШЕНИЕ СОАВТОРОВ ПРОИЗВЕДЕНИЯ\n\nг. {{city}}, {{date}}\n\n{{author1}} и {{author2}} заключили настоящее соглашение.",
+  "description": "Соглашение соавторов с выбором от 2 до 5 участников, типа лица и заполнением реквизитов.",
+  "body": "СОГЛАШЕНИЕ СОАВТОРОВ ПРОИЗВЕДЕНИЯ\n\nг. {{city}}, {{date}}\n\nСтороны заключили настоящее соглашение.",
   "is_active": true,
   "schema_json": {
     "sections": [
@@ -11,6 +11,32 @@
         "id": "preamble",
         "title": "Преамбула",
         "fields": [
+          {
+            "name": "authors_count",
+            "label": "Количество соавторов",
+            "type": "select",
+            "group": "Общие сведения",
+            "default": "2",
+            "required": true,
+            "options": [
+              {
+                "value": "2",
+                "label": "2 соавтора"
+              },
+              {
+                "value": "3",
+                "label": "3 соавтора"
+              },
+              {
+                "value": "4",
+                "label": "4 соавтора"
+              },
+              {
+                "value": "5",
+                "label": "5 соавторов"
+              }
+            ]
+          },
           {
             "name": "city",
             "label": "Город заключения",
@@ -160,6 +186,222 @@
             "label": "ОГРН",
             "group": "Соавтор 2",
             "when": "author2_type == legal_entity"
+          },
+          {
+            "name": "author3_type",
+            "label": "Тип лица",
+            "type": "radio",
+            "group": "Соавтор 3",
+            "default": "individual",
+            "required": true,
+            "options": [
+              {
+                "value": "individual",
+                "label": "Физическое лицо"
+              },
+              {
+                "value": "legal_entity",
+                "label": "Юридическое лицо"
+              }
+            ],
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "author3",
+            "label": "Ф. И. О. / наименование организации",
+            "group": "Соавтор 3",
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "passport_series3",
+            "label": "Паспорт: серия",
+            "group": "Соавтор 3",
+            "required": true,
+            "when": "authors_count >= 3 && author3_type == individual"
+          },
+          {
+            "name": "passport_number3",
+            "label": "Паспорт: номер",
+            "group": "Соавтор 3",
+            "required": true,
+            "when": "authors_count >= 3 && author3_type == individual"
+          },
+          {
+            "name": "passport_issued3",
+            "label": "Кем и когда выдан паспорт",
+            "group": "Соавтор 3",
+            "required": true,
+            "when": "authors_count >= 3 && author3_type == individual"
+          },
+          {
+            "name": "address3",
+            "label": "Адрес проживания / адрес",
+            "group": "Соавтор 3",
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "author3_inn",
+            "label": "ИНН",
+            "group": "Соавтор 3",
+            "when": "authors_count >= 3 && author3_type == legal_entity"
+          },
+          {
+            "name": "author3_kpp",
+            "label": "КПП",
+            "group": "Соавтор 3",
+            "when": "authors_count >= 3 && author3_type == legal_entity"
+          },
+          {
+            "name": "author3_ogrn",
+            "label": "ОГРН",
+            "group": "Соавтор 3",
+            "when": "authors_count >= 3 && author3_type == legal_entity"
+          },
+          {
+            "name": "author4_type",
+            "label": "Тип лица",
+            "type": "radio",
+            "group": "Соавтор 4",
+            "default": "individual",
+            "required": true,
+            "options": [
+              {
+                "value": "individual",
+                "label": "Физическое лицо"
+              },
+              {
+                "value": "legal_entity",
+                "label": "Юридическое лицо"
+              }
+            ],
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "author4",
+            "label": "Ф. И. О. / наименование организации",
+            "group": "Соавтор 4",
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "passport_series4",
+            "label": "Паспорт: серия",
+            "group": "Соавтор 4",
+            "required": true,
+            "when": "authors_count >= 4 && author4_type == individual"
+          },
+          {
+            "name": "passport_number4",
+            "label": "Паспорт: номер",
+            "group": "Соавтор 4",
+            "required": true,
+            "when": "authors_count >= 4 && author4_type == individual"
+          },
+          {
+            "name": "passport_issued4",
+            "label": "Кем и когда выдан паспорт",
+            "group": "Соавтор 4",
+            "required": true,
+            "when": "authors_count >= 4 && author4_type == individual"
+          },
+          {
+            "name": "address4",
+            "label": "Адрес проживания / адрес",
+            "group": "Соавтор 4",
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "author4_inn",
+            "label": "ИНН",
+            "group": "Соавтор 4",
+            "when": "authors_count >= 4 && author4_type == legal_entity"
+          },
+          {
+            "name": "author4_kpp",
+            "label": "КПП",
+            "group": "Соавтор 4",
+            "when": "authors_count >= 4 && author4_type == legal_entity"
+          },
+          {
+            "name": "author4_ogrn",
+            "label": "ОГРН",
+            "group": "Соавтор 4",
+            "when": "authors_count >= 4 && author4_type == legal_entity"
+          },
+          {
+            "name": "author5_type",
+            "label": "Тип лица",
+            "type": "radio",
+            "group": "Соавтор 5",
+            "default": "individual",
+            "required": true,
+            "options": [
+              {
+                "value": "individual",
+                "label": "Физическое лицо"
+              },
+              {
+                "value": "legal_entity",
+                "label": "Юридическое лицо"
+              }
+            ],
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "author5",
+            "label": "Ф. И. О. / наименование организации",
+            "group": "Соавтор 5",
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "passport_series5",
+            "label": "Паспорт: серия",
+            "group": "Соавтор 5",
+            "required": true,
+            "when": "authors_count >= 5 && author5_type == individual"
+          },
+          {
+            "name": "passport_number5",
+            "label": "Паспорт: номер",
+            "group": "Соавтор 5",
+            "required": true,
+            "when": "authors_count >= 5 && author5_type == individual"
+          },
+          {
+            "name": "passport_issued5",
+            "label": "Кем и когда выдан паспорт",
+            "group": "Соавтор 5",
+            "required": true,
+            "when": "authors_count >= 5 && author5_type == individual"
+          },
+          {
+            "name": "address5",
+            "label": "Адрес проживания / адрес",
+            "group": "Соавтор 5",
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "author5_inn",
+            "label": "ИНН",
+            "group": "Соавтор 5",
+            "when": "authors_count >= 5 && author5_type == legal_entity"
+          },
+          {
+            "name": "author5_kpp",
+            "label": "КПП",
+            "group": "Соавтор 5",
+            "when": "authors_count >= 5 && author5_type == legal_entity"
+          },
+          {
+            "name": "author5_ogrn",
+            "label": "ОГРН",
+            "group": "Соавтор 5",
+            "when": "authors_count >= 5 && author5_type == legal_entity"
           }
         ]
       },
@@ -407,6 +649,138 @@
             "max": 100,
             "step": 1,
             "required": true
+          },
+          {
+            "name": "license_share3",
+            "label": "Доля Соавтора 3, %",
+            "group": "Вознаграждение за лицензии",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "license_share4",
+            "label": "Доля Соавтора 4, %",
+            "group": "Вознаграждение за лицензии",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "license_share5",
+            "label": "Доля Соавтора 5, %",
+            "group": "Вознаграждение за лицензии",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "transfer_share3",
+            "label": "Доля Соавтора 3, %",
+            "group": "Вознаграждение за отчуждение",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "transfer_share4",
+            "label": "Доля Соавтора 4, %",
+            "group": "Вознаграждение за отчуждение",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "transfer_share5",
+            "label": "Доля Соавтора 5, %",
+            "group": "Вознаграждение за отчуждение",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "other_share3",
+            "label": "Доля Соавтора 3, %",
+            "group": "Иные доходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "other_share4",
+            "label": "Доля Соавтора 4, %",
+            "group": "Иные доходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "other_share5",
+            "label": "Доля Соавтора 5, %",
+            "group": "Иные доходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "expenses_share3",
+            "label": "Доля Соавтора 3, %",
+            "group": "Расходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "expenses_share4",
+            "label": "Доля Соавтора 4, %",
+            "group": "Расходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "expenses_share5",
+            "label": "Доля Соавтора 5, %",
+            "group": "Расходы",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "required": true,
+            "when": "authors_count >= 5"
           }
         ]
       },
@@ -500,6 +874,72 @@
             "name": "author2_postal_address",
             "label": "Почтовый адрес",
             "group": "Соавтор 2"
+          },
+          {
+            "name": "phone3",
+            "label": "Телефон",
+            "group": "Соавтор 3",
+            "type": "tel",
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "email3",
+            "label": "Электронная почта",
+            "group": "Соавтор 3",
+            "type": "email",
+            "required": true,
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "author3_postal_address",
+            "label": "Почтовый адрес",
+            "group": "Соавтор 3",
+            "when": "authors_count >= 3"
+          },
+          {
+            "name": "phone4",
+            "label": "Телефон",
+            "group": "Соавтор 4",
+            "type": "tel",
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "email4",
+            "label": "Электронная почта",
+            "group": "Соавтор 4",
+            "type": "email",
+            "required": true,
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "author4_postal_address",
+            "label": "Почтовый адрес",
+            "group": "Соавтор 4",
+            "when": "authors_count >= 4"
+          },
+          {
+            "name": "phone5",
+            "label": "Телефон",
+            "group": "Соавтор 5",
+            "type": "tel",
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "email5",
+            "label": "Электронная почта",
+            "group": "Соавтор 5",
+            "type": "email",
+            "required": true,
+            "when": "authors_count >= 5"
+          },
+          {
+            "name": "author5_postal_address",
+            "label": "Почтовый адрес",
+            "group": "Соавтор 5",
+            "when": "authors_count >= 5"
           }
         ]
       }
@@ -540,6 +980,36 @@
         "section": "preamble",
         "when": "author2_type == legal_entity",
         "template": "{{author2}}, ИНН {{author2_inn}}, КПП {{author2_kpp}}, ОГРН {{author2_ogrn}}, адрес: {{address2}}, именуемое в дальнейшем «Соавтор 2»."
+      },
+      {
+        "id": "party3_individual",
+        "when": "authors_count >= 3 && author3_type == individual",
+        "template": "{{author3}}, паспорт: серия {{passport_series3}}, № {{passport_number3}}, выданный {{passport_issued3}}, адрес: {{address3}}, именуемый(ая) в дальнейшем «Соавтор 3»."
+      },
+      {
+        "id": "party3_legal_entity",
+        "when": "authors_count >= 3 && author3_type == legal_entity",
+        "template": "{{author3}}, ИНН {{author3_inn}}, КПП {{author3_kpp}}, ОГРН {{author3_ogrn}}, адрес: {{address3}}, именуемое в дальнейшем «Соавтор 3»."
+      },
+      {
+        "id": "party4_individual",
+        "when": "authors_count >= 4 && author4_type == individual",
+        "template": "{{author4}}, паспорт: серия {{passport_series4}}, № {{passport_number4}}, выданный {{passport_issued4}}, адрес: {{address4}}, именуемый(ая) в дальнейшем «Соавтор 4»."
+      },
+      {
+        "id": "party4_legal_entity",
+        "when": "authors_count >= 4 && author4_type == legal_entity",
+        "template": "{{author4}}, ИНН {{author4_inn}}, КПП {{author4_kpp}}, ОГРН {{author4_ogrn}}, адрес: {{address4}}, именуемое в дальнейшем «Соавтор 4»."
+      },
+      {
+        "id": "party5_individual",
+        "when": "authors_count >= 5 && author5_type == individual",
+        "template": "{{author5}}, паспорт: серия {{passport_series5}}, № {{passport_number5}}, выданный {{passport_issued5}}, адрес: {{address5}}, именуемый(ая) в дальнейшем «Соавтор 5»."
+      },
+      {
+        "id": "party5_legal_entity",
+        "when": "authors_count >= 5 && author5_type == legal_entity",
+        "template": "{{author5}}, ИНН {{author5_inn}}, КПП {{author5_kpp}}, ОГРН {{author5_ogrn}}, адрес: {{address5}}, именуемое в дальнейшем «Соавтор 5»."
       },
       {
         "id": "recitals",
@@ -629,9 +1099,24 @@
         "template": "3. ОТВЕТСТВЕННОСТЬ СОАВТОРОВ\n\n3.1. Каждый Соавтор несёт ответственность по принятым на себя обязательствам перед третьими лицами и кредиторами в пределах принадлежащего ему имущества. При недостаточности этого имущества кредитор не вправе обращать взыскание на имущество другого Соавтора.\n\n3.2. Сторона, не выполнившая обязательства по соглашению, обязана возместить другой Стороне причинённые убытки.\n\n3.3. Уплата неустойки и возмещение убытков не освобождают Сторону от исполнения обязательства в натуре."
       },
       {
-        "id": "income",
-        "section": "income",
+        "id": "income_2_authors",
+        "when": "authors_count == 2",
         "template": "4. ПОСТУПЛЕНИЯ, РАСХОДЫ\n\n4.1. Вознаграждение за лицензии распределяется следующим образом: Соавтору 1 — {{license_share1}}%, Соавтору 2 — {{license_share2}}%.\n\n4.2. Вознаграждение за отчуждение Произведения распределяется следующим образом: Соавтору 1 — {{transfer_share1}}%, Соавтору 2 — {{transfer_share2}}%.\n\n4.3. Иные доходы от использования Произведения распределяются следующим образом: Соавтору 1 — {{other_share1}}%, Соавтору 2 — {{other_share2}}%.\n\n4.4. Расходы, связанные с созданием Произведения и поддержанием авторских прав, распределяются следующим образом: Соавтор 1 — {{expenses_share1}}%, Соавтор 2 — {{expenses_share2}}%.\n\n4.5. Сборы, налоги и другие расходы, связанные с заключением и исполнением соглашения, Стороны несут самостоятельно в соответствии с законодательством."
+      },
+      {
+        "id": "income_3_authors",
+        "when": "authors_count == 3",
+        "template": "4. ПОСТУПЛЕНИЯ, РАСХОДЫ\n\n4.1. Вознаграждение за лицензии распределяется следующим образом: Соавтору 1 — {{license_share1}}%, Соавтору 2 — {{license_share2}}%, Соавтору 3 — {{license_share3}}%.\n\n4.2. Вознаграждение за отчуждение Произведения распределяется следующим образом: Соавтору 1 — {{transfer_share1}}%, Соавтору 2 — {{transfer_share2}}%, Соавтору 3 — {{transfer_share3}}%.\n\n4.3. Иные доходы от использования Произведения распределяются следующим образом: Соавтору 1 — {{other_share1}}%, Соавтору 2 — {{other_share2}}%, Соавтору 3 — {{other_share3}}%.\n\n4.4. Расходы, связанные с созданием Произведения и поддержанием авторских прав, распределяются следующим образом: Соавтор 1 — {{expenses_share1}}%, Соавтор 2 — {{expenses_share2}}%, Соавтор 3 — {{expenses_share3}}%.\n\n4.5. Сборы, налоги и другие расходы, связанные с заключением и исполнением соглашения, Стороны несут самостоятельно в соответствии с законодательством."
+      },
+      {
+        "id": "income_4_authors",
+        "when": "authors_count == 4",
+        "template": "4. ПОСТУПЛЕНИЯ, РАСХОДЫ\n\n4.1. Вознаграждение за лицензии распределяется следующим образом: Соавтору 1 — {{license_share1}}%, Соавтору 2 — {{license_share2}}%, Соавтору 3 — {{license_share3}}%, Соавтору 4 — {{license_share4}}%.\n\n4.2. Вознаграждение за отчуждение Произведения распределяется следующим образом: Соавтору 1 — {{transfer_share1}}%, Соавтору 2 — {{transfer_share2}}%, Соавтору 3 — {{transfer_share3}}%, Соавтору 4 — {{transfer_share4}}%.\n\n4.3. Иные доходы от использования Произведения распределяются следующим образом: Соавтору 1 — {{other_share1}}%, Соавтору 2 — {{other_share2}}%, Соавтору 3 — {{other_share3}}%, Соавтору 4 — {{other_share4}}%.\n\n4.4. Расходы, связанные с созданием Произведения и поддержанием авторских прав, распределяются следующим образом: Соавтор 1 — {{expenses_share1}}%, Соавтор 2 — {{expenses_share2}}%, Соавтор 3 — {{expenses_share3}}%, Соавтор 4 — {{expenses_share4}}%.\n\n4.5. Сборы, налоги и другие расходы, связанные с заключением и исполнением соглашения, Стороны несут самостоятельно в соответствии с законодательством."
+      },
+      {
+        "id": "income_5_authors",
+        "when": "authors_count == 5",
+        "template": "4. ПОСТУПЛЕНИЯ, РАСХОДЫ\n\n4.1. Вознаграждение за лицензии распределяется следующим образом: Соавтору 1 — {{license_share1}}%, Соавтору 2 — {{license_share2}}%, Соавтору 3 — {{license_share3}}%, Соавтору 4 — {{license_share4}}%, Соавтору 5 — {{license_share5}}%.\n\n4.2. Вознаграждение за отчуждение Произведения распределяется следующим образом: Соавтору 1 — {{transfer_share1}}%, Соавтору 2 — {{transfer_share2}}%, Соавтору 3 — {{transfer_share3}}%, Соавтору 4 — {{transfer_share4}}%, Соавтору 5 — {{transfer_share5}}%.\n\n4.3. Иные доходы от использования Произведения распределяются следующим образом: Соавтору 1 — {{other_share1}}%, Соавтору 2 — {{other_share2}}%, Соавтору 3 — {{other_share3}}%, Соавтору 4 — {{other_share4}}%, Соавтору 5 — {{other_share5}}%.\n\n4.4. Расходы, связанные с созданием Произведения и поддержанием авторских прав, распределяются следующим образом: Соавтор 1 — {{expenses_share1}}%, Соавтор 2 — {{expenses_share2}}%, Соавтор 3 — {{expenses_share3}}%, Соавтор 4 — {{expenses_share4}}%, Соавтор 5 — {{expenses_share5}}%.\n\n4.5. Сборы, налоги и другие расходы, связанные с заключением и исполнением соглашения, Стороны несут самостоятельно в соответствии с законодательством."
       },
       {
         "id": "force_majeure",
@@ -661,12 +1146,34 @@
       {
         "id": "other",
         "section": "other",
-        "template": "10. ПРОЧИЕ УСЛОВИЯ\n\n10.1. К вопросам, не урегулированным настоящим соглашением, применяется законодательство Российской Федерации.\n\n10.2. Все изменения и дополнения к соглашению совершаются в письменной форме.\n\n10.3. Соглашение составлено в двух экземплярах равной юридической силы, по одному для каждой Стороны."
+        "template": "10. ПРОЧИЕ УСЛОВИЯ\n\n10.1. К вопросам, не урегулированным настоящим соглашением, применяется законодательство Российской Федерации.\n\n10.2. Все изменения и дополнения к соглашению совершаются в письменной форме.\n\n10.3. Соглашение составлено в экземплярах равной юридической силы, по одному для каждого Соавтора."
       },
       {
-        "id": "signatures",
-        "section": "signatures",
-        "template": "11. РЕКВИЗИТЫ И ПОДПИСИ СТОРОН\n\nСоавтор 1: {{author1}}\n{{address1}}\nТелефон: {{phone1}}; электронная почта: {{email1}}\n\nПодпись: __________________\n\nСоавтор 2: {{author2}}\n{{address2}}\nТелефон: {{phone2}}; электронная почта: {{email2}}\n\nПодпись: __________________"
+        "id": "signatures_heading",
+        "template": "11. РЕКВИЗИТЫ И ПОДПИСИ СТОРОН"
+      },
+      {
+        "id": "signature_author1",
+        "template": "Соавтор 1: {{author1}}\n{{address1}}\nТелефон: {{phone1}}; электронная почта: {{email1}}\nПочтовый адрес: {{author1_postal_address}}\n\nПодпись: __________________"
+      },
+      {
+        "id": "signature_author2",
+        "template": "Соавтор 2: {{author2}}\n{{address2}}\nТелефон: {{phone2}}; электронная почта: {{email2}}\nПочтовый адрес: {{author2_postal_address}}\n\nПодпись: __________________"
+      },
+      {
+        "id": "signature_author3",
+        "template": "Соавтор 3: {{author3}}\n{{address3}}\nТелефон: {{phone3}}; электронная почта: {{email3}}\nПочтовый адрес: {{author3_postal_address}}\n\nПодпись: __________________",
+        "when": "authors_count >= 3"
+      },
+      {
+        "id": "signature_author4",
+        "template": "Соавтор 4: {{author4}}\n{{address4}}\nТелефон: {{phone4}}; электронная почта: {{email4}}\nПочтовый адрес: {{author4_postal_address}}\n\nПодпись: __________________",
+        "when": "authors_count >= 4"
+      },
+      {
+        "id": "signature_author5",
+        "template": "Соавтор 5: {{author5}}\n{{address5}}\nТелефон: {{phone5}}; электронная почта: {{email5}}\nПочтовый адрес: {{author5_postal_address}}\n\nПодпись: __________________",
+        "when": "authors_count >= 5"
       }
     ]
   }

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from backend.agreement import build_agreement
 from backend.docx_out import text_to_docx
 from backend.render import render_flat_body, render_structure
+from backend.pdf_out import text_to_pdf
 
 from backend.auth import SessionDep, UserDep
 from backend.models import (
@@ -31,6 +32,14 @@ from backend.models import (
 )
 
 router = APIRouter(prefix="/api/v1/cabinet", tags=["cabinet"])
+
+DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+FileFormat = Literal["docx", "pdf"]
+FILE_BUILDERS = {
+    "docx": (text_to_docx, DOCX_MEDIA_TYPE),
+    "pdf": (text_to_pdf, "application/pdf"),
+}
+
 
 ACTIVE_STATUSES = (DocumentStatus.DRAFT, DocumentStatus.IN_PROGRESS)
 UPCOMING_DAYS = 7
@@ -165,6 +174,7 @@ class GenerateDocumentIn(BaseModel):
     template_slug: str = Field(min_length=1, max_length=255)
     title: str | None = Field(default=None, max_length=500)
     params: dict[str, Any] = Field(default_factory=dict)
+    format: FileFormat = "docx"
 
 
 def _enum_val(value: object) -> str:
@@ -461,7 +471,8 @@ def create_coauthors_agreement(payload: AgreementIn, user: UserDep) -> Response:
 
 
 @router.get("/documents/{document_id}/download")
-def download_document(document_id: RecordId, user: UserDep, session: SessionDep) -> Response:
+def download_document(document_id: RecordId, user: UserDep, session: SessionDep,
+                      fmt: Annotated[FileFormat, Query(alias="format")] = "docx") -> Response:
     doc = get_own_document(session, user, document_id)
     template = session.get(DocumentTemplate, doc.template_id) if doc.template_id else None
     if template is None:
@@ -471,10 +482,11 @@ def download_document(document_id: RecordId, user: UserDep, session: SessionDep)
             if (template.structure_json or {}).get("blocks") else render_flat_body(template.body, params))
     if not text.strip():
         raise HTTPException(422, "Документ пуст: проверьте параметры шаблона")
+    build, media_type = FILE_BUILDERS[fmt]
     return Response(
-        content=text_to_docx(text),
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="document-{doc.id}.docx"',
+        content=build(text),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="document-{doc.id}.{fmt}"',
                  "Cache-Control": "no-store"},
     )
 
@@ -496,7 +508,8 @@ def generate_document(payload: GenerateDocumentIn, user: UserDep, session: Sessi
     if not text.strip():
         raise HTTPException(422, "Шаблон пустой или ни один блок не подошёл под params")
 
-    raw = text_to_docx(text)
+    build, media_type = FILE_BUILDERS[payload.format]
+    raw = build(text)
 
     doc = UserDocument(
         user_id=user.id,

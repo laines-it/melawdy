@@ -33,17 +33,59 @@
     target[keys.at(-1)] = value;
   }
   // Keep these rules aligned with backend/render.py: preview and DOCX share a contract.
-  function when(expression, params) {
-    if (!expression) return true;
-    const match = /^([a-zA-Z0-9_]+)\s*(==|!=)\s*([\p{L}\p{N}_]+)$/u.exec(expression.trim());
+
+function when(expression, params) {
+  if (!expression) return true;
+
+  for (const part of expression.split("&&")) {
+    const match =
+      /^([a-zA-Z0-9_]+)\s*(==|!=|>=|<=|>|<)\s*([\p{L}\p{N}_]+)$/u
+        .exec(part.trim());
+
     if (!match) return false;
+
     const [, field, operator, raw] = match;
     const value = params[field];
-    const equal = raw === "true" || raw === "false"
-      ? ["1", "true", "yes"].includes(String(value).toLowerCase()) === (raw === "true")
-      : (value == null ? "" : display(value)) === raw;
-    return operator === "==" ? equal : !equal;
+
+    if (operator === "==" || operator === "!=") {
+      let equal;
+
+      if (raw === "true" || raw === "false") {
+        const boolValue = ["1", "true", "yes"].includes(
+          String(value).toLowerCase()
+        );
+        equal = boolValue === (raw === "true");
+      } else {
+        equal = (value == null ? "" : display(value)) === raw;
+      }
+
+      if (operator === "==" && !equal) return false;
+      if (operator === "!=" && equal) return false;
+
+      continue;
+    }
+
+    const leftNumber = Number(value);
+    const rightNumber = Number(raw);
+
+    if (
+      value == null ||
+      value === "" ||
+      !Number.isFinite(leftNumber) ||
+      !Number.isFinite(rightNumber)
+    ) {
+      return false;
+    }
+
+    if (operator === ">=" && !(leftNumber >= rightNumber)) return false;
+    if (operator === "<=" && !(leftNumber <= rightNumber)) return false;
+    if (operator === ">" && !(leftNumber > rightNumber)) return false;
+    if (operator === "<" && !(leftNumber < rightNumber)) return false;
   }
+
+  return true;
+}
+
   function display(value) {
     if (value == null || value === "") return "__________";
     if (typeof value === "boolean") return value ? "True" : "False";
