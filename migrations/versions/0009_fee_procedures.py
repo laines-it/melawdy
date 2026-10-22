@@ -26,10 +26,13 @@ def upgrade() -> None:
         op.execute(sa.text(
             "INSERT INTO application_types (code, name, description) "
             "VALUES (:code, :name, :description) ON CONFLICT (code) DO NOTHING"
-        ).bindparams(code=code, name=name, description="Формула из документа «Калькулятор пошлин.docx»"))
+        ).bindparams(
+            code=code,
+            name=name,
+            description="Формула из документа «Калькулятор пошлин.docx»",
+        ))
 
 
 def downgrade() -> None:
-    # These are business records: keep them and any saved calculations/rates
-    # referencing them rather than deleting user data on a code rollback.
+    # These are business records; retain them on code rollback.
     pass
