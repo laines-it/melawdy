@@ -391,16 +391,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       await saveDraft();
       if (action === "export") {
-        const blob = await api(`cabinet/documents/${documentId}/download`, { responseType: "blob" });
-        const url = URL.createObjectURL(blob);
-        const link = element("a");
-        link.href = url;
-        link.download = `${$("#document-title").value.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 120)}.docx`;
-        document.body.append(link);
-        link.click();
-        link.remove();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-        $("#save-state").textContent = "Документ сохранён. Файл DOCX готов к скачиванию";
+          const ext = $("#download-format").value === "pdf" ? "pdf" : "docx";
+          const blob = await api(`cabinet/documents/${documentId}/download${ext === "pdf" ? "?format=pdf" : ""}`, { responseType: "blob" });
+          const url = URL.createObjectURL(blob);
+          const link = element("a");
+          link.href = url;
+          link.download = `${$("#document-title").value.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 120)}.${ext}`;
+          document.body.append(link);
+          link.click();
+          link.remove();
+          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+          $("#save-state").textContent = `Документ сохранён. Файл ${ext.toUpperCase()} готов к скачиванию`;
       }
     } catch (error) { fail(error); }
     finally { setBusy(false); }

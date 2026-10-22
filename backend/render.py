@@ -4,7 +4,9 @@ import re
 from typing import Any
 
 _PLACEHOLDER = re.compile(r"\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}")
-_WHEN = re.compile(r"^([a-zA-Z0-9_]+)\s*(==|!=)\s*(\w+)$")
+_WHEN_PART = re.compile(
+    r"^([a-zA-Z0-9_]+)\s*(==|!=|>=|<=|>|<)\s*([\w]+)$"
+)
 
 
 def _lookup(params: dict[str, Any], path: str) -> str:
@@ -21,21 +23,46 @@ def _lookup(params: dict[str, Any], path: str) -> str:
 def _when_ok(expr: str | None, params: dict[str, Any]) -> bool:
     if not expr:
         return True
-    if "||" in expr:
-        return any(_when_ok(part.strip(), params) for part in expr.split("||"))
-    if "&&" in expr:
-        return all(_when_ok(part.strip(), params) for part in expr.split("&&"))
-    m = _WHEN.match(expr.strip())
-    if not m:
-        return False
-    field, op, raw = m.groups()
-    left = params.get(field)
-    if raw in ("true", "false"):
-        right = raw == "true"
-        left_b = str(left).lower() in ("1", "true", "yes")
-        return (left_b is right) if op == "==" else (left_b is not right)
-    left_s = "" if left is None else str(left)
-    return (left_s == raw) if op == "==" else (left_s != raw)
+
+    for part in expr.split("&&"):
+        m = _WHEN_PART.match(part.strip())
+        if not m:
+            return False
+
+        field, op, raw = m.groups()
+        left = params.get(field)
+
+        if op in ("==", "!="):
+            if raw in ("true", "false"):
+                right = raw == "true"
+                left_b = str(left).lower() in ("1", "true", "yes")
+                equal = left_b is right
+            else:
+                left_s = "" if left is None else str(left)
+                equal = left_s == raw
+
+            if op == "==" and not equal:
+                return False
+            if op == "!=" and equal:
+                return False
+            continue
+
+        try:
+            left_n = float(left)
+            right_n = float(raw)
+        except (TypeError, ValueError):
+            return False
+
+        if op == ">=" and not left_n >= right_n:
+            return False
+        if op == "<=" and not left_n <= right_n:
+            return False
+        if op == ">" and not left_n > right_n:
+            return False
+        if op == "<" and not left_n < right_n:
+            return False
+
+    return True
 
 
 def render_structure(structure: dict[str, Any] | None, params: dict[str, Any]) -> str:
