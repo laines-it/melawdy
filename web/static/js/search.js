@@ -6,14 +6,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const results = document.querySelector("#search-results");
   let searchVersion = 0;
 
-  // ---- Мини-markdown → DOM (inline) ----
-  // Поддерживает **bold**, *italic*, [text](url), `code`.
-  // Возвращает DocumentFragment с инлайн-узлами (без <p>-обёрток).
+  // ---- Убираем ссылки и сноски, оставляя текст ----
+  function stripLinksAndFootnotes(text) {
+    let src = String(text ?? "");
+    // [текст](ссылка) -> текст
+    src = src.replace(/\[([^\]]+)\]\s*\([^)\s]*\)/g, "$1");
+    // [^N] -> пусто
+    src = src.replace(/\[\^[^\]]+\]/g, "");
+    return src;
+  }
+
+  // ---- Мини-markdown → DOM (inline) без ссылок и сносок ----
   function renderInlineMarkdown(text) {
     const fragment = document.createDocumentFragment();
-    const src = String(text ?? "");
+    const src = stripLinksAndFootnotes(text);
 
-    const tokens = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`|\[([^\]]+)\]\s*\(([^)\s]+)\)/g;
+    const tokens = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`/g;
     let offset = 0;
     for (const match of src.matchAll(tokens)) {
       fragment.append(document.createTextNode(src.slice(offset, match.index)));
@@ -25,17 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const code = document.createElement("code");
         code.textContent = match[3];
         fragment.append(code);
-      } else if (match[4] !== undefined) {
-        if (/^(https?:\/\/|mailto:|\/(?![\/\\])|\.\.?\/|#|\?)/i.test(match[5]) && !/[\\\u0000-\u0020]/.test(match[5])) {
-          const link = document.createElement("a");
-          link.textContent = match[4];
-          link.href = match[5];
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          fragment.append(link);
-        } else {
-          fragment.append(document.createTextNode(match[0]));
-        }
       }
       offset = match.index + match[0].length;
     }
@@ -43,14 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return fragment;
   }
 
-  // Рендерит markdown в контейнер, сохраняя className.
-  function setMarkdown(el, text) {
-    if (!el) return;
-    el.replaceChildren(renderInlineMarkdown(text));
-  }
-
-  // Эвристика: бэк возвращает { article_id, title, body }.
   function labelFor(record) {
+    if (!record || typeof record !== "object") return "Материал";
     if (record.type_label) return record.type_label;
     const map = {
       article: "Статья",
@@ -63,8 +54,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function insideFor(record) {
-    if (record.inside_label) return record.inside_label;
-    if (Number.isFinite(record.inside_count) && record.inside_count > 0) {
+    if (record && record.inside_label) return record.inside_label;
+    if (record && Number.isFinite(record.inside_count) && record.inside_count > 0) {
       return `Что внутри (${record.inside_count})`;
     }
     return "Что внутри →";
@@ -78,11 +69,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function articleHref(record) {
-    if (!record.article_id) return null;
+    if (!record || !record.article_id) return null;
     return `./article.html?id=${encodeURIComponent(record.article_id)}`;
   }
 
   function renderCard(record, index) {
+    if (!record || typeof record !== "object") record = {};
     const href = articleHref(record);
     const card = element("article", "search-card" + (index === 0 ? " search-card--featured" : ""));
     card.dataset.index = String(index);
@@ -99,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     head.append(arrow);
 
-    // Заголовок — markdown-inline
+    // Заголовок — markdown-inline (без ссылок и сносок)
     const title = element("h2", "search-card-title");
     if (href) {
       const titleLink = element("a");
@@ -110,10 +102,10 @@ document.addEventListener("DOMContentLoaded", () => {
       title.replaceChildren(renderInlineMarkdown(record.title || "Без названия"));
     }
 
-    // Описание — markdown-inline
+    // Описание — markdown-inline (без ссылок и сносок)
     const body = element("p", "search-card-body");
     body.replaceChildren(renderInlineMarkdown(record.body || ""));
-    if (record.body) body.title = record.body;
+    if (record.body) body.title = stripLinksAndFootnotes(record.body);
 
     const foot = element("div", "search-card-foot");
     if (href) {
@@ -150,7 +142,8 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       let records;
       if (isBrowse) {
-        const articles = await request("public/articles?limit=50&offset=0");
+        const raw = await request("public/articles?limit=50&offset=0");
+        const articles = Array.isArray(raw) ? raw : (raw?.items || []);
         records = articles.map((r) => ({
           article_id: r.id,
           title: r.title,
@@ -158,11 +151,13 @@ document.addEventListener("DOMContentLoaded", () => {
           type: "article",
         }));
       } else {
-        records = await request(`public/search?query=${encodeURIComponent(query)}`);
+        const raw = await request(`public/search?query=${encodeURIComponent(query)}`);
+        records = Array.isArray(raw) ? raw : (raw?.items || []);
       }
       if (currentVersion !== searchVersion) return;
 
-      if (!records.length) {
+      const list = Array.isArray(records) ? records.filter(Boolean) : [];
+      if (!list.length) {
         status.textContent = "";
         renderEmpty(query);
         return;
@@ -170,7 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       status.textContent = "";
       const fragment = document.createDocumentFragment();
-      records.forEach((record, index) => fragment.append(renderCard(record, index)));
+      list.forEach((record, index) => fragment.append(renderCard(record, index)));
       results.replaceChildren(fragment);
     } catch (error) {
       if (currentVersion !== searchVersion) return;

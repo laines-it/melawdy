@@ -12,7 +12,44 @@ document.addEventListener("DOMContentLoaded", () => {
   function formatDate(value) {
     if (!value) return "—";
     const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "—";
     return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+  }
+
+  function asArray(value) {
+    if (Array.isArray(value)) return value;
+    if (value && Array.isArray(value.items)) return value.items;
+    return [];
+  }
+
+  // ---- markdown без ссылок и сносок ----
+  function stripLinksAndFootnotes(text) {
+    let src = String(text ?? "");
+    src = src.replace(/\[([^\]]+)\]\s*\([^)\s]*\)/g, "$1");
+    src = src.replace(/\[\^[^\]]+\]/g, "");
+    return src;
+  }
+
+  function renderInlineMarkdownInto(el, text) {
+    if (!el) return;
+    el.replaceChildren();
+    const src = stripLinksAndFootnotes(text);
+    const tokens = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`/g;
+    let offset = 0;
+    for (const match of src.matchAll(tokens)) {
+      el.append(document.createTextNode(src.slice(offset, match.index)));
+      if (match[1] !== undefined || match[2] !== undefined) {
+        const node = document.createElement(match[1] !== undefined ? "strong" : "em");
+        node.textContent = match[1] ?? match[2];
+        el.append(node);
+      } else if (match[3] !== undefined) {
+        const code = document.createElement("code");
+        code.textContent = match[3];
+        el.append(code);
+      }
+      offset = match.index + match[0].length;
+    }
+    el.append(document.createTextNode(src.slice(offset)));
   }
 
   const statusLabels = {
@@ -44,11 +81,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---- Рендер профиля ----
   function renderProfile(user) {
-    document.querySelector("#profile-name").textContent = user.full_name;
-    document.querySelector("#profile-email").textContent = user.email;
-    document.querySelector("#profile-role").textContent = roleLabels[user.user_type] || user.user_type;
-    document.querySelector(".profile-avatar").textContent = user.full_name.split(/\s+/)
-      .slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+    if (!user) return;
+    const name = user.full_name || user.email || "—";
+    document.querySelector("#profile-name").textContent = name;
+    document.querySelector("#profile-email").textContent = user.email || "—";
+    document.querySelector("#profile-role").textContent =
+      roleLabels[user.user_type] || user.user_type || "—";
+    document.querySelector(".profile-avatar").textContent = name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase();
   }
 
   // ---- Рендер документов ----
@@ -60,17 +105,18 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     for (const doc of docs) {
+      if (!doc || typeof doc !== "object") continue;
       const card = element("article", "");
       card.className = "case-card";
 
       const head = element("div", "");
       head.className = "case-card-head";
       head.append(
-        element("h3", doc.title),
-        element("span", statusLabels[doc.status] || doc.status),
+        element("h3", doc.title || "Без названия"),
+        element("span", statusLabels[doc.status] || doc.status || "—"),
       );
       head.children[0].className = "case-card-title";
-      head.children[1].className = `case-status status-${doc.status}`;
+      head.children[1].className = `case-status status-${doc.status || "draft"}`;
 
       const meta = element("p", `Создано: ${formatDate(doc.created_at)}`);
       meta.className = "case-card-meta";
@@ -116,7 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return order[(index + 1) % order.length];
   }
 
-  // ---- Рендер избранных статей ----
+  // ---- Рендер избранных статей (markdown без ссылок и сносок) ----
   function renderFavorites(favorites) {
     const container = document.querySelector("#account-favorites");
     container.replaceChildren();
@@ -125,17 +171,20 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     for (const fav of favorites) {
+      if (!fav || typeof fav !== "object") continue;
       const card = element("article", "");
       card.className = "case-card";
 
-      const title = element("h3", fav.title);
+      const title = element("h3");
       title.className = "case-card-title";
+      renderInlineMarkdownInto(title, fav.title || "Без названия");
 
       const meta = element("p", `Добавлено: ${formatDate(fav.created_at)}`);
       meta.className = "case-card-meta";
 
-      const summary = element("p", fav.summary || "Краткое описание отсутствует.");
+      const summary = element("p");
       summary.className = "case-card-text";
+      renderInlineMarkdownInto(summary, fav.summary || "Краткое описание отсутствует.");
 
       const footer = element("div", "");
       footer.className = "case-card-footer";
@@ -149,16 +198,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // ---- Рендер расчётов (как было) ----
+  // ---- Рендер расчётов ----
   function renderCalculations(calculations) {
     const container = document.querySelector("#account-calculations");
     container.replaceChildren();
-    if (!calculations.length) {
+    const list = asArray(calculations);
+    if (!list.length) {
       container.append(element("p", "Сохранённых расчётов пока нет."));
       return;
     }
-    for (const record of calculations) {
-      container.append(element("p", `Расчёт №${record.id}: ${record.total_amount} ${record.currency}`));
+    for (const record of list) {
+      if (!record || typeof record !== "object") continue;
+      container.append(
+        element("p", `Расчёт №${record.id}: ${record.total_amount} ${record.currency || ""}`.trim())
+      );
     }
   }
 
@@ -166,7 +219,8 @@ document.addEventListener("DOMContentLoaded", () => {
   async function update(session) {
     const currentVersion = ++version;
     for (const kind of ["documents", "articles", "surveys"]) {
-      document.querySelector(`#stat-${kind}`).textContent = "—";
+      const stat = document.querySelector(`#stat-${kind}`);
+      if (stat) stat.textContent = "—";
     }
     const documentsBox = document.querySelector("#account-documents");
     const favoritesBox = document.querySelector("#account-favorites");
@@ -179,22 +233,21 @@ document.addEventListener("DOMContentLoaded", () => {
     renderProfile(session.user);
 
     try {
-      const [overview, documents, favorites] = await Promise.all([
+      const [overview, documentsRaw, favoritesRaw] = await Promise.all([
         request("account/overview"),
         request("cabinet/documents?limit=25"),
         request("cabinet/favorites?limit=25"),
       ]);
       if (currentVersion !== version) return;
 
-      // Статистика в профиле
-      document.querySelector("#stat-documents").textContent = overview.stats.documents ?? 0;
-      document.querySelector("#stat-articles").textContent = overview.stats.articles ?? 0;
-      document.querySelector("#stat-surveys").textContent = overview.stats.surveys ?? 0;
+      const stats = overview?.stats || {};
+      document.querySelector("#stat-documents").textContent = stats.documents ?? 0;
+      document.querySelector("#stat-articles").textContent = stats.articles ?? 0;
+      document.querySelector("#stat-surveys").textContent = stats.surveys ?? 0;
 
-      // Списки
-      renderDocuments(documents);
-      renderFavorites(favorites);
-      renderCalculations(overview.calculations || []);
+      renderDocuments(asArray(documentsRaw));
+      renderFavorites(asArray(favoritesRaw));
+      renderCalculations(overview?.calculations || []);
     } catch (error) {
       if (currentVersion !== version) return;
       document.querySelector("#status").textContent = error.message;

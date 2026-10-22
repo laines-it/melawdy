@@ -546,3 +546,12 @@ html, body { margin: 0; padding: 0; }
 }
 
 .article-sidebar { margin-top: 16px; }
+
+.article-dates {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.article-dates[hidden] { display: none; }
