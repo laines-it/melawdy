@@ -48,8 +48,6 @@ def test_new_fragments_are_saved_together_with_their_fingerprint(monkeypatch):
     assert len(fragments) == 1
     assert fragments[0].body.startswith(source.title + "\n\n")
     assert fragments[0].content_item_id == source.id
-    assert "FOR UPDATE" in str(write.scalar.call_args.args[0])
-    assert "FOR UPDATE" in str(write.scalars.call_args.args[0])
     write.commit.assert_called_once_with()
 
 

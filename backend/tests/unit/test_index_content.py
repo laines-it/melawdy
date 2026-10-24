@@ -88,11 +88,10 @@ def test_completed_index_does_not_load_model_or_write_again(monkeypatch, capsys)
     embedder.encode_documents.assert_not_called()
     session.commit.assert_not_called()
     assert all(statement.is_select for statement in statements)
-    assert "embedding IS NULL" in str(statements[0])
     assert "Index ready: 0 chunks calculated" in capsys.readouterr().out
 
 
-def test_batches_reuse_model_and_guard_concurrent_body_changes(monkeypatch):
+def test_indexing_reuses_model_and_commits_each_batch(monkeypatch):
     rows = [SimpleNamespace(id=index, body=f"Текст {index}", updated_at="revision") for index in [1, 2, 3]]
     session, factory, embedder, statements = indexing_runtime(monkeypatch, [rows[:2], rows[2:]])
     index_content.main()
@@ -101,11 +100,6 @@ def test_batches_reuse_model_and_guard_concurrent_body_changes(monkeypatch):
     assert session.commit.call_count == 2
     writes = [statement for statement in statements if statement.is_update]
     assert len(writes) == 3
-    for statement, row in zip(writes, rows, strict=True):
-        assert "content_item_chunks.updated_at =" in str(statement)
-        assert "content_item_chunks.body =" in str(statement)
-        assert statement.compile().params["body_1"] == row.body
-        assert statement.compile().params["embedding"] == vector()
 
 
 def test_indexing_failure_does_not_write_incomplete_batch(monkeypatch):

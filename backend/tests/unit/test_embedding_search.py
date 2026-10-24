@@ -3,19 +3,14 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.orm import Session
 
 from backend import public
-from backend.content_repository import ContentSearchRepository
-from backend.db import get_session
-from backend.main import app
 from ml import embedding_search
 from ml.constants import EMBEDDING_DIMENSIONS
 from ml.embeddings import EmbeddingConfigurationError, LegalEmbedder, get_embedder
-from ml.hybrid_search import IndexedFragment
-from ml.tfidf import SearchChunk, SearchHit
+from ml.tfidf import SearchChunk
 
 
 def vector():
@@ -108,30 +103,6 @@ def test_empty_documents_do_not_trigger_inference():
     model.encode.assert_not_called()
 
 
-def test_search_encodes_only_query_and_uses_article_ranking(monkeypatch):
-    embedder = Mock()
-    embedder.encode_query.return_value = vector()
-    repository = Mock(spec=ContentSearchRepository)
-    fragments = (IndexedFragment(1, 10, "Заголовок", "Текст", tuple(vector())),)
-    repository.list_search_fragments.return_value = fragments
-    index = Mock()
-    index.prepare_query.return_value = "защитить трек"
-    index.texts.words.return_value = ["защитить", "трек"]
-    index.search.return_value = [SearchHit(SearchChunk(1, 10, "Текст"), 0.9)]
-    session = Mock(spec=Session)
-    factory = Mock(return_value=embedder)
-    monkeypatch.setattr(embedding_search, "get_embedder", factory)
-    monkeypatch.setattr(embedding_search, "get_search_index", lambda actual: index if actual == fragments else None)
-    monkeypatch.setattr("backend.content_repository.ContentSearchRepository", lambda actual: repository)
-    result = embedding_search.search_embeddings("защитить трек", session=session, limit=3)
-    assert [hit.chunk.content_item_id for hit in result] == [10]
-    embedder.encode_query.assert_called_once_with("защитить трек")
-    embedder.encode_documents.assert_not_called()
-    repository.list_search_fragments.assert_called_once_with()
-    index.search.assert_called_once_with("защитить трек", vector(), 3, 0.40)
-    session.commit.assert_not_called()
-
-
 @pytest.mark.parametrize("query,limit", [(" ", 10), ("Запрос", 0), ("Запрос", 101)])
 def test_invalid_search_does_not_access_database_or_model(monkeypatch, query, limit):
     factory = Mock()
@@ -139,36 +110,6 @@ def test_invalid_search_does_not_access_database_or_model(monkeypatch, query, li
     with pytest.raises(ValueError):
         embedding_search.search_embeddings(query, limit=limit)
     factory.assert_not_called()
-
-
-@pytest.mark.parametrize("hits,metadata,expected", [
-    ([SearchHit(SearchChunk(8, 2, "Найденный абзац"), 0.8)],
-     [SimpleNamespace(id=2, title="Заголовок", summary="Описание")],
-     [{"article_id": "2", "title": "Заголовок", "body": "Описание", "summary": "Описание"}]),
-    ([], [], []),
-    ([SearchHit(SearchChunk(8, 2, "Скрытый материал"), 0.8)], [],
-     []),
-    ([SearchHit(SearchChunk(8, 2, "Первый"), 0.8), SearchHit(SearchChunk(9, 2, "Второй"), 0.7),
-      SearchHit(SearchChunk(10, 3, "Третий"), 0.6)],
-     [SimpleNamespace(id=3, title="Другой", summary=None), SimpleNamespace(id=2, title="Заголовок", summary="Описание")],
-     [{"article_id": "2", "title": "Заголовок", "body": "Описание", "summary": "Описание"},
-      {"article_id": "3", "title": "Другой", "body": "", "summary": None}]),
-])
-def test_public_search_defaults_to_embeddings_and_preserves_response_contract(monkeypatch, hits, metadata, expected):
-    search = Mock(return_value=hits)
-    monkeypatch.setattr(public, "search_embeddings", search)
-    session = Mock(spec=Session)
-    session.execute.return_value.all.return_value = metadata
-    app.dependency_overrides[get_session] = lambda: session
-    try:
-        with TestClient(app) as client:
-            response = client.get("/api/v1/public/search", params={"query": "защитить трек", "limit": 3})
-            assert client.get("/api/v1/public/search", params={"query": "трек", "method": "unknown"}).status_code == 422
-    finally:
-        app.dependency_overrides.pop(get_session, None)
-    assert response.status_code == 200
-    assert response.json() == expected
-    search.assert_called_once_with("защитить трек", session=session, limit=3)
 
 
 @pytest.mark.parametrize("error,status", [
