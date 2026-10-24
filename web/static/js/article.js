@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const slug = slugFromPath || null;
   const id = idFromQuery || null;
 
-  // Для избранного нужен числовой id статьи — узнаём его после загрузки.
   let resolvedId = null;
 
   // ---- helpers ----
@@ -53,6 +52,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (record.slug) return `/article/${encodeURIComponent(record.slug)}`;
     if (record.id != null) return `./article.html?id=${encodeURIComponent(record.id)}`;
     return null;
+  }
+
+  function stripMarkdownForTitle(text) {
+    let src = String(text ?? "");
+    src = src.replace(/\[([^\]]+)\]\s*\([^)\s]*\)/g, "$1");
+    src = src.replace(/\[\^[^\]]+\]/g, "");
+    src = src.replace(/\*\*(.+?)\*\*/g, "$1");
+    src = src.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "$1");
+    src = src.replace(/`([^`]+)`/g, "$1");
+    src = src.replace(/^\s*#{1,6}\s+/gm, "");
+    return src.replace(/\s+/g, " ").trim();
   }
 
   // ---- Реестр сносок ----
@@ -116,40 +126,92 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---- Inline markdown с рекурсией ----
   function appendInlineInto(target, text, registry) {
     const src = String(text ?? "");
-    const re = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`|\[([^\]]+)\]\s*\(([^)\s]+)\)|\[\^([^\]]+)\]/g;
-    let offset = 0;
-    let m;
-    while ((m = re.exec(src)) !== null) {
-      target.appendChild(document.createTextNode(src.slice(offset, m.index)));
-      if (m[1] !== undefined) {
-        const strong = document.createElement("strong");
-        appendInlineInto(strong, m[1], registry);
-        target.appendChild(strong);
-      } else if (m[2] !== undefined) {
-        const em = document.createElement("em");
-        appendInlineInto(em, m[2], registry);
-        target.appendChild(em);
-      } else if (m[3] !== undefined) {
-        const code = document.createElement("code");
-        code.textContent = m[3];
-        target.appendChild(code);
-      } else if (m[4] !== undefined) {
-        if (/^(https?:\/\/|mailto:|\/(?![\/\\])|\.\.?\/|#|\?)/i.test(m[5]) && !/[\\\u0000-\u0020]/.test(m[5])) {
-          const link = document.createElement("a");
-          link.textContent = m[4];
-          link.href = m[5];
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          target.appendChild(link);
-        } else {
-          target.appendChild(document.createTextNode(m[0]));
+    let i = 0;
+
+    while (i < src.length) {
+      if (src[i] === "\\" && i + 1 < src.length) {
+        const next = src[i + 1];
+        if ("*`[]\\".includes(next)) {
+          target.appendChild(document.createTextNode(next));
+          i += 2;
+          continue;
         }
-      } else if (m[6] !== undefined) {
-        target.appendChild(registry.ref(m[6]));
       }
-      offset = m.index + m[0].length;
+
+      if (src[i] === "`") {
+        const end = src.indexOf("`", i + 1);
+        if (end !== -1) {
+          const code = document.createElement("code");
+          code.textContent = src.slice(i + 1, end);
+          target.appendChild(code);
+          i = end + 1;
+          continue;
+        }
+      }
+
+      if (src[i] === "[" && src[i + 1] === "^") {
+        const end = src.indexOf("]", i + 2);
+        if (end !== -1) {
+          target.appendChild(registry.ref(src.slice(i + 2, end)));
+          i = end + 1;
+          continue;
+        }
+      }
+
+      if (src[i] === "[") {
+        const closeBracket = src.indexOf("]", i + 1);
+        if (closeBracket !== -1) {
+          let k = closeBracket + 1;
+          while (k < src.length && /\s/.test(src[k])) k++;
+          if (src[k] === "(") {
+            const closeParen = src.indexOf(")", k + 1);
+            if (closeParen !== -1) {
+              const linkText = src.slice(i + 1, closeBracket);
+              const url = src.slice(k + 1, closeParen);
+              if (/^(https?:\/\/|mailto:|\/(?![\/\\])|\.\.?\/|#|\?)/i.test(url) && !/[\\\u0000-\u0020]/.test(url)) {
+                const link = document.createElement("a");
+                link.href = url;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                appendInlineInto(link, linkText, registry);
+                target.appendChild(link);
+              } else {
+                target.appendChild(document.createTextNode(src.slice(i, closeParen + 1)));
+              }
+              i = closeParen + 1;
+              continue;
+            }
+          }
+        }
+      }
+
+      if (src[i] === "*" && src[i + 1] === "*") {
+        const end = src.indexOf("**", i + 2);
+        if (end !== -1) {
+          const strong = document.createElement("strong");
+          appendInlineInto(strong, src.slice(i + 2, end), registry);
+          target.appendChild(strong);
+          i = end + 2;
+          continue;
+        }
+      }
+
+      if (src[i] === "*" && src[i + 1] !== "*") {
+        const end = src.indexOf("*", i + 1);
+        if (end !== -1 && src[end + 1] !== "*") {
+          const em = document.createElement("em");
+          appendInlineInto(em, src.slice(i + 1, end), registry);
+          target.appendChild(em);
+          i = end + 1;
+          continue;
+        }
+      }
+
+      let j = i + 1;
+      while (j < src.length && !"`[*".includes(src[j])) j++;
+      target.appendChild(document.createTextNode(src.slice(i, j)));
+      i = j;
     }
-    target.appendChild(document.createTextNode(src.slice(offset)));
   }
 
   // ---- Разбор чанка ----
@@ -192,9 +254,51 @@ document.addEventListener("DOMContentLoaded", () => {
         continue;
       }
 
+      const quote = /^>\s?(.*)$/.exec(trimmed);
+      if (quote) {
+        flushParagraph(); flushList();
+        const blockquote = document.createElement("blockquote");
+        const p = document.createElement("p");
+        appendInlineInto(p, quote[1], registry);
+        blockquote.appendChild(p);
+        container.appendChild(blockquote);
+        continue;
+      }
+
       const bullet = /^([-*]|\d+\.)\s+(.+)$/.exec(trimmed);
       if (bullet) {
         flushParagraph();
+        const taskMatch = /^\[([ xX])\]\s+(.+)$/.exec(bullet[2]);
+        if (taskMatch) {
+          flushList();
+          let taskList = container.querySelector("ul.task-list");
+          if (!taskList) {
+            taskList = document.createElement("ul");
+            taskList.className = "task-list";
+            container.appendChild(taskList);
+          }
+          
+          const isChecked = taskMatch[1].toLowerCase() === "x";
+          const taskText = taskMatch[2];
+          
+          const li = document.createElement("li");
+          li.className = "task-list-item" + (isChecked ? " is-completed" : "");
+          
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = isChecked;
+          
+          const textSpan = document.createElement("span");
+          textSpan.className = "task-text";
+          appendInlineInto(textSpan, taskText, registry);
+          
+          li.appendChild(checkbox);
+          li.appendChild(textSpan);
+          taskList.appendChild(li);
+          
+          continue;
+        }
+
         const isOrdered = /^\d/.test(bullet[1]);
         const tag = isOrdered ? "ol" : "ul";
         if (!list || list.tagName.toLowerCase() !== tag) {
@@ -275,7 +379,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (favBtn) {
     favBtn.addEventListener("click", async () => {
       if (!window.ZPAuth.isLoggedIn()) {
-        window.location.href = "./login.html";
+        window.location.href = "/login";
         return;
       }
       if (resolvedId == null) return;
@@ -313,7 +417,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     resolvedId = record.id != null ? String(record.id) : null;
 
-    document.title = `${record.title || "Статья"} — Законпозитор`;
+    // Заголовок вкладки — без markdown-разметки (звёздочек, ссылок, сносок)
+    const cleanTitle = stripMarkdownForTitle(record.title) || "Статья";
+    document.title = `${cleanTitle} — Законпозитор`;
 
     renderInlineInto($("#article-title"), record.title || "");
 
@@ -381,11 +487,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const introEl = $("#article-intro");
-    const introBody = $("#article-intro-body");
     const chunksEl = $("#article-chunks");
     const emptyEl = $("#article-empty");
 
-    if (introBody) clear(introBody);
     if (chunksEl) clear(chunksEl);
 
     if (!chunks.length) {
@@ -397,21 +501,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const registry = createFootnoteRegistry();
 
-      if (introBody) {
-        const introSection = document.createElement("div");
-        renderChunkInto(introSection, chunks[0], registry);
-        while (introSection.firstChild) introBody.appendChild(introSection.firstChild);
-      }
-      for (let i = 1; i < chunks.length; i++) {
+      for (let i = 0; i < chunks.length; i++) {
+        const chunkText = chunks[i] || "";
+        const hasFootnotes = /^\s*\[\^[^\]]+\]:/m.test(chunkText);
+        
+        if (hasFootnotes) {
+          const temp = document.createElement("div");
+          renderChunkInto(temp, chunkText, registry);
+          continue; 
+        }
+
         const section = document.createElement("section");
         section.className = "article-chunk";
-        renderChunkInto(section, chunks[i], registry);
+        renderChunkInto(section, chunkText, registry);
         if (chunksEl) chunksEl.appendChild(section);
       }
       const notes = registry.buildSection();
       if (notes) {
         if (chunksEl) chunksEl.appendChild(notes);
-        else if (introBody) introBody.appendChild(notes);
       }
     }
 
@@ -419,9 +526,10 @@ document.addEventListener("DOMContentLoaded", () => {
     show(article);
 
     refreshFavoriteStatus();
+
+    document.dispatchEvent(new CustomEvent("article-rendered"));
   }
 
-  // ---- Рекомендации ----
   async function loadRelated() {
     const list = $("#related-articles-list");
     const card = $("#related-articles");
@@ -433,7 +541,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const filtered = [];
       for (let i = 0; i < records.length && filtered.length < 3; i++) {
         const rec = records[i];
-        // Исключаем текущую статью по id (у записей в public/articles есть id)
         if (resolvedId != null && String(rec.id) === String(resolvedId)) continue;
         filtered.push(rec);
       }

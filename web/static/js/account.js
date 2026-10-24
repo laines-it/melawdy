@@ -34,22 +34,50 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!el) return;
     el.replaceChildren();
     const src = stripLinksAndFootnotes(text);
-    const tokens = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`/g;
-    let offset = 0;
-    for (const match of src.matchAll(tokens)) {
-      el.append(document.createTextNode(src.slice(offset, match.index)));
-      if (match[1] !== undefined || match[2] !== undefined) {
-        const node = document.createElement(match[1] !== undefined ? "strong" : "em");
-        node.textContent = match[1] ?? match[2];
-        el.append(node);
-      } else if (match[3] !== undefined) {
-        const code = document.createElement("code");
-        code.textContent = match[3];
-        el.append(code);
+    appendInlineParsed(el, src);
+  }
+
+  function appendInlineParsed(target, src) {
+    let i = 0;
+    while (i < src.length) {
+      if (src[i] === "`") {
+        const end = src.indexOf("`", i + 1);
+        if (end !== -1) {
+          const code = document.createElement("code");
+          code.textContent = src.slice(i + 1, end);
+          target.appendChild(code);
+          i = end + 1;
+          continue;
+        }
       }
-      offset = match.index + match[0].length;
+
+      if (src[i] === "*" && src[i + 1] === "*") {
+        const end = src.indexOf("**", i + 2);
+        if (end !== -1) {
+          const strong = document.createElement("strong");
+          appendInlineParsed(strong, src.slice(i + 2, end));
+          target.appendChild(strong);
+          i = end + 2;
+          continue;
+        }
+      }
+
+      if (src[i] === "*" && src[i + 1] !== "*") {
+        const end = src.indexOf("*", i + 1);
+        if (end !== -1 && src[end + 1] !== "*") {
+          const em = document.createElement("em");
+          appendInlineParsed(em, src.slice(i + 1, end));
+          target.appendChild(em);
+          i = end + 1;
+          continue;
+        }
+      }
+
+      let j = i + 1;
+      while (j < src.length && !"`*".includes(src[j])) j++;
+      target.appendChild(document.createTextNode(src.slice(i, j)));
+      i = j;
     }
-    el.append(document.createTextNode(src.slice(offset)));
   }
 
   const statusLabels = {
@@ -148,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const open = element("a", "Открыть документ →");
       open.className = "case-link";
-      open.href = `./documents.html?document=${encodeURIComponent(doc.id)}`;
+      open.href = `/documents?document=${encodeURIComponent(doc.id)}`;
 
       footer.append(statusBtn, open);
       card.append(head, meta, footer);
@@ -179,7 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
       title.className = "case-card-title";
       renderInlineMarkdownInto(title, fav.title || "Без названия");
 
-      const meta = element("p", `Добавлено: ${formatDate(fav.created_at)}`);
+      const meta = element("p", `Добавлено/проверено: ${formatDate(fav.created_at)}`);
       meta.className = "case-card-meta";
 
       const summary = element("p");

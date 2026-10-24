@@ -11,20 +11,57 @@ class Element {
     this.hidden = false;
     this.attributes = {};
     this.listeners = {};
+    this._className = "";
+    this.href = "";
+    this.id = "";
+    this.dataset = {};
+    this._parentNode = null;
   }
+
   get children() { return this.childNodes.filter((child) => child.tagName); }
   get firstChild() { return this.childNodes[0] || null; }
+  get parentNode() { return this._parentNode; }
+  set parentNode(value) { this._parentNode = value; }
+
+  get className() { return this._className; }
+  set className(value) {
+    this._className = value;
+    this.attributes["class"] = value;
+  }
+
+  get classList() {
+    const self = this;
+    return {
+      add(cls) {
+        const classes = self.className.split(/\s+/).filter(Boolean);
+        if (!classes.includes(cls)) {
+          classes.push(cls);
+          self.className = classes.join(" ");
+        }
+      },
+      remove(cls) {
+        const classes = self.className.split(/\s+/).filter(Boolean);
+        self.className = classes.filter(c => c !== cls).join(" ");
+      },
+      contains(cls) {
+        return self.className.split(/\s+/).includes(cls);
+      }
+    };
+  }
+
   set textContent(value) {
     this.replaceChildren();
-    if (String(value)) this.appendChild({ textContent: String(value) });
+    if (String(value)) this.appendChild({ textContent: String(value), tagName: undefined, parentNode: null });
   }
   get textContent() { return this.childNodes.map((child) => child.textContent).join(""); }
+
   appendChild(child) {
     if (child.parentNode) child.parentNode.removeChild(child);
     child.parentNode = this;
     this.childNodes.push(child);
     return child;
   }
+
   removeChild(child) {
     const index = this.childNodes.indexOf(child);
     assert.notEqual(index, -1, "Cannot remove a node from a different parent");
@@ -32,29 +69,90 @@ class Element {
     child.parentNode = null;
     return child;
   }
+
   append(...children) { children.forEach((child) => this.appendChild(child)); }
+
   replaceChildren(...children) {
     while (this.firstChild) this.removeChild(this.firstChild);
     this.append(...children);
   }
-  setAttribute(name, value) { this.attributes[name] = value; }
-  removeAttribute(name) { delete this.attributes[name]; }
+
+  setAttribute(name, value) {
+    this.attributes[name] = value;
+    if (name === "href") this.href = value;
+    if (name === "id") this.id = value;
+    if (name === "class") this.className = value;
+    if (name.startsWith("data-")) {
+      const key = name.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      this.dataset[key] = value;
+    }
+  }
+
+  removeAttribute(name) {
+    delete this.attributes[name];
+    if (name === "href") this.href = "";
+    if (name === "id") this.id = "";
+    if (name === "class") this.className = "";
+  }
+
   addEventListener(name, callback) { this.listeners[name] = callback; }
+
+  querySelectorAll(selector) {
+    const matches = [];
+    const walk = (node) => {
+      if (node.tagName) {
+        if (selector.startsWith(".")) {
+          if (node.classList.contains(selector.slice(1))) matches.push(node);
+        } else if (node.tagName === selector.toUpperCase()) {
+          matches.push(node);
+        }
+      }
+      if (node.childNodes) node.childNodes.forEach(walk);
+    };
+    walk(this);
+    return matches;
+  }
+
+  closest(selector) {
+    let current = this;
+    while (current) {
+      if (selector.startsWith(".")) {
+        if (current.classList.contains(selector.slice(1))) return current;
+      } else if (current.tagName === selector.toUpperCase()) {
+        return current;
+      }
+      current = current.parentNode;
+    }
+    return null;
+  }
 }
 
-async function runtime(search, responses, pathname = "/article.html") {
+async function runtime(search, responses, pathname = "/article") {
   const elements = new Map();
   const calls = [];
   let start;
+  const listeners = new Map();
+  const events = [];
   const document = {
     title: "Статья — Законпозитор",
-    addEventListener(name, callback) { if (name === "DOMContentLoaded") start = callback; },
+    addEventListener(name, callback) {
+      if (name === "DOMContentLoaded") start = callback;
+      else {
+        if (!listeners.has(name)) listeners.set(name, []);
+        listeners.get(name).push(callback);
+      }
+    },
+    dispatchEvent(event) {
+      events.push(event.type);
+      for (const callback of listeners.get(event.type) || []) callback(event);
+      return true;
+    },
     querySelector(selector) {
       if (!elements.has(selector)) elements.set(selector, new Element());
       return elements.get(selector);
     },
     createElement: (tag) => new Element(tag),
-    createTextNode: (text) => ({ textContent: text }),
+    createTextNode: (text) => ({ textContent: text, tagName: undefined, parentNode: null }),
   };
   for (const selector of ["#article", "#retry-article", "#related-articles", "#article-empty"]) {
     document.querySelector(selector).hidden = true;
@@ -67,10 +165,11 @@ async function runtime(search, responses, pathname = "/article.html") {
     return next;
   } } };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../static/js/article.js"), "utf8"),
-                    { window, document, URLSearchParams });
+                    { window, document, URLSearchParams, CustomEvent: class { constructor(type) { this.type = type; } } });
   start();
   await new Promise(setImmediate);
-  return { document, calls, get: (selector) => document.querySelector(selector) };
+  await new Promise(setImmediate);
+  return { document, calls, events, get: (selector) => document.querySelector(selector) };
 }
 
 const article = { id: "42", title: "Как оформить соавторство", summary: "Описание статьи",
@@ -80,7 +179,7 @@ const article = { id: "42", title: "Как оформить соавторств
                            "## Следующий раздел\n\n- Исходники\n- Переписка\n\n<script>alert(1)</script>"] };
 
 test("loads the URL id, renders every chunk in order and keeps stored HTML as text", async () => {
-  const { get, document, calls } = await runtime("?id=42", [article, []]);
+  const { get, document, calls, events } = await runtime("?id=42", [article, []]);
   assert.equal(calls[0], "public/articles/42");
   assert.equal(document.title, `${article.title} — Законпозитор`);
   assert.equal(get("#article-title").textContent, article.title);
@@ -89,13 +188,17 @@ test("loads the URL id, renders every chunk in order and keeps stored HTML as te
   assert.equal(get("#article-reading-time").textContent, "1 мин. чтения");
   assert.equal(get("#article").hidden, false);
   assert.equal(get("#article-state").hidden, true);
-  assert.equal(get("#article-intro-body").children[0].tagName, "H2");
-  const sections = get("#article-chunks").children;
-  assert.equal(sections.length, 2);
-  assert.deepEqual(sections[0].children.map((item) => item.textContent),
-                   ["Первый абзац.\nПродолжение.", "Второй абзац."]);
-  assert.deepEqual(sections[1].children.map((item) => item.tagName), ["H2", "UL", "P"]);
-  assert.equal(sections[1].children[2].textContent, "<script>alert(1)</script>");
+  const body = get("#article-chunks");
+  const sections = body.querySelectorAll(".article-chunk");
+  assert.deepEqual(sections.map((section) => section.textContent), [
+    "Равные праваВводный раздел.",
+    "Первый абзац.\nПродолжение.Второй абзац.",
+    "Следующий разделИсходникиПереписка<script>alert(1)</script>",
+  ]);
+  assert.deepEqual(body.querySelectorAll("h2").map((heading) => heading.textContent),
+                   ["Равные права", "Следующий раздел"]);
+  assert.equal(body.querySelectorAll("script").length, 0);
+  assert.deepEqual(events, ["article-rendered"]);
 });
 
 for (const search of ["", "?id=", "?id=0", "?id=-1", "?id=abc", "?id=1/2", "?id=9223372036854775808"]) {
@@ -131,7 +234,6 @@ test("network errors can be retried successfully", async () => {
   const retry = get("#retry-article").listeners.click();
   assert.equal(get("#article").hidden, true);
   assert.equal(get("#article-state").attributes["aria-busy"], "true");
-  assert.equal(typeof retry?.then, "function");
   resolveArticle(article);
   await retry;
   assert.equal(calls[1], "public/articles/42");
@@ -164,31 +266,38 @@ test("an article without chunks or a category renders an explicit empty state", 
 
 test("Markdown titles, summaries and footnotes survive DOM node moves and reloads", async () => {
   const record = { ...article, title: "**Соавторство**", summary: "*Описание*",
-    chunks: ["Текст[^law]\n\n[^law]: Правило **закона**"] };
-  const { get } = await runtime("?id=42", [record, [], article, []]);
-  assert.equal(get("#article-title").children[0].tagName, "STRONG");
-  assert.equal(get("#article-title").textContent, "Соавторство");
-  assert.equal(get("#article-summary").children[0].tagName, "EM");
-  const intro = get("#article-intro-body");
-  const ref = intro.children[0].children[0].children[0];
-  assert.equal(ref.href, "#fn-law");
-  const notes = get("#article-chunks").children[0];
-  assert.equal(notes.className, "article-footnotes");
-  const note = notes.children[1].children[0];
-  assert.equal(note.id, "fn-law");
+    chunks: ["Текст[^law]", "[^law]: Правило **закона**"] };
+  const { get, document, events } = await runtime("?id=42", [record, [], article, []]);
+  assert.equal(document.title, "Соавторство — Законпозитор");
+  assert.equal(get("#article-title").querySelectorAll("strong")[0].textContent, "Соавторство");
+  assert.equal(get("#article-summary").querySelectorAll("em")[0].textContent, "Описание");
+  const body = get("#article-chunks");
+  const references = body.querySelectorAll(".footnote-ref");
+  assert.equal(references.length, 1);
+  assert.equal(references[0].href, "#fn-law");
+  const notes = body.querySelectorAll(".article-footnotes");
+  assert.equal(notes.length, 1);
+  const note = notes[0].querySelectorAll("li").find((item) => item.id === "fn-law");
+  assert.ok(note, "The reference points to an existing footnote");
   assert.equal(note.textContent, "Правило закона ↩");
+  assert.equal(note.querySelectorAll("strong")[0].textContent, "закона");
+  assert.equal(note.querySelectorAll(".footnote-back")[0].href, "#" + references[0].id);
+  assert.deepEqual(body.querySelectorAll(".article-chunk").map((section) => section.textContent), ["Текст1"]);
+
   await get("#retry-article").listeners.click();
   assert.equal(get("#article-title").textContent, article.title);
-  assert.equal(get("#article-title").children.length, 0);
+  assert.equal(document.title, `${article.title} — Законпозитор`);
+  assert.equal(get("#article-title").querySelectorAll("strong").length, 0);
   assert.equal(get("#article-summary").textContent, article.summary);
-  assert.equal(intro.children.length, 2);
-  assert.equal(intro.children[0].tagName, "H2");
-  assert.equal(get("#article-chunks").children.length, 2);
+  assert.equal(body.querySelectorAll(".article-chunk").length, article.chunks.length);
+  assert.equal(body.querySelectorAll(".article-footnotes").length, 0);
+  assert.equal(body.querySelectorAll(".footnote-ref").length, 0);
+  assert.deepEqual(events, ["article-rendered", "article-rendered"]);
 });
 
-
 test("loads a slug URL and keeps the numeric id for recommendations", async () => {
-  const { calls, get } = await runtime("", [article, [article, { id: "7", slug: "author", title: "Авторство" }]],
+  const slugArticle = { ...article, slug: "coauthors" };
+  const { calls, get } = await runtime("", [slugArticle, [slugArticle, { id: "7", slug: "author", title: "Авторство" }]],
                                        "/article/coauthors");
   assert.equal(calls[0], "public/articles/coauthors");
   assert.equal(get("#article").hidden, false);

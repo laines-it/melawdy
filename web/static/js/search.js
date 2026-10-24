@@ -9,35 +9,60 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---- Убираем ссылки и сноски, оставляя текст ----
   function stripLinksAndFootnotes(text) {
     let src = String(text ?? "");
-    // [текст](ссылка) -> текст
     src = src.replace(/\[([^\]]+)\]\s*\([^)\s]*\)/g, "$1");
-    // [^N] -> пусто
     src = src.replace(/\[\^[^\]]+\]/g, "");
     return src;
   }
 
-  // ---- Мини-markdown → DOM (inline) без ссылок и сносок ----
+  // ---- Мини-markdown ----
   function renderInlineMarkdown(text) {
     const fragment = document.createDocumentFragment();
     const src = stripLinksAndFootnotes(text);
-
-    const tokens = /\*\*(.+?)\*\*|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|`([^`]+)`/g;
-    let offset = 0;
-    for (const match of src.matchAll(tokens)) {
-      fragment.append(document.createTextNode(src.slice(offset, match.index)));
-      if (match[1] !== undefined || match[2] !== undefined) {
-        const node = document.createElement(match[1] !== undefined ? "strong" : "em");
-        node.textContent = match[1] ?? match[2];
-        fragment.append(node);
-      } else if (match[3] !== undefined) {
-        const code = document.createElement("code");
-        code.textContent = match[3];
-        fragment.append(code);
-      }
-      offset = match.index + match[0].length;
-    }
-    fragment.append(document.createTextNode(src.slice(offset)));
+    appendInlineParsed(fragment, src);
     return fragment;
+  }
+
+  function appendInlineParsed(target, src) {
+    let i = 0;
+    while (i < src.length) {
+      if (src[i] === "`") {
+        const end = src.indexOf("`", i + 1);
+        if (end !== -1) {
+          const code = document.createElement("code");
+          code.textContent = src.slice(i + 1, end);
+          target.appendChild(code);
+          i = end + 1;
+          continue;
+        }
+      }
+
+      if (src[i] === "*" && src[i + 1] === "*") {
+        const end = src.indexOf("**", i + 2);
+        if (end !== -1) {
+          const strong = document.createElement("strong");
+          appendInlineParsed(strong, src.slice(i + 2, end)); // рекурсия
+          target.appendChild(strong);
+          i = end + 2;
+          continue;
+        }
+      }
+
+      if (src[i] === "*" && src[i + 1] !== "*") {
+        const end = src.indexOf("*", i + 1);
+        if (end !== -1 && src[end + 1] !== "*") {
+          const em = document.createElement("em");
+          appendInlineParsed(em, src.slice(i + 1, end)); // рекурсия
+          target.appendChild(em);
+          i = end + 1;
+          continue;
+        }
+      }
+
+      let j = i + 1;
+      while (j < src.length && !"`*".includes(src[j])) j++;
+      target.appendChild(document.createTextNode(src.slice(i, j)));
+      i = j;
+    }
   }
 
   function labelFor(record) {

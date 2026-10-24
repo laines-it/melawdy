@@ -313,7 +313,6 @@ html, body { margin: 0; padding: 0; }
 .article-chunks strong { font-weight: 700; }
 .article-chunks em { font-style: italic; }
 
-/* Ссылки в тексте — обычные буквы, аккуратный синий цвет */
 .article-chunks a {
   color: #385F9D;
   text-decoration: underline;
@@ -555,3 +554,69 @@ html, body { margin: 0; padding: 0; }
   color: var(--text-muted);
 }
 .article-dates[hidden] { display: none; }
+
+.task-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  list-style: none;
+  position: relative;
+  padding-left: 0;
+}
+
+.task-list-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #93ABD8;
+  border-radius: 4px;
+  background: #FEFBF2;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 4px;
+  position: relative;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.task-list-item input[type="checkbox"]:hover {
+  border-color: #385F9D;
+}
+
+.task-list-item input[type="checkbox"]:checked {
+  background: #93ABD8;
+  border-color: #93ABD8;
+}
+
+.task-list-item input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.task-list-item .task-text {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: 1.4;
+  color: #000;
+  flex: 1;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.task-list-item.is-completed .task-text {
+  color: #6E7580;
+  text-decoration: line-through;
+  text-decoration-color: #93ABD8;
+}
+
+.article-chunks ul.task-list {
+  padding-left: 0;
+  list-style: none;
+}

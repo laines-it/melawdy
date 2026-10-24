@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
         await window.ZPAuth.login(values.get("email"), values.get("password"));
       }
       form.reset();
-      window.location.replace("./account.html");
+      window.location.replace("/account");
     } catch (error) {
       status.textContent = error.message;
     } finally {
@@ -44,6 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   window.ZPAuth.ready.then(() => {
-    if (window.ZPAuth.isLoggedIn()) window.location.replace("./account.html");
+    if (window.ZPAuth.isLoggedIn()) window.location.replace("/account");
   }).catch((error) => { status.textContent = error.message; });
 });
