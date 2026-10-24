@@ -30,7 +30,8 @@ def list_faq(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 4
         (ContentItem.status == ContentStatus.PUBLISHED) & (ContentItem.published_at <= func.now()),
     )).order_by(QAPair.sort_order, QAPair.id).limit(limit))
     return [{"id": str(item.id), "question": item.question, "answer": item.answer,
-             "content_item_id": str(item.content_item_id) if item.content_item_id else None} for item in items]
+         "content_item_id": str(item.content_item_id) if item.content_item_id else None,
+         "content_item_slug": item.content_item.slug if item.content_item else None} for item in items]
 
 
 @router.get("/search", response_model=list[SearchResponse])
@@ -49,14 +50,14 @@ def search(session: SessionDep, query: Annotated[str, Query(min_length=1, max_le
     if not hits:
         return []
     metadata = {row.id: row for row in session.execute(select(
-        ContentItem.id, ContentItem.title, ContentItem.summary,
+        ContentItem.id, ContentItem.title, ContentItem.summary, ContentItem.slug,
     ).where(
         ContentItem.id.in_({hit.chunk.content_item_id for hit in hits}),
         ContentItem.status == ContentStatus.PUBLISHED, ContentItem.published_at <= func.now(),
     )).all()}
     ids = list(dict.fromkeys(hit.chunk.content_item_id for hit in hits
                              if hit.chunk.content_item_id in metadata))
-    return [{"article_id": str(article_id), "title": metadata[article_id].title,
+    return [{"article_id": str(article_id), "slug": metadata[article_id].slug, "title": metadata[article_id].title,
              "body": metadata[article_id].summary or "", "summary": metadata[article_id].summary}
             for article_id in ids]
 
@@ -68,6 +69,16 @@ def list_templates(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100
                             .order_by(DocumentTemplate.id.desc()).limit(limit).offset(offset))
     return [{"id": str(item.id), "title": item.title, "description": item.description} for item in items]
 
+
+@router.get("/templates/{slug}")
+def read_template_by_slug(slug: str, session: SessionDep) -> dict:
+    item = session.scalar(select(DocumentTemplate).where(
+        DocumentTemplate.slug == slug, DocumentTemplate.is_active.is_(True)))
+    if item is None:
+        raise HTTPException(404, "Шаблон не найден")
+    return {"id": str(item.id), "title": item.title, "description": item.description,
+            "body": item.body, "slug": item.slug, "document_type": item.document_type,
+            "schema_json": item.schema_json or {}, "structure_json": item.structure_json or {}}
 
 @router.get("/templates/{template_id}")
 def read_template(template_id: int, session: SessionDep) -> dict:
@@ -88,6 +99,23 @@ def list_articles(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)
     ).order_by(ContentItem.published_at.desc(), ContentItem.id.desc()).limit(limit).offset(offset))
     return [{"id": str(item.id), "title": item.title, "slug": item.slug,
              "summary": item.summary, "published_at": item.published_at} for item in items]
+
+
+@router.get("/articles/{slug}")
+def read_article_by_slug(slug: str, session: SessionDep) -> dict:
+    item = session.scalar(select(ContentItem).options(
+        selectinload(ContentItem.chunks), selectinload(ContentItem.category),
+    ).where(
+        ContentItem.slug == slug,
+        ContentItem.status == ContentStatus.PUBLISHED,
+        ContentItem.published_at <= func.now(),
+    ))
+    if item is None:
+        raise HTTPException(404, "Статья не найдена")
+    return {"id": str(item.id), "slug": item.slug, "title": item.title,
+            "summary": item.summary,
+            "category": {"id": str(item.category.id), "name": item.category.name} if item.category else None,
+            "chunks": [chunk.body for chunk in sorted(item.chunks, key=lambda c: c.chunk_index)]}
 
 
 @router.get("/articles/{article_id}")
