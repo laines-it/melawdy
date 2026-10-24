@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const records = await api(`public/templates?limit=24&offset=${offset}`);
       for (const record of records) {
         const card = element("a", undefined, "document-template-card");
-        card.href = `./documents.html?template=${encodeURIComponent(record.id)}`;
+        card.href = `./documents?template=${encodeURIComponent(record.id)}`;
         const icon = element("span", "▤", "document-template-icon");
         icon.setAttribute("aria-hidden", "true");
         card.append(icon, element("h2", record.title),
@@ -353,7 +353,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     documentId = String(saved.id);
     ownerId = String(window.ZPAuth.getUser().id);
-    window.history.replaceState(null, "", `./documents.html?document=${encodeURIComponent(documentId)}`);
+    window.history.replaceState(null, "", `/documents?document=${encodeURIComponent(documentId)}`);
     query.delete("template");
     query.set("document", documentId);
     dirty = false;

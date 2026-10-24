@@ -103,6 +103,7 @@ body {
   color: var(--zp-text);
   cursor: pointer;
   padding: 0;
+  text-decoration: none !important;
 }
 
 .button-login {

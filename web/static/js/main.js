@@ -39,14 +39,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Поиск на главной: отправляем на search.html с параметром query
+  // Поиск на главной
   const searchForm = document.querySelector("#search-form");
   if (searchForm) {
     searchForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const query = document.querySelector("#search-query").value.trim();
       if (!query) return;
-      window.location.href = `./search.html?query=${encodeURIComponent(query)}`;
+      window.location.href = `/search?query=${encodeURIComponent(query)}`;
     });
   }
 

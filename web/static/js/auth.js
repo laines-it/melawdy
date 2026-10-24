@@ -6,7 +6,7 @@
     const user = session?.user;
     document.querySelectorAll("[data-auth-action]").forEach((link) => {
       link.textContent = user ? "Выйти →" : "Войти →";
-      link.href = user ? "#logout" : "./login.html";
+      link.href = user ? "#logout" : "/login";
       link.dataset.authState = user ? "logged-in" : "logged-out";
     });
     document.querySelectorAll("[data-user-name]").forEach((element) => {
