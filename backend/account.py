@@ -29,6 +29,9 @@ def overview(response: Response, session: SessionDep, user: UserDep) -> dict:
         "documents": [{"id": str(item.id), "title": item.title, "status": item.status,
                        "due_date": item.due_date} for item in documents],
         "calculations": [{"id": str(item.id), "total_amount": str(item.total_amount),
+                          "total_max_amount": item.breakdown_json.get("total_max_amount", str(item.total_amount)),
+                          "name": item.breakdown_json.get("name", ""),
+                          "approximate": item.breakdown_json.get("approximate", False),
                           "currency": item.currency, "created_at": item.created_at}
                          for item in calculations],
     }

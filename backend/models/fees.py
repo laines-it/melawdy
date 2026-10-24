@@ -36,6 +36,13 @@ class ApplicationType(BigIntPrimaryKey, Base):
     calculations: Mapped[list["FeeCalculation"]] = relationship(back_populates="application_type")
 
 
+class FeeCatalog(Base):
+    __tablename__ = "fee_catalogs"
+
+    code: Mapped[str] = mapped_column(String(100), primary_key=True)
+    source_json: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
 class FeeRate(BigIntPrimaryKey, Base):
     __tablename__ = "fee_rates"
     __table_args__ = (
