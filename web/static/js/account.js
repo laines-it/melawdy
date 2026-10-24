@@ -190,7 +190,9 @@ document.addEventListener("DOMContentLoaded", () => {
       footer.className = "case-card-footer";
       const read = element("a", "Читать далее →");
       read.className = "case-link";
-      read.href = `./article.html?id=${encodeURIComponent(fav.content_item_id)}`;
+      read.href = fav.slug
+        ? `/article/${encodeURIComponent(fav.slug)}`
+        : `./article.html?id=${encodeURIComponent(fav.content_item_id)}`;
       footer.append(read);
 
       card.append(title, meta, summary, footer);

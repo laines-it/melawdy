@@ -69,8 +69,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function articleHref(record) {
-    if (!record || !record.article_id) return null;
-    return `./article.html?id=${encodeURIComponent(record.article_id)}`;
+    if (!record) return null;
+    if (record.slug) return `/article/${encodeURIComponent(record.slug)}`;
+    if (record.article_id) return `./article.html?id=${encodeURIComponent(record.article_id)}`;
+    return null;
   }
 
   function renderCard(record, index) {
@@ -146,6 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const articles = Array.isArray(raw) ? raw : (raw?.items || []);
         records = articles.map((r) => ({
           article_id: r.id,
+          slug: r.slug,
           title: r.title,
           body: r.summary || r.body || "",
           type: "article",

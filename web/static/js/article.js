@@ -4,8 +4,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const state = $("#article-state");
   const article = $("#article");
-  const id = new URLSearchParams(window.location.search).get("id");
   const favBtn = $("#fav-btn");
+  const pathParts = window.location.pathname.split("/").filter(Boolean);
+  const slugFromPath = pathParts[0] === "article" ? decodeURIComponent(pathParts[1] || "") : "";
+  const params = new URLSearchParams(window.location.search);
+  const idFromQuery = params.get("id");
+  const slug = slugFromPath || null;
+  const id = idFromQuery || null;
+
+  // Для избранного нужен числовой id статьи — узнаём его после загрузки.
+  let resolvedId = null;
 
   // ---- helpers ----
   function clear(el) {
@@ -39,6 +47,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!el) return false;
     if (el.classList && typeof el.classList.contains === "function") return el.classList.contains(cls);
     return (el.className || "").split(/\s+/).includes(cls);
+  }
+  function articleHref(record) {
+    if (!record || typeof record !== "object") return null;
+    if (record.slug) return `/article/${encodeURIComponent(record.slug)}`;
+    if (record.id != null) return `./article.html?id=${encodeURIComponent(record.id)}`;
+    return null;
   }
 
   // ---- Реестр сносок ----
@@ -231,7 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---- Избранное ----
   async function refreshFavoriteStatus() {
-    if (!favBtn) return;
+    if (!favBtn || resolvedId == null) return;
     try {
       await window.ZPAuth.ready;
       if (!window.ZPAuth.isLoggedIn()) {
@@ -244,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
       favBtn.disabled = false;
       const raw = await request("cabinet/favorites?limit=100");
       const favorites = Array.isArray(raw) ? raw : (raw?.items || []);
-      const isFav = favorites.some((f) => f && String(f.content_item_id) === String(id));
+      const isFav = favorites.some((f) => f && String(f.content_item_id) === String(resolvedId));
       applyFavoriteState(isFav);
     } catch (e) {
       if (favBtn) favBtn.disabled = false;
@@ -264,6 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.href = "./login.html";
         return;
       }
+      if (resolvedId == null) return;
       if (favBtn.dataset && favBtn.dataset.busy === "1") return;
       if (favBtn.dataset) favBtn.dataset.busy = "1";
       favBtn.disabled = true;
@@ -271,10 +286,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const isActive = hasClass(favBtn, "is-active");
       try {
         if (isActive) {
-          await request(`cabinet/favorites/${id}`, { method: "DELETE" });
+          await request(`cabinet/favorites/${resolvedId}`, { method: "DELETE" });
           applyFavoriteState(false);
         } else {
-          await request(`cabinet/favorites/${id}`, { method: "POST" });
+          await request(`cabinet/favorites/${resolvedId}`, { method: "POST" });
           applyFavoriteState(true);
         }
       } catch (error) {
@@ -295,6 +310,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!record || typeof record !== "object") {
       throw Object.assign(new Error("Статья не найдена"), { status: 404 });
     }
+
+    resolvedId = record.id != null ? String(record.id) : null;
 
     document.title = `${record.title || "Статья"} — Законпозитор`;
 
@@ -415,19 +432,24 @@ document.addEventListener("DOMContentLoaded", () => {
       clear(list);
       const filtered = [];
       for (let i = 0; i < records.length && filtered.length < 3; i++) {
-        if (String(records[i].id) !== String(id)) filtered.push(records[i]);
+        const rec = records[i];
+        // Исключаем текущую статью по id (у записей в public/articles есть id)
+        if (resolvedId != null && String(rec.id) === String(resolvedId)) continue;
+        filtered.push(rec);
       }
       if (!filtered.length) { card.hidden = true; return; }
       for (let i = 0; i < filtered.length; i++) {
         const rec = filtered[i];
+        const href = articleHref(rec);
+        if (!href) continue;
         const li = document.createElement("li");
         const a = document.createElement("a");
-        a.href = `./article.html?id=${encodeURIComponent(rec.id)}`;
+        a.href = href;
         renderInlineInto(a, rec.title || "Без названия");
         li.appendChild(a);
         list.appendChild(li);
       }
-      card.hidden = false;
+      card.hidden = !list.children.length;
     } catch {
       card.hidden = true;
     }
@@ -440,12 +462,16 @@ document.addEventListener("DOMContentLoaded", () => {
     hide(article);
     const retryBtn = $("#retry-article");
     hide(retryBtn);
+    resolvedId = null;
 
     setText($("#state-title"), "Загружаем статью…");
     setText($("#state-message"), "Получаем материал");
 
     try {
-      const record = await request(`public/articles/${encodeURIComponent(id)}`);
+      const path = slug
+        ? `public/articles/${encodeURIComponent(slug)}`
+        : `public/articles/${encodeURIComponent(id)}`;
+      const record = await request(path);
       if (!record || typeof record !== "object") {
         throw Object.assign(new Error("Статья не найдена"), { status: 404 });
       }
@@ -465,7 +491,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const retryEl = $("#retry-article");
   if (retryEl) retryEl.addEventListener("click", load);
-
+  if (slug) {
+    load();
+    return;
+  }
   if (!id || !/^[1-9]\d*$/.test(id) || BigInt(id) > 9223372036854775807n) {
     show(state);
     if (state) state.setAttribute("aria-busy", "false");
