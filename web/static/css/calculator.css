@@ -70,8 +70,39 @@
 /* Форма */
 .fee-form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
+}
+
+.fee-stages {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #E0D6C4;
+  border-radius: 10px;
+  min-width: 0;
+}
+
+.fee-stages legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+.fee-stage {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 0;
+  cursor: pointer;
+}
+
+.fee-stage input {
+  flex-shrink: 0;
+  margin-top: 4px;
+  accent-color: #536FAD;
+}
+
+.fee-field small {
+  color: #6E7580;
 }
 
 .fee-field {
@@ -168,7 +199,8 @@
 .fee-total {
   font-family: 'Manrope', sans-serif;
   font-weight: 700;
-  font-size: clamp(40px, 5vw, 60px);
+  font-size: clamp(28px, 4vw, 52px);
+  overflow-wrap: anywhere;
   line-height: 1.1;
   color: #0E0F12;
 }
@@ -192,14 +224,16 @@
 
 /* Нижний блок с информацией */
 .calculator-info-block {
-  display: grid;
-  grid-template-columns: 1fr 308px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: 24px;
   margin-bottom: 30px;
 }
 
 .info-card-custom {
-  width: 30%;
+  width: 20%;
   background: #F9ECFF;
   border: 1px solid #F355FB;
   border-radius: 10px;
@@ -257,10 +291,13 @@
 /* Кнопка сохранения */
 .calculator-actions {
   display: flex;
-  justify-content: right;
+  flex: 0 0 auto;
+  width: max-content;
 }
 
 .button-save {
+  width: max-content;
+  white-space: nowrap;
   font-family: 'Manrope', sans-serif;
   font-weight: 600;
   font-size: 24px;
@@ -279,6 +316,13 @@
   background: #F9ECFF;
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(147, 171, 216, 0.2);
+}
+
+.button-save:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Адаптивность */
@@ -312,11 +356,10 @@
   }
 
   .fee-total {
-    font-size: 40px;
+    font-size: 32px;
   }
 
   .button-save {
-    width: 100%;
     font-size: 20px;
     padding: 16px 24px;
   }

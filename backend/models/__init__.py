@@ -13,7 +13,7 @@ from backend.models.assessments import (
     AssessmentOption, AssessmentQuestion, AssessmentResult, AssessmentResultRule,
     AssessmentSurvey, UserAssessment,
 )
-from backend.models.fees import ApplicationType, FeeCalculation, FeeCalculationClass, FeeRate, MktuClass
+from backend.models.fees import ApplicationType, FeeCalculation, FeeCalculationClass, FeeCatalog, FeeRate, MktuClass
 from backend.models.legacy import Document, DocumentChunk
 from backend.models.auth import AdminSession
 from backend.models.favorites import UserFavorite
@@ -28,6 +28,6 @@ __all__ = [
     "DocumentTemplate", "UserDocument", "DocumentStatusHistory", "RequestHistory",
     "AssessmentOption", "AssessmentQuestion", "AssessmentResult", "AssessmentResultRule",
     "AssessmentSurvey", "UserAssessment", "ApplicationType", "FeeCalculation",
-    "FeeCalculationClass", "FeeRate", "MktuClass", "Document", "DocumentChunk", "AdminSession", "UserFavorite",
+    "FeeCalculationClass", "FeeCatalog", "FeeRate", "MktuClass", "Document", "DocumentChunk", "AdminSession", "UserFavorite",
     "render_structure", "text_to_docx"
 ]

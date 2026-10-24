@@ -211,8 +211,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     for (const record of list) {
       if (!record || typeof record !== "object") continue;
+      const maximum = record.total_max_amount;
+      const amount = maximum && Number(maximum) !== Number(record.total_amount)
+        ? `${record.total_amount}–${maximum}` : record.total_amount;
       container.append(
-        element("p", `Расчёт №${record.id}: ${record.total_amount} ${record.currency || ""}`.trim())
+        element("p", `Расчёт №${record.id}${record.name ? ` (${record.name})` : ""}: ${record.approximate ? "≈ " : ""}${amount} ${record.currency || ""}`.trim())
       );
     }
   }

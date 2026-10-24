@@ -69,6 +69,10 @@ k3s kubectl -n melawdy scale statefulset postgres --replicas=1
 
 GitHub хранит исходный код; VPS запускает собранные из него образы API и web. В workflow `.github/workflows/tests.yml` добавлен job `Deploy main to VPS`: при push в `main` он ждёт успешного завершения юнит-тестов и интеграционных проверок PostgreSQL, затем собирает образы с тегом полного SHA проверенного коммита. Изменения в `neuroslop` сами по себе сайт не обновляют: сначала нужно слить ветку в `main`. Ручной запуск workflow Tests на ветке `main` повторяет ту же цепочку с тестами.
 
+Workflow включает `IMPORT_FEES=true`: при запуске API на VPS после миграций выполняется
+`python -m backend.import_fees`. JSON из `docs/examples/Выбор_процедуры_Xmind.json`
+включён в образ; повторный импорт обновляет дерево и формулы в БД.
+
 Сборка выполняется на GitHub runner, чтобы не нагружать небольшой VPS. `deploy/k3s/publish-release.sh` передаёт два образа по SSH; установленный на VPS `/usr/local/sbin/melawdy-deploy` из `deploy/k3s/deploy-release.sh` проверяет архив и SHA, импортирует образы в containerd и обновляет только deployments `api` и `web` в namespace `melawdy`. PostgreSQL, Secret, PVC и другие приложения не пересоздаются. Перед деплоем автоматический дамп базы не создаётся; миграции Alembic применяются обычным запуском API.
 
 GitHub Actions использует repository secrets `VPS_SSH_KEY` и `VPS_KNOWN_HOSTS`. Это отдельный ключ с принудительной командой деплоя и запретом SSH forwarding/PTY; SSH-пароль VPS и пароль администратора сайта в GitHub не передаются. Ключ хоста проверяется по значению, полученному через ранее доверенное SSH-подключение. Новый сервер требует отдельной установки скрипта и публичного ключа; изменение скрипта в Git не заменяет установленную на VPS копию автоматически.

@@ -51,32 +51,11 @@
             <!-- Левая колонка: параметры расчёта -->
             <div class="calculator-form-card">
               <h2 class="calculator-card-title">Параметры расчёта</h2>
-              <p class="calculator-card-hint">Выберите процедуру и действующую ставку из справочника.</p>
+              <p class="calculator-card-hint">Выберите процедуру — следующие варианты появятся по мере выбора.</p>
               <p id="status" role="status" aria-live="polite">Загрузка справочников…</p>
 
               <form id="fee-calculator-form" class="fee-form">
-                <div class="fee-form-grid">
-                  <div class="fee-field">
-                    <label for="application-type">Процедура</label>
-                    <select id="application-type" name="application_type_id" disabled></select>
-                  </div>
-                  <div class="fee-field">
-                    <label for="mkty-class">Класс МКТУ</label>
-                    <select id="mkty-class" name="mktu_class_id" disabled></select>
-                  </div>
-                  <div class="fee-field">
-                    <label for="quantity">Количество процедур</label>
-                    <input id="quantity" name="quantity" type="number" min="1" max="100" step="1" value="1" required>
-                  </div>
-                  <div class="fee-field">
-                    <label for="is-urgent">Срочность</label>
-                    <select id="is-urgent" name="is_urgent" disabled>
-                      <option value="false">Обычная</option>
-                      <option value="true">Срочная</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="fee-mkty-hint" id="mkty-hint"></div>
+                <div id="fee-options" class="fee-form-grid"></div>
               </form>
             </div>
 
@@ -84,14 +63,10 @@
             <div class="calculator-result-card">
               <h2 class="calculator-card-title">Результат расчёта:</h2>
               <div class="result-row-custom">
-                <span>Государственная пошлина</span>
+                <span>Стоимость процедуры</span>
                 <strong id="fee-total" class="fee-total">—</strong>
               </div>
-              <div class="result-details" id="fee-details">
-                <p>Ставка за процедуру: <span id="fee-base">—</span></p>
-                <p>Количество: <span id="fee-quantity">—</span></p>
-                <p id="fee-legal-basis"></p>
-              </div>
+              <div class="result-details" id="fee-details"></div>
             </div>
           </div>
 

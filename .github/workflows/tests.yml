@@ -114,10 +114,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Build and deploy the tested commit
+      - name: Build and deploy with fee catalog import on VPS
         env:
           DEPLOY_REVISION: ${{ github.sha }}
           EMBEDDINGS_ENABLED: "true"
+          IMPORT_FEES: "true"
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
         run: bash deploy/k3s/publish-release.sh

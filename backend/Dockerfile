@@ -2,12 +2,14 @@ FROM python:3.12-slim AS base
 
 ARG DOWNLOAD_EMBEDDING_MODEL=false
 ARG EMBEDDINGS_ENABLED=true
+ARG IMPORT_FEES=true
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     HF_HOME=/opt/hf-cache \
-    EMBEDDINGS_ENABLED=$EMBEDDINGS_ENABLED
+    EMBEDDINGS_ENABLED=$EMBEDDINGS_ENABLED \
+    IMPORT_FEES=$IMPORT_FEES
 WORKDIR /app
 
 COPY backend/requirements.txt /tmp/requirements.txt
@@ -21,6 +23,7 @@ RUN if [ "$EMBEDDINGS_ENABLED" = "true" ]; then \
 COPY alembic.ini ./
 COPY migrations/ ./migrations/
 COPY backend/ ./backend/
+COPY docs/examples/ ./docs/examples/
 COPY ml/ ./ml/
 RUN if [ "$EMBEDDINGS_ENABLED" = "true" ] && [ "$DOWNLOAD_EMBEDDING_MODEL" = "true" ]; then \
     python -m ml.download_model --output-dir /opt/embedding-model; \

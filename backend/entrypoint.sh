@@ -2,6 +2,9 @@
 set -eu
 
 alembic upgrade head
+if [ "${IMPORT_FEES:-true}" = "true" ]; then
+    python -m backend.import_fees
+fi
 python -m backend.manage_admin --from-env
 embeddings_enabled=$(python -c 'from backend.config import get_settings; print(int(get_settings().embeddings_enabled))')
 if [ "$embeddings_enabled" = "1" ]; then
