@@ -42,7 +42,7 @@ class Element {
   addEventListener(name, callback) { this.listeners[name] = callback; }
 }
 
-async function runtime(search, responses) {
+async function runtime(search, responses, pathname = "/article.html") {
   const elements = new Map();
   const calls = [];
   let start;
@@ -59,7 +59,7 @@ async function runtime(search, responses) {
   for (const selector of ["#article", "#retry-article", "#related-articles", "#article-empty"]) {
     document.querySelector(selector).hidden = true;
   }
-  const window = { location: { search }, MelawdyAPI: { async request(url) {
+  const window = { location: { search, pathname }, MelawdyAPI: { async request(url) {
     calls.push(url);
     const next = responses.shift();
     assert.ok(next, `Unexpected request: ${url}`);
@@ -184,4 +184,21 @@ test("Markdown titles, summaries and footnotes survive DOM node moves and reload
   assert.equal(intro.children.length, 2);
   assert.equal(intro.children[0].tagName, "H2");
   assert.equal(get("#article-chunks").children.length, 2);
+});
+
+
+test("loads a slug URL and keeps the numeric id for recommendations", async () => {
+  const { calls, get } = await runtime("", [article, [article, { id: "7", slug: "author", title: "Авторство" }]],
+                                       "/article/coauthors");
+  assert.equal(calls[0], "public/articles/coauthors");
+  assert.equal(get("#article").hidden, false);
+  const items = get("#related-articles-list").children;
+  assert.equal(items.length, 1);
+  assert.equal(items[0].children[0].href, "/article/author");
+});
+
+test("encodes a Cyrillic slug and prefers it over the legacy query id", async () => {
+  const { calls, get } = await runtime("?id=7", [article, []], "/article/" + encodeURIComponent("авторство"));
+  assert.equal(calls[0], "public/articles/" + encodeURIComponent("авторство"));
+  assert.equal(get("#article").hidden, false);
 });
