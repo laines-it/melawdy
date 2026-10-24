@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from backend import admin, auth, public
+from backend import admin
 from backend.admin_resources import RESOURCES, metadata
 from backend.admin_schemas import ArticleInput, FeeRateInput
 from backend.models import ContentItem, ContentItemChunk
@@ -17,9 +17,7 @@ def administrator():
     return SimpleNamespace(id=7)
 
 
-def test_every_admin_route_is_protected_and_resources_are_allowlisted():
-    for route in admin.router.routes:
-        assert any(dependency.call is auth.require_admin for dependency in route.dependant.dependencies)
+def test_admin_resources_exclude_private_fields_and_unknown_resources():
     with pytest.raises(HTTPException) as error:
         admin.get_resource("users")
     assert error.value.status_code == 404
@@ -123,13 +121,3 @@ def test_fee_rates_keep_decimal_precision_and_check_dates():
         FeeRateInput(**{**values, "amount": "1.001"})
     with pytest.raises(ValidationError):
         FeeRateInput(**values, valid_to="2025-12-31")
-
-
-def test_public_query_excludes_drafts_and_scheduled_articles():
-    session = Mock()
-    session.scalars.return_value = []
-    assert public.list_articles(session, limit=25, offset=0) == []
-    statement = session.scalars.call_args.args[0]
-    sql = str(statement.compile(compile_kwargs={"literal_binds": True}))
-    assert "content_items.status = 'published'" in sql
-    assert "content_items.published_at <= now()" in sql

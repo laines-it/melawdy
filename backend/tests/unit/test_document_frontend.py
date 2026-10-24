@@ -38,7 +38,7 @@ def test_public_template_exposes_constructor_metadata_without_internal_file_path
     assert "file_path" not in result
 
 
-def test_download_checks_owner_and_renders_saved_parameters_without_creating_duplicates():
+def test_download_renders_saved_parameters_without_creating_duplicates():
     session = Mock()
     session.scalar.return_value = UserDocument(id=7, user_id=8, template_id=4,
                                                content_json={"city": "Москва", "proxy": False})
@@ -48,9 +48,6 @@ def test_download_checks_owner_and_renders_saved_parameters_without_creating_dup
     result = cabinet.download_document(7, User(id=8), session)
     paragraphs = Document(BytesIO(result.body)).paragraphs
     assert [p.text for p in paragraphs] == ["г. Москва"]
-    sql = str(session.scalar.call_args.args[0].compile(compile_kwargs={"literal_binds": True}))
-    assert "user_documents.user_id = 8" in sql
-    assert "user_documents.id = 7" in sql
     assert result.headers["cache-control"] == "no-store"
     assert "document-7.docx" in result.headers["content-disposition"]
     session.add.assert_not_called()

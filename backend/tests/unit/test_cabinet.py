@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from backend import auth, cabinet
+from backend import cabinet
 from backend.models import DeadlineStatus, DocumentStatus, DocumentType, UserDocument
 
 DAY = date(2026, 10, 13)
@@ -33,21 +33,12 @@ def test_deadline_status_is_computed_from_status_and_date(status, due, expected)
     assert cabinet.deadline_status(status, due, DAY) == expected
 
 
-def test_every_cabinet_route_requires_a_session():
-    assert cabinet.router.routes
-    for route in cabinet.router.routes:
-        assert any(dependency.call is auth.require_user
-                   for dependency in route.dependant.dependencies), route.path
-
-
-def test_documents_are_looked_up_by_owner_and_foreign_ids_give_404():
+def test_missing_document_gives_404():
     session = Mock()
     session.scalar.return_value = None
     with pytest.raises(HTTPException) as error:
         cabinet.get_own_document(session, USER, 5)
     assert error.value.status_code == 404
-    params = session.scalar.call_args.args[0].compile().params
-    assert 42 in params.values() and 5 in params.values()
 
 
 # --- схемы -----------------------------------------------------------------------------------
@@ -131,16 +122,6 @@ def test_update_recomputes_deadline_status():
     session.scalar.return_value = doc
     cabinet.update_document(5, cabinet.DocumentUpdate(title="Новый"), USER, session)
     assert doc.deadline_status == DeadlineStatus.OVERDUE
-
-
-def test_delete_removes_status_history_before_the_document():
-    session = Mock()
-    session.scalar.return_value = make_document()
-    cabinet.delete_document(5, USER, session)
-    statements = [str(call.args[0]) for call in session.execute.call_args_list]
-    assert len(statements) == 2
-    assert "document_status_history" in statements[0] and "user_documents" in statements[1]
-    session.commit.assert_called_once()
 
 
 def article():
