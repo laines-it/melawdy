@@ -46,6 +46,7 @@ class AnalyzeResponse(BaseModel):
 
 class SearchResponse(BaseModel):
     article_id: str
+    slug: str | None = None
     title: str
     body: str
     summary: str | None

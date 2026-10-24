@@ -25,7 +25,7 @@ def capabilities() -> dict:
 
 @router.get("/faq")
 def list_faq(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 4) -> list[dict]:
-    items = session.scalars(select(QAPair).outerjoin(ContentItem).where(or_(
+    items = session.scalars(select(QAPair).outerjoin(ContentItem).options(selectinload(QAPair.content_item)).where(or_(
         QAPair.content_item_id.is_(None),
         (ContentItem.status == ContentStatus.PUBLISHED) & (ContentItem.published_at <= func.now()),
     )).order_by(QAPair.sort_order, QAPair.id).limit(limit))
