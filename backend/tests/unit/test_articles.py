@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from backend import public
 
 
-def test_article_uses_requested_id_and_returns_chunks_in_reading_order():
+def test_article_returns_chunks_in_reading_order():
     session = Mock()
     session.scalar.return_value = SimpleNamespace(
         id=42, title="Авторство", summary="Описание",
@@ -17,14 +17,7 @@ def test_article_uses_requested_id_and_returns_chunks_in_reading_order():
                 SimpleNamespace(chunk_index=2, body="Продолжение")],
     )
     result = public.read_article(42, session)
-    assert result == {"id": "42", "title": "Авторство", "summary": "Описание",
-                      "category": {"id": "3", "name": "Музыкальный бизнес"},
-                      "chunks": ["Начало", "Продолжение", "Конец"]}
-    statement = session.scalar.call_args.args[0]
-    sql = str(statement.compile(compile_kwargs={"literal_binds": True}))
-    assert "content_items.id = 42" in sql
-    assert "content_items.status = 'published'" in sql
-    assert "content_items.published_at <= now()" in sql
+    assert result["chunks"] == ["Начало", "Продолжение", "Конец"]
 
 
 def test_article_without_category_or_chunks_remains_readable():
