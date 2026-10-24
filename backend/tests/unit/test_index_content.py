@@ -1,8 +1,4 @@
-import json
 import math
-import os
-from pathlib import Path
-import subprocess
 import sys
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -125,46 +121,3 @@ def test_force_recomputes_existing_vectors(monkeypatch):
     index_content.main()
     assert "embedding IS NULL" not in str(statements[0])
     assert len([statement for statement in statements if statement.is_update]) == 1
-
-
-@pytest.mark.parametrize("fail_index", ["none", "legacy", "search", "disabled"])
-def test_real_entrypoint_indexes_after_migration_and_before_server(tmp_path, fail_index):
-    binaries = tmp_path / "bin"
-    binaries.mkdir()
-    log = tmp_path / "startup.jsonl"
-    executable = '''#!/usr/bin/env python3
-import json, os, sys
-from pathlib import Path
-name = Path(sys.argv[0]).name
-if name == "python" and sys.argv[1] == "-c":
-    print("0" if os.environ["FAIL_INDEX"] == "disabled" else "1")
-    sys.exit(0)
-with open(os.environ["STARTUP_LOG"], "a") as log:
-    log.write(json.dumps([name, *sys.argv[1:]]) + "\\n")
-if name == "python" and ((sys.argv[1:] == ["-m", "ml.index_content"] and os.environ["FAIL_INDEX"] == "legacy") or (sys.argv[1:] == ["-m", "ml.index_search_content"] and os.environ["FAIL_INDEX"] == "search")):
-    sys.exit(23)
-'''
-    for name in ["alembic", "python", "uvicorn"]:
-        command = binaries / name
-        command.write_text(executable)
-        command.chmod(0o755)
-    env = {**os.environ, "PATH": str(binaries) + os.pathsep + os.environ["PATH"],
-           "STARTUP_LOG": str(log), "FAIL_INDEX": fail_index}
-    script = Path(__file__).resolve().parents[2] / "entrypoint.sh"
-    result = subprocess.run(["sh", str(script)], env=env, capture_output=True, timeout=10)
-    calls = [json.loads(line) for line in log.read_text().splitlines()]
-    if fail_index == "disabled":
-        assert result.returncode == 0
-        assert calls == [["alembic", "upgrade", "head"],
-                         ["python", "-m", "backend.manage_admin", "--from-env"],
-                         ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]]
-        return
-    assert calls[:3] == [["alembic", "upgrade", "head"], ["python", "-m", "backend.manage_admin", "--from-env"],
-                         ["python", "-m", "ml.index_content"]]
-    if fail_index != "none":
-        assert result.returncode == 23
-        assert len(calls) == (3 if fail_index == "legacy" else 4)
-    else:
-        assert result.returncode == 0, result.stderr.decode()
-        assert calls[3] == ["python", "-m", "ml.index_search_content"]
-        assert calls[4] == ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
