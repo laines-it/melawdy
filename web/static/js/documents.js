@@ -3,11 +3,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const api = window.MelawdyAPI.request;
   const model = window.DocumentModel;
   const query = new URLSearchParams(window.location.search);
-  const templatePath = window.location.pathname.match(/^\/documents\/([1-9]\d*)\/?$/);
-  if (templatePath && !query.has("document")) query.set("template", templatePath[1]);
-  if (!query.has("document") && model.validId(query.get("template"))) {
-    window.history.replaceState(null, "", `/documents/${encodeURIComponent(query.get("template"))}`);
-  }
   const controls = new Map();
   const form = $("#document-form");
   let template, sections = [], params = {}, documentId = null, sectionIndex = 0;
@@ -53,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const records = await api(`public/templates?limit=24&offset=${offset}`);
       for (const record of records) {
         const card = element("a", undefined, "document-template-card");
-        card.href = `/documents/${encodeURIComponent(record.id)}`;
+        card.href = `./documents?template=${encodeURIComponent(record.id)}`;
         const icon = element("span", "▤", "document-template-icon");
         icon.setAttribute("aria-hidden", "true");
         card.append(icon, element("h2", record.title),
