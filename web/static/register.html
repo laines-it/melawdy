@@ -60,6 +60,10 @@
           <label class="admin-field"><span>Повторите пароль</span>
             <input name="password_confirmation" type="password" minlength="5" maxlength="1024" autocomplete="new-password" required>
           </label>
+          <div class="admin-consent">
+            <input id="personal-data-consent" name="personal_data_consent" type="checkbox" value="accepted" aria-labelledby="personal-data-consent-link" required>
+            <label for="personal-data-consent"><a id="personal-data-consent-link" href="https://lawmposer.ru/politika" target="_blank" rel="noopener">Даю согласие на обработку персональных данных</a></label>
+          </div>
           <div class="admin-submit-row"><button type="submit" class="button-primary">Зарегистрироваться</button></div>
         </form>
         <p class="auth-switch">Уже есть аккаунт? <a href="./login">Войти</a></p>
