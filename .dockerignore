@@ -11,3 +11,4 @@ deploy
 models/**
 output
 .admin-credentials*
+.local-data/

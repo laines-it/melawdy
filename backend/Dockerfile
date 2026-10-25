@@ -27,6 +27,7 @@ COPY migrations/ ./migrations/
 COPY backend/ ./backend/
 COPY docs/examples/ ./docs/examples/
 COPY ml/ ./ml/
+COPY music_plagiarism/colab/ ./music_plagiarism/colab/
 RUN if [ "$EMBEDDINGS_ENABLED" = "true" ] && [ "$DOWNLOAD_EMBEDDING_MODEL" = "true" ]; then \
     python -m ml.download_model --output-dir /opt/embedding-model; \
     fi
@@ -35,7 +36,7 @@ RUN if [ "$EMBEDDINGS_ENABLED" = "true" ] && [ "$DOWNLOAD_EMBEDDING_MODEL" = "tr
 RUN python -c "from pathlib import Path; p = Path('backend/entrypoint.sh'); p.write_bytes(p.read_bytes().replace(b'\r\n', b'\n'))"
 
 FROM base AS runtime
-RUN mkdir -p /opt/hf-cache && chown 10001:10001 /opt/hf-cache
+RUN mkdir -p /opt/hf-cache /var/lib/melawdy/music-check && chown 10001:10001 /opt/hf-cache /var/lib/melawdy/music-check
 USER 10001:10001
 EXPOSE 8000
 CMD ["sh", "/app/backend/entrypoint.sh"]

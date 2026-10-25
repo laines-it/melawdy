@@ -1,5 +1,0 @@
-# Comparator and JSON examples; no audio models needed.
-numpy==1.26.4
-pandas==2.2.3
-jsonpickle==3.4.2
-tqdm==4.67.1

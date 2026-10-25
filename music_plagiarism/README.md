@@ -1,178 +1,120 @@
-# Отдельная проверка музыкальных совпадений Mippia
+# CLEWS: ручная демонстрация на /check/
 
-Локальная программа для ручной проверки модуля. Внутри — код
-`Mippia/Music-Plagiarism-Detection`, commit
-`109c703242546e88914d8dbf04311e06bc3113cb`, с адаптацией для CPU.
-Она не импортирует код MeLawDy, не использует его базу, API, `.env` или Docker Compose.
+Сервер MeLawDy принимает аудиофайл и хранит задание. Оператор вручную запускает одну
+попытку в Google Colab; там выполняется CLEWS и поиск по подготовленной коллекции.
+Результат возвращается на страницу сайта. На сервере сайта нет PyTorch, CLEWS, GPU
+и фонового обработчика очереди для этой функции.
 
-Два режима:
+## 1. Включить серверную часть
 
-- `compare` — распознать вокальные ноты в своих аудиофайлах и сравнить их.
-- `compare-json` — проверить тот же оригинальный алгоритм на готовых нотных JSON,
-  без Demucs и повторного распознавания. Включены синтетические примеры.
+Задать в окружении API:
 
-Результаты — JSON и HTML с оценкой сходства и временем совпавших фрагментов.
-HTML открывается обычным браузером; для своих аудиофайлов он содержит плееры.
-Сравнение идёт только с указанными эталонами, не со всей музыкой в интернете.
-
-## Запуск через Docker (Linux, macOS, Windows)
-
-Для первого запуска нужен интернет: сборка получает зависимости, а Demucs
-при первом распознавании загружает свои модели. Пользовательское аудио
-обрабатывается локально и не отправляется в Mippia API.
-Образ рассчитан на CPU; для долгих записей обработка может занимать много времени.
-По умолчанию Demucs обрабатывает окна по 2 секунды для ограничения памяти.
-Если памяти достаточно, можно указать `--separation-segment 5` или до 7 с;
-длина окна влияет на качество разделения и расход RAM. Даже короткие окна
-требуют заметно больше памяти, чем режим `compare-json`.
-Окружение проверяется на Linux x86-64. На Apple Silicon для сборки и запуска
-этого набора CPU-колёс добавьте `--platform linux/amd64` к командам Docker.
-
-Откройте терминал **в этой папке**, `music_plagiarism`.
-Сначала получите две небольшие модели Mippia и соберите отдельный образ:
-
-```sh
-python3 run.py weights
-docker build -t melawdy-music-plagiarism:local .
+```dotenv
+MUSIC_CHECK_ENABLED=true
+MUSIC_CHECK_WORKER_TOKEN=<случайный секрет длиной не менее 32 символов>
+MUSIC_CHECK_DATA_DIR=/var/lib/melawdy/music-check
+MUSIC_CHECK_MAX_UPLOAD_MB=32
+MUSIC_CHECK_STORAGE_MB=512
+MUSIC_CHECK_MAX_JOBS=20
+MUSIC_CHECK_TTL_HOURS=24
 ```
 
-На Windows вместо `python3` можно использовать `py -3`.
-Команда `weights` работает без Python-пакетов ML; требуется Python 3.11+.
-Веса проверяются по размеру и SHA-256. Они не хранятся в Git.
+Сгенерировать секрет локально, например `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+Не добавлять его в Git, HTML или URL. Сервер и Colab используют одно значение.
+По умолчанию демонстрация выключена; без ключа не включится даже при `ENABLED=true`.
 
-Linux/macOS: проверка окружения и запуск примера без аудио:
+Docker Compose уже подключает отдельный volume `music_check_data` с данными очереди.
+После изменения `.env` пересоздать API: `docker compose up -d --build api web`.
+Данные SQLite и аудио должны находиться в одном сохраняемом каталоге.
+Для этой демонстрационной реализации поддерживается одна реплика API, локальный диск,
+без сетевого файлового хранилища для SQLite. Несколько процессов одной реплики
+координируются транзакциями SQLite.
 
-```sh
-docker run --rm -v "$PWD:/data" melawdy-music-plagiarism:local doctor
-docker run --rm -v "$PWD:/data" melawdy-music-plagiarism:local compare-json examples/query.json --reference examples/same_melody.json --reference examples/different.json --output results/example.json
-```
+Для Kubernetes предусмотрен PVC `music-check-data`. Секрет `melawdy-clews` с полем
+`worker-token` нужно создать отдельно, затем включить `MUSIC_CHECK_ENABLED=true`
+в Deployment API. В манифесте по умолчанию `false`, секрет optional, поэтому существующее
+развёртывание не ломается. Для уже работающего кластера одного обновления образов
+недостаточно: сначала применить изменённые манифесты/PVC и Secret. Права на volume
+выдаются группе 10001 через `fsGroup`. Production в рамках этой задачи не разворачивается.
 
-PowerShell:
+Nginx разрешает до 32 MiB для создания задания и ограничивает частоту загрузок;
+если увеличивать лимит API, нужно согласованно изменить `client_max_body_size`.
 
-```powershell
-docker run --rm -v "${PWD}:/data" melawdy-music-plagiarism:local doctor
-docker run --rm -v "${PWD}:/data" melawdy-music-plagiarism:local compare-json examples/query.json --reference examples/same_melody.json --reference examples/different.json --output results/example.json
-```
+## 2. Загрузить песню на сайт
 
-Откройте `results/example.html`. Одинаковая мелодия должна получить оценку выше,
-чем пример `different`. Дополнительные примеры: `octave_up.json` (та же мелодия
-на октаву выше) и `no_notes.json` (без нот).
-Эти данные проверяют механику алгоритма и не измеряют точность на реальной музыке.
+1. Открыть `/check/` (адрес `/check` также работает).
+2. Выбрать одну запись, нажать «Отправить на проверку».
+3. Скопировать номер задания. Статус — «Ожидает ручного запуска оператором».
+4. Оставить страницу открытой. Она получает обновления состояния раз в 5 секунд;
+   есть кнопка ручного обновления. Последнее задание восстанавливается в том же браузере.
 
-### Сравнить свои аудиофайлы
+Форматы: MP3, WAV, FLAC, OGG, M4A, AAC. Длительность 20 секунд — 30 минут проверяет
+Colab; сервер ограничивает размер и расширение, а аудио не декодирует. Если файл
+повреждён, сайт покажет ошибку обработки, а не отсутствие заимствований.
 
-Создайте папку `input` и положите туда `my_song.mp3` и `reference.mp3`.
-Желательно начать с фрагментов по 30–60 секунд с вокалом и чётким ритмом.
-Поддерживаются форматы, которые декодирует ffmpeg, включая WAV/MP3/FLAC/M4A.
+## 3. Вручную выполнить задание в Colab
 
-Linux/macOS:
+Ноутбук: `colab/CLEWS_site_demo.ipynb`. Его также можно скачать со страницы задания
+или через `/api/v1/music-check/notebook`; он самодостаточен и содержит код обработчика.
 
-```sh
-docker run --rm -v "$PWD:/data" melawdy-music-plagiarism:local compare input/my_song.mp3 --reference input/reference.mp3 --device cpu --output results/my_check.json
-```
+1. Загрузить ноутбук в Google Colab, включить GPU (предпочтительно T4).
+2. Выполнить разделы 1–4. Скачивается официальный архив весов около 8,7 GB;
+   MD5 сверяется с публикацией Zenodo. Источник CLEWS закреплён по commit.
+3. Добавить секрет в Colab Secrets под именем `MUSIC_CHECK_WORKER_TOKEN` и разрешить
+   ноутбуку доступ. Либо ввести его в скрытом поле при первом получении задания.
+4. В разделе 5 ввести `SITE_URL` (HTTPS-адрес сайта без пути) и `JOB_ID`, нажать ▶.
+   Ноутбук получает право на конкретную попытку и скачивает аудио с проверкой SHA-256.
+5. В разделе 6 загрузить записи для сравнения. Встроенной базы песен нет.
+6. В разделе 7 нажать ▶. После обработки результат отправляется на сайт автоматически.
+7. Для следующего задания повторять только разделы 5 и 7, сохраняя ту же коллекцию.
 
-PowerShell:
+Colab не ждёт задания в фоне, не опрашивает очередь и не открывает публичный API.
+Оператор запускает каждую обработку из интерфейса ноутбука. На попытку даётся час;
+просроченную попытку нужно получить заново. Повторная отправка старого результата
+после новой попытки отвергается. При ошибке обработки повторный claim разрешён сразу.
+Если запрос отправки результата потерял соединение после фактического сохранения,
+сначала проверить статус на сайте: завершённое задание повторно не запускается.
 
-```powershell
-docker run --rm -v "${PWD}:/data" melawdy-music-plagiarism:local compare input/my_song.mp3 --reference input/reference.mp3 --device cpu --output results/my_check.json
-```
+Опция Google Drive сохраняет коллекцию и кэш между сеансами. Модель не дообучается.
+Библиотеки устанавливаются в отдельный Python 3.11; ядро Colab не меняется.
 
-Несколько эталонов — повторите `--reference`:
+## API и доступ
 
-```sh
-docker run --rm -v "$PWD:/data" melawdy-music-plagiarism:local compare input/my_song.mp3 --reference input/reference.mp3 --reference input/another.wav --output results/catalog_check.json
-```
+- `POST /api/v1/music-check/jobs`: аудиофайл сырым телом, `Content-Length`, имя файла
+  в `X-File-Name` с URL-кодированием. Возвращает номер и отдельный `access_token`.
+- `GET /api/v1/music-check/jobs/{id}`: состояние/результат, заголовок
+  `X-Music-Job-Token` с токеном владельца задания.
+- `GET /api/v1/music-check/jobs/{id}/audio`: исходное аудио с тем же токеном.
+- `POST /api/v1/music-check/worker/jobs/{id}/claim`: ручной запуск; требует
+  `Authorization: Bearer <MUSIC_CHECK_WORKER_TOKEN>`, возвращает `lease_token`.
+- `GET /api/v1/music-check/worker/jobs/{id}/audio`: аудио для этой попытки.
+- `PUT /api/v1/music-check/worker/jobs/{id}/result`: результат этой попытки.
+  Последние два метода требуют операторский Bearer и `X-Claim-Token`.
 
-В Docker указывайте пути внутри `/data` или относительные пути, как выше.
-Файлы за пределами смонтированной папки контейнер не видит.
-На Linux создаваемые контейнером отчёты могут принадлежать root;
-для своего UID/GID добавьте `--user "$(id -u):$(id -g)"` к `docker run`.
+Номер задания сам по себе не даёт доступ к аудио/результату. Токен владельца хранится
+только в localStorage его браузера; JSON-экспорт его не включает. Для другого браузера
+нужно создать новое задание. Операторский ключ не передаётся посетителям сайта.
+Доступ к заданию истекает через TTL; очистка файлов выполняется при последующем
+обращении к хранилищу. Очередь ограничена числом заданий и суммарным объёмом.
 
-Распознавание кэшируется в `.cache/transcriptions` по содержимому файла и версии
-адаптера. При повторном сравнении тех же файлов оно не выполняется заново.
-Ключ кэша учитывает устройство и длину окна Demucs. Кэш содержит извлечённые
-ноты, а не копии исходных аудиофайлов.
-При изменении моделей/параметров распознавания удалите соответствующий кэш
-или задайте другую папку через `--cache-dir`.
+## Результаты и границы демонстрации
 
-### Сохранить распознанные ноты отдельно
+Возвращаются названия сравниваемых записей, таймкоды и исходное расстояние CLEWS.
+Меньшее расстояние — более близкий кандидат; универсальный порог не задан.
+Сайт показывает фактически проверенное число записей и позволяет послушать участок
+исследуемой песни. Аудио коллекции оператора на сайт не передаётся.
+Пути папок Colab и секреты в серверный отчёт не отправляются.
 
-```sh
-docker run --rm -v "$PWD:/data" melawdy-music-plagiarism:local transcribe input/my_song.mp3 --output results/my_notes.json
-docker run --rm -v "$PWD:/data" melawdy-music-plagiarism:local compare-json results/my_notes.json --reference examples/same_melody.json --output results/notes_check.json
-```
+Разметка SIREN и каталог Discogs-VI для запуска не требуются: векторы рассчитываются
+из доступного аудио. Права на коллекцию и условия весов рассматриваются отдельно.
+Воспроизведение исходной процедуры оценки CLEWS целиком не заявляется: используется
+ранжирование пар окон по исходной метрике модели. Полностью одинаковые файлы исключаются.
 
-## Без Docker: собственное Python-окружение
+Локальный ноутбук `colab/CLEWS_music_search.ipynb` оставлен для проверки без сайта.
+Старый код Mippia, его зависимости, веса, примеры и тесты из ветки удалены.
 
-Используйте Python 3.11 или 3.12, не окружение сайта.
-На Linux для полной аудиоцепочки нужны ffmpeg, libsndfile, C/C++ compiler.
-На Windows для сборки madmom удобнее использовать Docker или WSL.
+## Источники
 
-Только сравнение готовых JSON:
-
-```sh
-python3.11 -m venv .venv
-.venv/bin/python -m pip install torch==2.5.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python run.py doctor --comparator-only
-.venv/bin/python run.py compare-json examples/query.json --reference examples/same_melody.json --reference examples/different.json --output results/example.json
-```
-
-Для аудио дополнительно:
-
-```sh
-.venv/bin/python -m pip install setuptools==75.6.0 wheel==0.45.1 Cython==3.0.11 numpy==1.26.4
-.venv/bin/python -m pip install torchaudio==2.5.1+cpu torchvision==0.20.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
-.venv/bin/python -m pip install --no-build-isolation -r requirements-audio.txt
-.venv/bin/python install_madmom_metadata.py
-.venv/bin/python run.py weights
-.venv/bin/python run.py doctor
-.venv/bin/python run.py compare input/my_song.mp3 --reference input/reference.mp3 --output results/my_check.json
-```
-
-В собственной CUDA-среде можно выбрать `--device cuda` или `--device auto`;
-нужно самостоятельно установить совместимые CUDA-сборки torch/torchaudio/torchvision.
-Включённый Docker-образ использует CPU.
-
-## Как читать результат
-
-- `matches[].score` — максимальное сходство пары вокальных фрагментов в диапазоне 0–1.
-- `top_segments` — лучшие пары с началом и концом фрагмента в запросе и эталоне.
-- `no_query_segments` — в запросе нет пригодных фрагментов: например, нет вокальных
-  нот или мало полных тактов.
-- `no_reference_segments` — эталоны не содержат пригодных фрагментов.
-- Ошибка распознавания/формата/окружения выводится в терминал, exit code 2.
-  `doctor` возвращает 1, если окружение неполное.
-
-Не интерпретируйте балл как процент вероятности плагиата. Алгоритм сравнивает
-вокальную мелодию, ритм и темп, работает с четырёхтактовыми окнами в размере 4/4.
-Chroma убирает разницу октав, но автоматической проверки всех тональностей нет.
-Одинаковые или распространённые музыкальные обороты тоже могут давать высокие
-оценки. Инструментальные заимствования и права на произведение модуль не проверяет.
-
-## Проверки программы
-
-В отдельном Docker-окружении:
-
-```sh
-docker run --rm --network none -v "$PWD:/data" --entrypoint python melawdy-music-plagiarism:local -m unittest discover -s tests -v
-```
-
-Только comparator в локальном venv:
-
-```sh
-.venv/bin/python -m unittest discover -s tests -p test_comparison.py -v
-```
-
-Проверяются ранжирование одинаковой/другой мелодии, инвариантность к октаве,
-разные размеры батчей, отсутствие нот, неверные данные и запись отчётов.
-Полный набор дополнительно загружает реальные checkpoint в архитектуры моделей
-и выполняет прямой проход AST. Это технические проверки, не оценка качества
-распознавания реальной музыки.
-
-Версии пакетов собранного и проверенного окружения сохранены в
-`environment-tested.txt`. Веса AST содержат несколько неиспользуемых старых
-слоёв; тест проверяет наличие всех нужных слоёв и допускает только эти известные
-лишние ключи, как в исходном загрузчике Mippia.
-
-Лицензии, происхождение и список изменений: `NOTICE.md`, `LICENSE`, `UPSTREAM.json`.
+- CLEWS: https://github.com/sony/clews (код MIT).
+- Веса: https://zenodo.org/records/15045900.
+- Ограничения интерактивного использования Colab: https://research.google.com/colaboratory/faq.html.

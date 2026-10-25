@@ -2,7 +2,7 @@
   async function request(path, options = {}) {
     const { responseType, ...fetchOptions } = options;
     const headers = { ...options.headers };
-    if (options.body !== undefined) headers["Content-Type"] = "application/json";
+    if (typeof options.body === "string" && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
     const csrfToken = window.ZPAuth?.getCsrfToken();
     if (csrfToken && !["GET", "HEAD"].includes(options.method || "GET")) {
       headers["X-CSRF-Token"] = csrfToken;

@@ -5,6 +5,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
 from backend.auth import SessionDep
+from backend.config import get_settings
+from backend.music_check import available as music_check_available
 from backend.content_repository import ContentSearchRepository
 from backend.models import (
     AssessmentQuestion, AssessmentSurvey, ContentItem, ContentStatus, DocumentTemplate, QAPair,
@@ -19,8 +21,13 @@ router = APIRouter(prefix="/api/v1/public", tags=["public"])
 
 @router.get("/capabilities")
 def capabilities() -> dict:
-    return {"music_check": {"available": False,
-                            "message": "Проверка аудиофайлов пока не подключена. Результаты проверки недоступны."}}
+    enabled = music_check_available()
+    return {"music_check": {
+        "available": enabled, "mode": "manual_colab",
+        "max_upload_mb": get_settings().music_check_max_upload_mb,
+        "message": ("Демонстрационный режим: отправьте запись и передайте номер задания оператору."
+                    if enabled else "Демонстрационная проверка сейчас выключена."),
+    }}
 
 
 @router.get("/faq")

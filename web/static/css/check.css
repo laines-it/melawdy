@@ -322,57 +322,6 @@
   border-radius: 10px;
 }
 
-/* Блок вероятности плагиата */
-.plagiarism-block {
-  margin-top: 12px;
-  padding-top: 18px;
-  border-top: 1px solid #E0D6C4;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-}
-
-.plagiarism-label {
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 700;
-  font-size: 24px;
-  line-height: 1.2;
-  color: #000000;
-}
-
-.plagiarism-value {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 158px;
-  min-height: 43px;
-  padding: 6px 24px;
-  background: #FFAFB1;
-  border: 1px solid #E0D6C4;
-  border-radius: 12px;
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 700;
-  font-size: 26px;
-  color: #000000;
-}
-
-.plagiarism-value.is-low {
-  background: #E0F7E0;
-  color: #33A65E;
-}
-
-.plagiarism-value.is-medium {
-  background: #FAF0C2;
-  color: #B4BA25;
-}
-
-.plagiarism-value.is-high {
-  background: #FFAFB1;
-  color: #BA2525;
-}
-
 /* Адаптивность */
 @media (max-width: 1100px) {
   .check-layout {
@@ -422,3 +371,14 @@
     font-size: 22px;
   }
 }
+/* Ручная демонстрация CLEWS */
+[hidden] { display: none !important; }
+#job-number { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #93ABD8; border-radius: 8px; font: 14px monospace; }
+.job-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.job-buttons button, .match-item button, #download-result { border: 1px solid #93ABD8; border-radius: 8px; padding: 10px 14px; background: #D4E3F7; color: #0E0F12; cursor: pointer; }
+#query-audio { width: 100%; margin: 12px 0; }
+#job-filename, #selected-file, .match-item { overflow-wrap: anywhere; }
+#job-state { font-weight: 600; }
+.match-item p { margin: 4px 0; font-size: 14px; }
+.upload-dropzone[aria-disabled="true"] { opacity: .65; cursor: default; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #2D64CB; outline-offset: 3px; }

@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Проверить музыку — Законпозитор</title>
-  <link rel="icon" type="image/png" href="./brand-mark.png">
-  <link rel="stylesheet" href="./css/style.css">
-  <link rel="stylesheet" href="./css/melawdy.css">
-  <link rel="stylesheet" href="./css/check.css">
-  <link rel="stylesheet" href="./css/account.css">
+  <link rel="icon" type="image/png" href="/brand-mark.png">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/melawdy.css">
+  <link rel="stylesheet" href="/css/check.css?v=clews-demo-1">
+  <link rel="stylesheet" href="/css/account.css">
 </head>
 <body>
   <div class="page-shell">
@@ -16,19 +16,19 @@
     <header class="site-header">
       <div class="container header-inner">
         <a href="/" class="brand">
-          <img src="./brand-mark.png" alt="Законпозитор" class="brand-mark" onerror="this.style.display='none'">
+          <img src="/brand-mark.png" alt="Законпозитор" class="brand-mark" onerror="this.style.display='none'">
           <span class="brand-name">Законпозитор</span>
         </a>
         <nav class="main-nav">
-          <a href="./documents" class="nav-link">Конструктор договоров</a>
-          <a href="./calculator" class="nav-link">Калькулятор</a>
-          <a href="./search" class="nav-link">Полезные материалы</a>
-          <a href="./about" class="nav-link">О нас</a>
+          <a href="/documents" class="nav-link">Конструктор договоров</a>
+          <a href="/calculator" class="nav-link">Калькулятор</a>
+          <a href="/search" class="nav-link">Полезные материалы</a>
+          <a href="/about" class="nav-link">О нас</a>
         </nav>
         <div class="header-actions">
-          <a class="search-toggle" href="./search" aria-label="Поиск">⌕</a>
-          <a href="./account" class="user-chip" data-user-name hidden></a>
-          <a href="./login" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
+          <a class="search-toggle" href="/search" aria-label="Поиск">⌕</a>
+          <a href="/account" class="user-chip" data-user-name hidden></a>
+          <a href="/login" class="button-login" data-auth-action data-auth-state="logged-out">Войти →</a>
         </div>
       </div>
     </header>
@@ -39,7 +39,7 @@
         <div class="container">
           <h1 class="check-title">Проверить музыку</h1>
           <p class="check-subtitle">
-            Найдите правообладателя, проверьте права на использование музыки и получите рекомендации.
+            Найдите похожие музыкальные фрагменты в коллекции для демонстрации.
           </p>
         </div>
       </section>
@@ -54,22 +54,42 @@
               <div class="check-card">
                 <h2 class="check-card-title">Загрузите свою музыку</h2>
                 <p class="check-card-hint">
-                  Доступность загрузки и анализа определяется сервером.
+                  Демонстрационный режим: обработку вручную запускает оператор. Поиск выполняется только по подготовленной коллекции.
                 </p>
 
                 <div class="upload-dropzone" id="upload-dropzone" aria-disabled="true">
-                  <input type="file" id="file-input" accept=".mp3,.wav,.flac,.m4a,audio/*" hidden multiple disabled>
+                  <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a,.aac" hidden disabled>
                   <div class="upload-icon">♪</div>
-                  <p class="upload-text">Загрузка станет доступна после подключения анализа аудио</p>
+                  <p class="upload-text">Выберите файл или перетащите его сюда</p>
                   <button type="button" class="upload-button" id="choose-files-btn" disabled>Выбрать файлы</button>
                 </div>
 
+                <p id="upload-instructions" class="check-card-hint"></p>
+                <p id="selected-file"></p>
                 <div class="upload-status" id="upload-status" role="status" aria-live="polite">Проверяем доступность сервиса…</div>
 
                 <div class="check-actions">
-                  <button type="button" class="button-primary" id="check-btn" disabled>Проверить</button>
+                  <button type="button" class="button-primary" id="check-btn" disabled>Отправить на проверку</button>
                 </div>
               </div>
+
+              <section class="check-card" id="job-panel" hidden aria-label="Задание проверки">
+                <h2 class="check-card-title">Ваше задание</h2>
+                <p id="job-filename"></p>
+                <p id="job-state" role="status" aria-live="polite"></p>
+                <label for="job-number">Номер для передачи оператору</label>
+                <input id="job-number" readonly spellcheck="false">
+                <div class="job-buttons">
+                  <button type="button" id="copy-job">Скопировать номер</button>
+                  <button type="button" id="refresh-job">Обновить статус</button>
+                </div>
+                <p id="job-expiry" class="check-card-hint"></p>
+                <audio id="query-audio" controls preload="metadata" hidden></audio>
+                <details><summary>Для оператора демонстрации</summary>
+                  <p>Откройте ноутбук, подготовьте коллекцию и вручную запустите задание по этому номеру.</p>
+                  <a href="/api/v1/music-check/notebook" download>Скачать ноутбук для Colab</a>
+                </details>
+              </section>
 
               <!-- Блок с шаблонами -->
               <div class="check-card">
@@ -86,18 +106,15 @@
             <aside class="check-sidebar">
               <div class="check-result-card">
                 <h2 class="check-result-title">Результат проверки</h2>
-                <p class="check-result-hint">
-                  Результаты появятся после подключения сервиса анализа аудио.
-                </p>
+                <p class="check-result-hint" id="result-hint">Отправьте запись и передайте номер задания оператору. Результат появится после обработки.</p>
 
                 <div class="matches-list" id="matches-list">
                   <!-- Заполняется через JS -->
                 </div>
 
-                <div class="plagiarism-block">
-                  <span class="plagiarism-label">Оценка совпадений:</span>
-                  <span class="plagiarism-value" id="plagiarism-value">—</span>
-                </div>
+                <p id="result-summary" class="check-card-hint"></p>
+                <p class="check-card-hint">Оценка сходства не является процентом плагиата или юридическим заключением.</p>
+                <button type="button" id="download-result" hidden>Скачать результат JSON</button>
               </div>
             </aside>
           </div>
@@ -113,8 +130,8 @@
     </footer>
   </div>
 
-  <script src="./js/api.js" defer></script>
-  <script src="./js/auth.js" defer></script>
-  <script src="./js/check.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+  <script src="/js/check.js?v=clews-demo-1" defer></script>
 </body>
 </html>
