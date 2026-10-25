@@ -458,33 +458,12 @@ document.addEventListener("DOMContentLoaded", () => {
         ? [rawChunks]
         : [];
 
-    // Время чтения
-    const words = chunks.join(" ").match(/\S+/g)?.length || 0;
-    const minutes = Math.max(1, Math.ceil(words / 200));
-    setText($("#article-reading-time"), `${minutes} мин. чтения`);
-
-    // Дата публикации/проверки
-    const datesEl = $("#article-dates");
-    if (datesEl) {
-      const fmt = (value) => {
-        if (!value) return "";
-        const d = new Date(value);
-        return Number.isNaN(d.getTime())
-          ? ""
-          : d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-      };
-      const published = fmt(record.published_at);
-      const checked = fmt(record.checked_at || record.reviewed_at || record.updated_at);
-      const parts = [];
-      if (published) parts.push(`Дата публикации/проверки: ${published}`);
-      if (checked && checked !== published) parts.push(`Проверено: ${checked}`);
-      if (parts.length) {
-        datesEl.textContent = parts.join(" · ");
-        datesEl.hidden = false;
-      } else {
-        datesEl.hidden = true;
-      }
-    }
+    const actualityEl = $("#article-actuality-date");
+    const actuality = new Date(record.updated_at || record.published_at || "");
+    const hasDate = !Number.isNaN(actuality.getTime());
+    setText(actualityEl, hasDate
+      ? `Актуальна на ${actuality.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}`
+      : "Дата актуальности не указана");
 
     const introEl = $("#article-intro");
     const chunksEl = $("#article-chunks");

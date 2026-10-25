@@ -114,6 +114,7 @@ def read_article_by_slug(slug: str, session: SessionDep) -> dict:
         raise HTTPException(404, "Статья не найдена")
     return {"id": str(item.id), "slug": item.slug, "title": item.title,
             "summary": item.summary,
+            "published_at": item.published_at, "updated_at": item.updated_at,
             "category": {"id": str(item.category.id), "name": item.category.name} if item.category else None,
             "chunks": [chunk.body for chunk in sorted(item.chunks, key=lambda c: c.chunk_index)]}
 
@@ -128,6 +129,7 @@ def read_article(article_id: int, session: SessionDep) -> dict:
     if item is None:
         raise HTTPException(404, "Статья не найдена")
     return {"id": str(item.id), "title": item.title, "summary": item.summary,
+            "published_at": item.published_at, "updated_at": item.updated_at,
             "category": {"id": str(item.category.id), "name": item.category.name} if item.category else None,
             "chunks": [chunk.body for chunk in sorted(item.chunks, key=lambda chunk: chunk.chunk_index)]}
 

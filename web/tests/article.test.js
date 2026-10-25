@@ -172,7 +172,7 @@ async function runtime(search, responses, pathname = "/article") {
   return { document, calls, events, get: (selector) => document.querySelector(selector) };
 }
 
-const article = { id: "42", title: "Как оформить соавторство", summary: "Описание статьи",
+const article = { id: "42", updated_at: "2026-10-20T12:00:00Z", published_at: "2026-10-18T12:00:00Z", title: "Как оформить соавторство", summary: "Описание статьи",
                   category: { id: "3", name: "Договорённости" },
                   chunks: ["## Равные права\n\nВводный раздел.",
                            "Первый абзац.\nПродолжение.\n\nВторой абзац.",
@@ -185,7 +185,7 @@ test("loads the URL id, renders every chunk in order and keeps stored HTML as te
   assert.equal(get("#article-title").textContent, article.title);
   assert.equal(get("#article-summary").textContent, article.summary);
   assert.equal(get("#article-category").textContent, "Договорённости");
-  assert.equal(get("#article-reading-time").textContent, "1 мин. чтения");
+  assert.equal(get("#article-actuality-date").textContent, "Актуальна на 20 октября 2026 г.");
   assert.equal(get("#article").hidden, false);
   assert.equal(get("#article-state").hidden, true);
   const body = get("#article-chunks");
