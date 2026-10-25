@@ -80,6 +80,10 @@ curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 15 \
     --resolve lawmposer.ru:443:127.0.0.1 https://lawmposer.ru/version.json \
     | python3 -c 'import json,sys; assert json.load(sys.stdin)["revision"] == sys.argv[1]' "$revision"
 
+echo 'Importing the document template from the deployed API image'
+timeout 120 k3s kubectl -n melawdy exec deployment/api -c api -- \
+    python -m backend.import_template /app/docs/examples/coauthors-template.json
+
 trap - ERR
 kube annotate deployment api web "melawdy.ru/revision=$revision" --overwrite
 printf '%s\n' "$revision" > "$root/deployed-revision.tmp"
