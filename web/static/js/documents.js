@@ -40,6 +40,20 @@ document.addEventListener("DOMContentLoaded", () => {
     form.setAttribute("aria-busy", String(value));
   }
 
+  // ---- Имя файла из Content-Disposition ----
+  // Бэкенд отдаёт: attachment; filename="document-<id>.<ext>"
+  function filenameFromBlob(blob) {
+    if (blob && typeof blob.filename === "string" && blob.filename) return blob.filename;
+    return null;
+  }
+  function safeFilename(base) {
+    return String(base || "document")
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120) || "document";
+  }
+
   async function loadCatalog() {
     if (catalogBusy) return;
     catalogBusy = true;
@@ -377,6 +391,13 @@ document.addEventListener("DOMContentLoaded", () => {
     $("#document-login-status").textContent = "";
     if (!$("#login-dialog").open) $("#login-dialog").showModal();
   }
+  function selectedFormat() {
+    const raw = ($("#download-format")?.value || "docx").toLowerCase();
+    if (raw !== "docx" && raw !== "pdf") {
+      throw new Error("Выберите формат файла: Word (DOCX) или PDF.");
+    }
+    return raw;
+  }
   async function perform(action) {
     if (busy) return;
     $("#status").textContent = "";
@@ -391,17 +412,19 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       await saveDraft();
       if (action === "export") {
-          const ext = $("#download-format").value === "pdf" ? "pdf" : "docx";
-          const blob = await api(`cabinet/documents/${documentId}/download${ext === "pdf" ? "?format=pdf" : ""}`, { responseType: "blob" });
-          const url = URL.createObjectURL(blob);
-          const link = element("a");
-          link.href = url;
-          link.download = `${$("#document-title").value.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 120)}.${ext}`;
-          document.body.append(link);
-          link.click();
-          link.remove();
-          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-          $("#save-state").textContent = `Документ сохранён. Файл ${ext.toUpperCase()} готов к скачиванию`;
+        const ext = selectedFormat();
+        const queryString = ext === "pdf" ? "?format=pdf" : "";
+        const blob = await api(`cabinet/documents/${documentId}/download${queryString}`, { responseType: "blob" });
+        const url = URL.createObjectURL(blob);
+        const link = element("a");
+        link.href = url;
+        link.download = filenameFromBlob(blob)
+          || `${safeFilename($("#document-title").value)}.${ext}`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        $("#save-state").textContent = `Документ сохранён. Файл ${ext.toUpperCase()} готов к скачиванию`;
       }
     } catch (error) { fail(error); }
     finally { setBusy(false); }

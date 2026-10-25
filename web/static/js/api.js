@@ -25,7 +25,13 @@
       error.status = response.status;
       throw error;
     }
-    if (responseType === "blob") return response.blob();
+    if (responseType === "blob") {
+      const blob = await response.blob();
+      const disposition = response.headers?.get("Content-Disposition") || "";
+      const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(disposition);
+      if (match) blob.filename = decodeURIComponent(match[1]);
+      return blob;
+    }
     return response.status === 204 ? null : response.json();
   }
   window.MelawdyAPI = { request };
