@@ -2,6 +2,9 @@
 set -eu
 
 alembic upgrade head
+if [ "${IMPORT_DOCUMENT_TEMPLATES:-false}" = "true" ]; then
+    python -m backend.import_template /app/docs/examples/coauthors-template.json
+fi
 if [ "${IMPORT_FEES:-true}" = "true" ]; then
     python -m backend.import_fees
 fi

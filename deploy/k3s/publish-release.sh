@@ -25,6 +25,7 @@ docker build --label "org.opencontainers.image.revision=$DEPLOY_REVISION" \
     --build-arg DOWNLOAD_EMBEDDING_MODEL=true \
     --build-arg EMBEDDINGS_ENABLED="${EMBEDDINGS_ENABLED:-true}" \
     --build-arg IMPORT_FEES="${IMPORT_FEES:-true}" \
+    --build-arg IMPORT_DOCUMENT_TEMPLATES=true \
     -f backend/Dockerfile -t "melawdy-api:$DEPLOY_REVISION" .
 docker build --label "org.opencontainers.image.revision=$DEPLOY_REVISION" \
     -f web/Dockerfile -t "melawdy-web:$DEPLOY_REVISION" web
