@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         description.className = "template-desc";
         card.append(title, description);
         const button = element("a", "Создать документ →");
-        button.href = `./documents?template=${encodeURIComponent(template.id)}`;
+        button.href = `/documents/${encodeURIComponent(template.id)}`;
         button.className = "template-download";
         card.append(button);
         list.append(card);

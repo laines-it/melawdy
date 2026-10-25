@@ -70,17 +70,7 @@ def list_templates(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100
     return [{"id": str(item.id), "title": item.title, "description": item.description} for item in items]
 
 
-@router.get("/templates/{slug}")
-def read_template_by_slug(slug: str, session: SessionDep) -> dict:
-    item = session.scalar(select(DocumentTemplate).where(
-        DocumentTemplate.slug == slug, DocumentTemplate.is_active.is_(True)))
-    if item is None:
-        raise HTTPException(404, "Шаблон не найден")
-    return {"id": str(item.id), "title": item.title, "description": item.description,
-            "body": item.body, "slug": item.slug, "document_type": item.document_type,
-            "schema_json": item.schema_json or {}, "structure_json": item.structure_json or {}}
-
-@router.get("/templates/{template_id}")
+@router.get("/templates/{template_id:int}")
 def read_template(template_id: int, session: SessionDep) -> dict:
     item = session.scalar(select(DocumentTemplate).where(
         DocumentTemplate.id == template_id, DocumentTemplate.is_active.is_(True)))
@@ -90,6 +80,16 @@ def read_template(template_id: int, session: SessionDep) -> dict:
             "slug": item.slug, "document_type": item.document_type,
             "schema_json": item.schema_json or {}, "structure_json": item.structure_json or {}}
 
+
+@router.get("/templates/{slug}")
+def read_template_by_slug(slug: str, session: SessionDep) -> dict:
+    item = session.scalar(select(DocumentTemplate).where(
+        DocumentTemplate.slug == slug, DocumentTemplate.is_active.is_(True)))
+    if item is None:
+        raise HTTPException(404, "Шаблон не найден")
+    return {"id": str(item.id), "title": item.title, "description": item.description,
+            "body": item.body, "slug": item.slug, "document_type": item.document_type,
+            "schema_json": item.schema_json or {}, "structure_json": item.structure_json or {}}
 
 @router.get("/articles")
 def list_articles(session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 25,
