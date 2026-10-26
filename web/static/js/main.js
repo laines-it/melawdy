@@ -41,10 +41,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Поиск на главной
   const searchForm = document.querySelector("#search-form");
+  const searchInput = document.querySelector("#search-query");
+  const searchClear = document.querySelector("#search-clear");
+
+  function syncHomeClear() {
+    if (searchClear && searchInput) searchClear.hidden = !searchInput.value;
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener("input", syncHomeClear);
+    syncHomeClear();
+  }
+
+  if (searchClear && searchInput) {
+    searchClear.addEventListener("click", () => {
+      searchInput.value = "";
+      syncHomeClear();
+      searchInput.focus();
+    });
+  }
+
   if (searchForm) {
     searchForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      const query = document.querySelector("#search-query").value.trim();
+      const query = searchInput.value.trim();
       if (!query) return;
       window.location.href = `/search?query=${encodeURIComponent(query)}`;
     });

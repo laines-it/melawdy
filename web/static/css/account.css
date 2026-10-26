@@ -426,7 +426,7 @@
 }
 
 .profile-stats {
-  display: grid;
+  display: contents;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
@@ -837,9 +837,9 @@
 .profile-actions .primary-button:focus,
 .profile-actions .primary-button:visited,
 .profile-actions .primary-button:active {
-  color: #0E0F12;
+  color: #385F9D;
   text-decoration: none;
-  background: #B8CEEE;
+  background: #F2E0FC;
 }
 
 /* ---- Заголовок раздела: кнопка сворачивания перед названием ---- */

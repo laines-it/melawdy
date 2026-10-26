@@ -382,3 +382,35 @@
     font-size: 15px;
   }
 }
+
+.search-bar-clear {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #646D7B;
+  font-family: 'Manrope', var(--zp-font-sans), sans-serif;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.search-bar-clear:hover {
+  background: #f0ebd8;
+  color: #0E0F12;
+}
+
+.search-bar-clear:focus-visible {
+  outline: 2px solid #93ABD8;
+  outline-offset: 2px;
+}
+
+.search-bar-clear[hidden] {
+  display: none !important;
+}

@@ -237,6 +237,10 @@ body {
   color: var(--zp-text-muted);
 }
 
+.search-field input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
 .search-submit {
   width: 50px;
   height: 48px;
@@ -656,4 +660,36 @@ body {
   .about-why { grid-template-columns: 1fr; }
   .about-mission { padding: 18px 20px; }
   .about-outro { padding: 20px; }
+}
+
+.search-clear {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--zp-text-muted);
+  font-family: var(--zp-font-sans);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.search-clear:hover {
+  background: rgba(147, 171, 216, 0.25);
+  color: var(--zp-text);
+}
+
+.search-clear:focus-visible {
+  outline: 2px solid var(--zp-accent);
+  outline-offset: 2px;
+}
+
+.search-clear[hidden] {
+  display: none !important;
 }

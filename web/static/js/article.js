@@ -138,6 +138,68 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      if (src[i] === "*" && src[i + 1] === "*" && src[i + 2] === "*") {
+        const end = src.indexOf("***", i + 3);
+        if (end !== -1) {
+          const strong = document.createElement("strong");
+          const em = document.createElement("em");
+          appendInlineInto(em, src.slice(i + 3, end), registry);
+          strong.appendChild(em);
+          target.appendChild(strong);
+          i = end + 3;
+          continue;
+        }
+      }
+
+      if (src[i] === "*" && src[i + 1] === "*" && src[i + 2] === "*") {
+        let end = -1;
+        for (let k = i + 3; k < src.length; k++) {
+          if (src[k] === "*" && src[k + 1] !== "*" && src[k - 1] !== "*") {
+            end = k;
+            break;
+          }
+        }
+        if (end !== -1) {
+          const inner = src.slice(i + 3, end);
+          const em = document.createElement("em");
+          const strongEnd = inner.indexOf("**");
+          if (strongEnd !== -1) {
+            const strong = document.createElement("strong");
+            appendInlineInto(strong, inner.slice(0, strongEnd), registry);
+            em.appendChild(strong);
+            appendInlineInto(em, inner.slice(strongEnd + 2), registry);
+          } else {
+            appendInlineInto(em, inner, registry);
+          }
+          target.appendChild(em);
+          i = end + 1;
+          continue;
+        }
+      }
+
+      if (src[i] === "*" && src[i+1] === "*" && src[i+2] === "*") {
+        let end = -1;
+        for (let k = i + 3; k < src.length; k++) {
+          if (src[k] === "*" && src[k+1] !== "*" && src[k-1] !== "*") { end = k; break; }
+        }
+        if (end !== -1) {
+          const inner = src.slice(i + 3, end);
+          const em = document.createElement("em");
+          const strongEnd = inner.indexOf("**");
+          if (strongEnd !== -1) {
+            const strong = document.createElement("strong");
+            appendInlineInto(strong, inner.slice(0, strongEnd), registry);
+            em.appendChild(strong);
+            appendInlineInto(em, inner.slice(strongEnd + 2), registry);
+          } else {
+            appendInlineInto(em, inner, registry);
+          }
+          target.appendChild(em);
+          i = end + 1;
+          continue;
+        }
+      }
+
       if (src[i] === "`") {
         const end = src.indexOf("`", i + 1);
         if (end !== -1) {

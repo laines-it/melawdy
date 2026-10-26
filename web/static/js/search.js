@@ -25,6 +25,80 @@ document.addEventListener("DOMContentLoaded", () => {
   function appendInlineParsed(target, src) {
     let i = 0;
     while (i < src.length) {
+      
+      if (src[i] === "*" && src[i + 1] === "*" && src[i + 2] === "*") {
+        const end = src.indexOf("***", i + 3);
+        if (end !== -1) {
+          const strong = document.createElement("strong");
+          const em = document.createElement("em");
+          appendInlineParsed(em, src.slice(i + 3, end));
+          strong.appendChild(em);
+          target.appendChild(strong);
+          i = end + 3;
+          continue;
+        }
+      }
+
+      if (src[i] === "*" && src[i + 1] === "*" && src[i + 2] === "*") {
+        let end = -1;
+        for (let k = i + 3; k < src.length; k++) {
+          if (src[k] === "*" && src[k + 1] !== "*" && src[k - 1] !== "*") {
+            end = k;
+            break;
+          }
+        }
+        if (end !== -1) {
+          const inner = src.slice(i + 3, end);
+          const em = document.createElement("em");
+          const strongEnd = inner.indexOf("**");
+          if (strongEnd !== -1) {
+            const strong = document.createElement("strong");
+            appendInlineParsed(strong, inner.slice(0, strongEnd));
+            em.appendChild(strong);
+            appendInlineParsed(em, inner.slice(strongEnd + 2));
+          } else {
+            appendInlineParsed(em, inner);
+          }
+          target.appendChild(em);
+          i = end + 1;
+          continue;
+        }
+      }
+
+      if (src[i] === "*" && src[i + 1] === "*" && src[i + 2] === "*") {
+        let end = -1;
+        for (let k = i + 3; k < src.length; k++) {
+          if (src[k] === "*" && src[k + 1] !== "*" && src[k - 1] !== "*") {
+            end = k;
+            break;
+          }
+        }
+        if (end !== -1) {
+          const em = document.createElement("em");
+          appendInlineParsed(em, src.slice(i + 3, end));
+          target.appendChild(em);
+          i = end + 1;
+          continue;
+        }
+      }
+
+      if (src[i] === "*" && src[i + 1] === "*" && src[i + 2] === "*") {
+        let end = -1;
+        for (let k = i + 3; k < src.length - 1; k++) {
+          if (src[k] === "*" && src[k + 1] === "*" && src[k - 1] !== "*" && src[k + 2] !== "*") {
+            end = k;
+            break;
+          }
+        }
+        if (end !== -1) {
+          const strong = document.createElement("strong");
+          appendInlineParsed(strong, src.slice(i + 3, end));
+          target.appendChild(strong);
+          i = end + 2;
+          continue;
+        }
+      }
+
       if (src[i] === "`") {
         const end = src.indexOf("`", i + 1);
         if (end !== -1) {
@@ -158,10 +232,34 @@ document.addEventListener("DOMContentLoaded", () => {
     results.replaceChildren(box);
   }
 
+  const clearBtn = document.querySelector("#search-clear");
+
+  function syncClearButton() {
+    if (clearBtn) clearBtn.hidden = !input.value;
+  }
+
+  input.addEventListener("input", syncClearButton);
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      input.value = "";
+      syncClearButton();
+      input.focus();
+
+      const url = new URL(window.location.href);
+      url.searchParams.delete("query");
+      window.history.pushState({ query: "" }, "", url);
+      runSearch("");
+    });
+  }
+
+  syncClearButton();
+
   async function runSearch(query) {
     const currentVersion = ++searchVersion;
     status.textContent = "";
     results.hidden = false;
+    if (typeof syncClearButton === "function") syncClearButton();
 
     const isBrowse = !query;
     if (!isBrowse) status.textContent = "Поиск…";
@@ -220,6 +318,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("popstate", () => {
     const query = new URLSearchParams(window.location.search).get("query") || "";
     input.value = query;
+    syncClearButton();
     runSearch(query.trim());
   });
 });
