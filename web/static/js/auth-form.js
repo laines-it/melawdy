@@ -1,5 +1,26 @@
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector("#auth-form");
+  form.querySelectorAll("input[type=password]").forEach((input) => {
+    const wrap = document.createElement("div");
+    wrap.className = "password-wrap";
+    input.parentNode.insertBefore(wrap, input);
+    wrap.append(input);
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "password-toggle";
+    toggle.textContent = "👁";
+    toggle.setAttribute("aria-label", "Показать пароль");
+    toggle.setAttribute("aria-pressed", "false");
+    toggle.addEventListener("click", () => {
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      toggle.classList.toggle("is-visible", show);
+      toggle.setAttribute("aria-pressed", String(show));
+      toggle.setAttribute("aria-label", show ? "Скрыть пароль" : "Показать пароль");
+    });
+    wrap.append(toggle);
+  });
   const status = document.querySelector("#status");
   const button = form.querySelector("button[type=submit]");
   const password = form.elements.namedItem("password");
