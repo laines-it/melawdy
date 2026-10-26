@@ -309,6 +309,24 @@
   margin: 0;
 }
 
+.case-card-title-link {
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.case-card-title-link:hover {
+  color: #385F9D;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.case-card-title-link:focus-visible {
+  outline: 2px solid #526FA5;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 .case-card-meta {
   font-family: 'Manrope', sans-serif;
   font-size: 13px;
@@ -837,10 +855,12 @@
 .profile-actions .primary-button:focus,
 .profile-actions .primary-button:visited,
 .profile-actions .primary-button:active {
-  color: #0E0F12;
+  color: #385F9D;
   text-decoration: none;
-  background: #B8CEEE;
+  background: #F2E0FC;
 }
+
+.profile-actions .primary-button:hover {  text-decoration: underline; }
 
 /* ---- Заголовок раздела: кнопка сворачивания перед названием ---- */
 .account-block-header {
