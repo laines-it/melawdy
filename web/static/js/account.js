@@ -51,6 +51,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      if (src[i] === "*" && src[i + 1] === "*" && src[i + 2] === "*") {
+        const end = src.indexOf("***", i + 3);
+        if (end !== -1) {
+          const strong = document.createElement("strong");
+          const em = document.createElement("em");
+          appendInlineParsed(em, src.slice(i + 3, end));
+          strong.appendChild(em);
+          target.appendChild(strong);
+          i = end + 3;
+          continue;
+        }
+      }
+
       if (src[i] === "*" && src[i + 1] === "*") {
         const end = src.indexOf("**", i + 2);
         if (end !== -1) {
@@ -139,11 +152,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const head = element("div", "");
       head.className = "case-card-head";
+
+      const titleLink = element("a", doc.title || "Без названия");
+      titleLink.className = "case-card-title case-card-title-link";
+      titleLink.href = `/documents?document=${encodeURIComponent(doc.id)}`;
+      titleLink.setAttribute("aria-label", `Открыть документ: ${doc.title || "Без названия"}`);
+
       head.append(
-        element("h3", doc.title || "Без названия"),
+        titleLink,
         element("span", statusLabels[doc.status] || doc.status || "—"),
       );
-      head.children[0].className = "case-card-title";
       head.children[1].className = `case-status status-${doc.status || "draft"}`;
 
       const meta = element("p", `Создано: ${formatDate(doc.created_at)}`);
@@ -203,8 +221,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const card = element("article", "");
       card.className = "case-card";
 
-      const title = element("h3");
-      title.className = "case-card-title";
+      const articleHref = fav.slug
+        ? `/article/${encodeURIComponent(fav.slug)}`
+        : `./article.html?id=${encodeURIComponent(fav.content_item_id)}`;
+
+      const title = element("a");
+      title.className = "case-card-title case-card-title-link";
+      title.href = articleHref;
+      title.setAttribute("aria-label", "Читать статью: " + (fav.title || "Без названия"));
       renderInlineMarkdownInto(title, fav.title || "Без названия");
 
       const meta = element("p", `Добавлено/проверено: ${formatDate(fav.created_at)}`);
@@ -218,9 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
       footer.className = "case-card-footer";
       const read = element("a", "Читать далее →");
       read.className = "case-link";
-      read.href = fav.slug
-        ? `/article/${encodeURIComponent(fav.slug)}`
-        : `./article.html?id=${encodeURIComponent(fav.content_item_id)}`;
+      read.href = articleHref;
       footer.append(read);
 
       card.append(title, meta, summary, footer);
