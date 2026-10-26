@@ -919,9 +919,6 @@
   position: relative;
 }
 
-.password-wrap input {
-  padding-right: 52px;
-}
 
 .password-toggle {
   position: absolute;
