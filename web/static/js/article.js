@@ -247,6 +247,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      if (src[i] === "*" && src[i + 1] === "*" && src[i + 2] === "*") {
+        const end = src.indexOf("***", i + 3);
+        if (end !== -1) {
+          const strong = document.createElement("strong");
+          const em = document.createElement("em");
+          appendInlineInto(em, src.slice(i + 3, end), registry);
+          strong.appendChild(em);
+          target.appendChild(strong);
+          i = end + 3;
+          continue;
+        }
+      }
+
       if (src[i] === "*" && src[i + 1] === "*") {
         const end = src.indexOf("**", i + 2);
         if (end !== -1) {
@@ -521,6 +534,21 @@ document.addEventListener("DOMContentLoaded", () => {
         : [];
 
     const actualityEl = $("#article-actuality-date");
+    const addedDateWrapper = $("#article-added-date-wrapper");
+    const addedDateEl = $("#article-added-date");
+    const addedDateRaw = record.created_at || record.updated_at || record.published_at;
+    const addedDate = new Date(addedDateRaw);
+    if (!Number.isNaN(addedDate.getTime()) && addedDateWrapper && addedDateEl) {
+      const formattedDate = addedDate.toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+      addedDateEl.textContent = `Добавлено/проверено: ${formattedDate}`;
+      addedDateWrapper.hidden = false;
+    } else if (addedDateWrapper) {
+      addedDateWrapper.hidden = true;
+    }
     const actuality = new Date(record.updated_at || record.published_at || "");
     const hasDate = !Number.isNaN(actuality.getTime());
     setText(actualityEl, hasDate
@@ -594,6 +622,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const a = document.createElement("a");
         a.href = href;
         renderInlineInto(a, rec.title || "Без названия");
+        a.appendChild(document.createTextNode(" →"));
         li.appendChild(a);
         list.appendChild(li);
       }

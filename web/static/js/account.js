@@ -108,6 +108,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      if (src[i] === "*" && src[i + 1] === "*" && src[i + 2] === "*") {
+        const end = src.indexOf("***", i + 3);
+        if (end !== -1) {
+          const strong = document.createElement("strong");
+          const em = document.createElement("em");
+          appendInlineParsed(em, src.slice(i + 3, end));
+          strong.appendChild(em);
+          target.appendChild(strong);
+          i = end + 3;
+          continue;
+        }
+      }
+
       if (src[i] === "*" && src[i + 1] === "*") {
         const end = src.indexOf("**", i + 2);
         if (end !== -1) {
@@ -194,14 +207,36 @@ document.addEventListener("DOMContentLoaded", () => {
       const card = element("article", "");
       card.className = "case-card";
 
-      const head = element("div", "");
+            const head = element("div", "");
       head.className = "case-card-head";
-      head.append(
-        element("h3", doc.title || "Без названия"),
-        element("span", statusLabels[doc.status] || doc.status || "—"),
-      );
-      head.children[0].className = "case-card-title";
-      head.children[1].className = `case-status status-${doc.status || "draft"}`;
+
+      const title = element("h3", doc.title);
+      title.className = "case-card-title";
+
+      const statusPill = element("button", statusLabels[doc.status] || doc.status);
+      statusPill.type = "button";
+      statusPill.className = `case-status status-${doc.status}`;
+      statusPill.title = "Нажмите, чтобы сменить статус";
+      statusPill.disabled = doc.status === "archived";
+      statusPill.addEventListener("click", async () => {
+        const next = nextStatus(doc.status);
+        statusPill.disabled = true;
+        try {
+          await request(`cabinet/documents/${doc.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: next }),
+          });
+          doc.status = next;
+          statusPill.className = `case-status status-${next}`;
+          statusPill.textContent = statusLabels[next] || next;
+        } catch (error) {
+          document.querySelector("#status").textContent = error.message;
+        } finally {
+          statusPill.disabled = false;
+        }
+      });
+
+      head.append(title, statusPill);
 
       const meta = element("p", `Создано: ${formatDate(doc.created_at)}`);
       meta.className = "case-card-meta";
@@ -210,32 +245,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const footer = element("div", "");
       footer.className = "case-card-footer";
 
-      const statusBtn = element("button", "Сменить статус");
-      statusBtn.type = "button";
-      statusBtn.className = "button-secondary small";
-      statusBtn.addEventListener("click", async () => {
-        const next = nextStatus(doc.status);
-        statusBtn.disabled = true;
-        try {
-          await request(`cabinet/documents/${doc.id}`, {
-            method: "PATCH",
-            body: JSON.stringify({ status: next }),
-          });
-          doc.status = next;
-          head.children[1].className = `case-status status-${next}`;
-          head.children[1].textContent = statusLabels[next] || next;
-        } catch (error) {
-          document.querySelector("#status").textContent = error.message;
-        } finally {
-          statusBtn.disabled = false;
-        }
-      });
-
       const open = element("a", "Открыть документ →");
       open.className = "case-link";
-      open.href = `/documents?document=${encodeURIComponent(doc.id)}`;
+      open.href = `./documents.html?document=${encodeURIComponent(doc.id)}`;
 
-      footer.append(statusBtn, open);
+      footer.append(open);
       card.append(head, meta, footer);
       container.append(card);
     }
@@ -260,8 +274,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const card = element("article", "");
       card.className = "case-card";
 
-      const title = element("h3");
-      title.className = "case-card-title";
+      const articleHref = fav.slug
+        ? `/article/${encodeURIComponent(fav.slug)}`
+        : `./article.html?id=${encodeURIComponent(fav.content_item_id)}`;
+
+      const title = element("a");
+      title.className = "case-card-title case-card-title-link";
+      title.href = articleHref;
+      title.setAttribute("aria-label", "Читать статью: " + (fav.title || "Без названия"));
       renderInlineMarkdownInto(title, fav.title || "Без названия");
 
       const meta = element("p", `Добавлено/проверено: ${formatDate(fav.created_at)}`);
@@ -275,9 +295,7 @@ document.addEventListener("DOMContentLoaded", () => {
       footer.className = "case-card-footer";
       const read = element("a", "Читать далее →");
       read.className = "case-link";
-      read.href = fav.slug
-        ? `/article/${encodeURIComponent(fav.slug)}`
-        : `./article.html?id=${encodeURIComponent(fav.content_item_id)}`;
+      read.href = articleHref;
       footer.append(read);
 
       card.append(title, meta, summary, footer);

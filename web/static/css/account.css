@@ -309,6 +309,24 @@
   margin: 0;
 }
 
+.case-card-title-link {
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.case-card-title-link:hover {
+  color: #385F9D;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.case-card-title-link:focus-visible {
+  outline: 2px solid #526FA5;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 .case-card-meta {
   font-family: 'Manrope', sans-serif;
   font-size: 13px;
@@ -326,7 +344,7 @@
 
 .case-card-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
@@ -337,26 +355,49 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
+  min-width: 148px;
+  min-height: 38px;
+  padding: 6px 16px;
+  border: 0;
   border-radius: 999px;
   font-family: 'Manrope', sans-serif;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease;
 }
 
-.case-status.status-todo {
+.case-status:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.case-status:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.case-status:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.case-status.status-draft {
   background: #F5C4C4;
   color: #BA2525;
 }
 
-.case-status.status-progress {
+.case-status.status-in_progress {
   background: #F4F5C4;
   color: #B4BA25;
 }
 
-.case-status.status-done {
+.case-status.status-completed {
   background: #E0F7E0;
   color: #33A65E;
+}
+
+.case-status.status-archived {
+  background: #E8E4DA;
+  color: #6E7580;
 }
 
 .case-link {
@@ -842,6 +883,8 @@
   background: #F2E0FC;
 }
 
+.profile-actions .primary-button:hover {  text-decoration: underline; }
+
 /* ---- Заголовок раздела: кнопка сворачивания перед названием ---- */
 .account-block-header {
   display: flex;
@@ -893,4 +936,52 @@
   line-height: 1;
   color: #0E0F12;
   transition: transform 0.2s ease;
+}
+
+.password-wrap {
+  position: relative;
+}
+
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.password-toggle:hover,
+.password-toggle.is-visible {
+  opacity: 1;
+}
+
+.password-toggle.is-visible::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 50%;
+  border-top: 2px solid #0E0F12;
+  transform: rotate(-45deg);
+}
+
+
+input[type="password"]::-ms-reveal {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+input[type="password"]::-ms-clear {
+  display: none;
+  width: 0;
+  height: 0;
 }

@@ -110,6 +110,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      if (src[i] === "*" && src[i + 1] === "*" && src[i + 2] === "*") {
+        const end = src.indexOf("***", i + 3);
+        if (end !== -1) {
+          const strong = document.createElement("strong");
+          const em = document.createElement("em");
+          appendInlineParsed(em, src.slice(i + 3, end));
+          strong.appendChild(em);
+          target.appendChild(strong);
+          i = end + 3;
+          continue;
+        }
+      }
+
       if (src[i] === "*" && src[i + 1] === "*") {
         const end = src.indexOf("**", i + 2);
         if (end !== -1) {
