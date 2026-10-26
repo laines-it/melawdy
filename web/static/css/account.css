@@ -344,7 +344,7 @@
 
 .case-card-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
@@ -355,26 +355,49 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
+  min-width: 148px;
+  min-height: 38px;
+  padding: 6px 16px;
+  border: 0;
   border-radius: 999px;
   font-family: 'Manrope', sans-serif;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease;
 }
 
-.case-status.status-todo {
+.case-status:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.case-status:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.case-status:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.case-status.status-draft {
   background: #F5C4C4;
   color: #BA2525;
 }
 
-.case-status.status-progress {
+.case-status.status-in_progress {
   background: #F4F5C4;
   color: #B4BA25;
 }
 
-.case-status.status-done {
+.case-status.status-completed {
   background: #E0F7E0;
   color: #33A65E;
+}
+
+.case-status.status-archived {
+  background: #E8E4DA;
+  color: #6E7580;
 }
 
 .case-link {
