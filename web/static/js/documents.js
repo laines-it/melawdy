@@ -180,7 +180,7 @@ document.addEventListener("DOMContentLoaded", () => {
       button.type = "button";
       button.setAttribute("aria-label", section.title);
       button.setAttribute("aria-controls", `document-section-${index}`);
-      const icon = element("span", section.icon || ["1", "2", "3", "4", "5", "6", "7", "8", "9", "19"][index], "document-section-icon");
+      const icon = element("span", section.icon || ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"][index], "document-section-icon");
       icon.setAttribute("aria-hidden", "true");
       const check = element("span", "", "document-section-check");
       check.setAttribute("aria-label", "Раздел заполнен");
