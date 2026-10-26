@@ -349,9 +349,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (currentVersion !== version) return;
 
       const stats = overview?.stats || {};
-      document.querySelector("#stat-documents").textContent = stats.documents ?? 0;
-      document.querySelector("#stat-articles").textContent = stats.articles ?? 0;
-      document.querySelector("#stat-surveys").textContent = stats.surveys ?? 0;
+      const statDocs = document.querySelector("#stat-documents");
+      const statArts = document.querySelector("#stat-articles");
+      const statSurv = document.querySelector("#stat-surveys");
+      if (statDocs) statDocs.textContent = stats.documents ?? 0;
+      if (statArts) statArts.textContent = stats.articles ?? 0;
+      if (statSurv) statSurv.textContent = stats.surveys ?? 0;
 
       renderDocuments(asArray(documentsRaw));
       renderFavorites(asArray(favoritesRaw));
