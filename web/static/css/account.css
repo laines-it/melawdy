@@ -610,6 +610,12 @@
   margin-bottom: 8px;
 }
 
+.field-category_id,
+.field-type,
+.field-status {
+  width: 99.2%;
+}
+
 #fields input,
 #fields select,
 #fields textarea {
@@ -623,12 +629,6 @@
   font-size: 14px;
   color: #0E0F12;
   outline: none;
-}
-
-.field-category_id,
-.field-type,
-.field-status {
-  width: 99.2%;
 }
 
 #fields textarea {
