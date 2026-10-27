@@ -35,7 +35,7 @@ function setup() {
     localStorage: { getItem: (key) => storage.get(key) || null,
       setItem: (key, val) => storage.set(key, val), removeItem: (key) => storage.delete(key) },
     setTimeout: (fn) => { timers.push(fn); return timers.length; }, clearTimeout() {},
-    document: { querySelector: node, createElement: () => new Node(),
+    document: { querySelector: (id) => ["#result-hint", "#job-code-hint"].includes(id) ? null : node(id), createElement: () => new Node(),
       addEventListener: (event, fn) => { if (event === "DOMContentLoaded") ready = fn; } },
     window: { addEventListener() {} },
     fetch: async (url, options) => {
@@ -114,4 +114,30 @@ test("reference fragment loads with owner authentication only on click and repla
   app.node("#query-audio").currentTime = 25;
   await app.node("#query-audio").emit("timeupdate");
   assert.equal(app.node("#query-audio").paused, true);
+});
+
+
+test("similarity percentages classify boundary values and keep original distances in reports", async () => {
+  const app = setup(); await app.ready();
+  const values = [
+    { distance: 0, percent: "100", tier: "high", level: "Высокое" },
+    { distance: 0.75, percent: "75", tier: "high", level: "Высокое" },
+    { distance: 0.753, percent: "74,9", tier: "medium", level: "Среднее" },
+    { distance: 1.5, percent: "50", tier: "medium", level: "Среднее" },
+    { distance: 1.503, percent: "49,9", tier: "low", level: "Незначительное" },
+    { distance: 3, percent: "0", tier: "low", level: "Незначительное" },
+    { distance: 6, percent: "-100", tier: "low", level: "Незначительное" },
+  ];
+  app.finished.result.matches = values.map(({ distance }) => ({ ...app.finished.result.matches[0], distance, preview_available: false }));
+  const file = new Blob(["audio"]); file.name = "song.mp3";
+  app.node("#file-input").files = [file]; await app.node("#file-input").emit("change");
+  app.responses.push({ ...app.finished, status: "queued", result: null, access_token: "owner-secret" }, app.finished);
+  await app.node("#check-btn").emit("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  app.node("#matches-list").children.forEach((card, index) => {
+    const value = values[index];
+    assert.equal(card.className, `match-item match-item--${value.tier}`);
+    assert.equal(card.children[2].textContent, `Сходство: ${value.percent}% · ${value.level}`);
+    assert.equal(app.finished.result.matches[index].distance, value.distance);
+  });
 });

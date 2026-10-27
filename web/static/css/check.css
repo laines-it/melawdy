@@ -386,3 +386,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .match-item audio { display: block; width: 100%; margin-top: 12px; }
 .match-item audio[hidden] { display: none; }
 .match-item button { margin: 6px 8px 0 0; }
+
+.match-item.match-item--high { border: 1px solid #b42318; background: #fff1f0; }
+.match-item.match-item--medium { border: 1px solid #a16a00; background: #fffbea; }
+.match-item.match-item--low { border: 1px solid #15803d; background: #f0fdf4; }
+.match-item .match-similarity { font-size: 16px; font-weight: 700; }
+.match-item--high .match-similarity { color: #b42318; }
+.match-item--medium .match-similarity { color: #7c5400; }
+.match-item--low .match-similarity { color: #166534; }

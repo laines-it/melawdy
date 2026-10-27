@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const jobPanel = document.querySelector("#job-panel");
   const jobNumber = document.querySelector("#job-number");
   const refresh = document.querySelector("#refresh-job");
-  const resultHint = document.querySelector("#result-hint");
   const matches = document.querySelector("#matches-list");
   const summary = document.querySelector("#result-summary");
   const audio = document.querySelector("#query-audio");
@@ -74,30 +73,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     matches.replaceChildren();
     download.hidden = !job.result;
     summary.textContent = "";
-    if (!job.result) {
-      resultHint.textContent = job.status === "processing"
-        ? "Colab обрабатывает запись. Результат появится здесь автоматически."
-        : "Передайте номер задания оператору. Обработка начнётся после его ручного запуска.";
-      return;
-    }
+    if (!job.result) return;
     const result = job.result;
-    resultHint.textContent = result.outcome === "failed"
+    summary.textContent = result.outcome === "failed"
       ? result.message || "Обработка не выполнена. Оператор может повторить запуск."
-      : "Ближайшие фрагменты из проверенной коллекции. Меньшее расстояние означает большее сходство; ближайший кандидат может быть несходным.";
-    summary.textContent = `Проверено записей: ${result.catalog_size}. Окно: ${result.window_seconds} с, шаг: ${result.hop_seconds} с.`;
+      : `Проверено записей: ${result.catalog_size}. Окно: ${result.window_seconds} с, шаг: ${result.hop_seconds} с.`;
     if (result.message && result.outcome !== "failed") summary.textContent += ` ${result.message}`;
     result.matches.forEach((match, index) => {
       const card = element("article", ""); card.className = "match-item";
       const title = element("h3", match.reference); title.className = "match-item-title";
       const timing = element("p", `Ваша запись: ${clock(match.query_start)}–${clock(match.query_end)}. Найденная: ${clock(match.reference_start)}–${clock(match.reference_end)}.`);
-      const distance = element("p", `Расстояние CLEWS: ${match.distance.toFixed(6)}`);
+      // A display index, not a calibrated probability; raw distance stays in JSON reports.
+      const percent = Math.round((1 - match.distance / 3) * 100 * 10) / 10;
+      const tier = percent >= 75 ? "high" : percent >= 50 ? "medium" : "low";
+      const level = { high: "Высокое", medium: "Среднее", low: "Незначительное" }[tier];
+      card.className = `match-item match-item--${tier}`;
+      const similarity = element("p", `Сходство: ${percent.toLocaleString("ru-RU")}% · ${level}`);
+      similarity.className = "match-similarity";
       const play = element("button", "Послушать мой отрывок"); play.type = "button";
       play.addEventListener("click", () => {
         previewPlayers.forEach((player) => player.pause());
         audio.currentTime = match.query_start; clipEnd = match.query_end;
         audio.play().catch(() => { status.textContent = "Браузер не воспроизводит этот формат. Скачайте исходный файл или используйте MP3."; });
       });
-      card.append(title, timing, distance, play);
+      card.append(title, timing, similarity, play);
       if (match.preview_available) {
         const referenceAudio = element("audio", "");
         referenceAudio.controls = true; referenceAudio.preload = "none"; referenceAudio.hidden = true;
@@ -151,7 +150,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (![404, 410, 503].includes(error.status) && ++pollErrors < 5) timer = setTimeout(updateJob, 10000);
       if ([404, 410].includes(error.status)) {
         try { localStorage.removeItem(STORAGE_KEY); } catch {}
-        resultHint.textContent = "Задание недоступно. Отправьте запись заново.";
+        summary.textContent = "Задание недоступно. Отправьте запись заново.";
       }
     } finally { refresh.disabled = false; }
   }
@@ -207,24 +206,4 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch (error) { status.textContent = error.message; }
   window.addEventListener("pagehide", () => { stopPolling(); clearPreviews(); if (objectURL) URL.revokeObjectURL(objectURL); });
 
-  const list = document.querySelector("#templates-list"), more = document.querySelector("#more-templates");
-  let offset = 0;
-  async function loadTemplates() {
-    more.disabled = true;
-    try {
-      const templates = await request(`public/templates?limit=25&offset=${offset}`);
-      if (!templates.length && offset === 0) list.textContent = "Шаблоны пока не опубликованы.";
-      for (const template of templates) {
-        const card = element("div", ""); card.className = "template-card";
-        const title = element("h3", template.title); title.className = "template-title";
-        const description = element("p", template.description || ""); description.className = "template-desc";
-        const link = element("a", "Создать документ →"); link.href = `/documents?template=${encodeURIComponent(template.id)}`; link.className = "template-download";
-        card.append(title, description, link); list.append(card);
-      }
-      offset += templates.length; more.hidden = templates.length < 25;
-      document.querySelector("#templates-status").textContent = "";
-    } catch (error) { document.querySelector("#templates-status").textContent = error.message; }
-    finally { more.disabled = false; }
-  }
-  more.addEventListener("click", loadTemplates); loadTemplates();
 });

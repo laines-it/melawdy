@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="/brand-mark.png">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/melawdy.css">
-  <link rel="stylesheet" href="/css/check.css?v=clews-demo-2">
+  <link rel="stylesheet" href="/css/check.css?v=clews-demo-5">
   <link rel="stylesheet" href="/css/account.css">
 </head>
 <body>
@@ -53,9 +53,6 @@
               <!-- Блок загрузки файла -->
               <div class="check-card">
                 <h2 class="check-card-title">Загрузите свою музыку</h2>
-                <p class="check-card-hint">
-                  Демонстрационный режим: обработку вручную запускает оператор. Поиск выполняется только по подготовленной коллекции.
-                </p>
 
                 <div class="upload-dropzone" id="upload-dropzone" aria-disabled="true">
                   <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a,.aac" hidden disabled>
@@ -77,37 +74,22 @@
                 <h2 class="check-card-title">Ваше задание</h2>
                 <p id="job-filename"></p>
                 <p id="job-state" role="status" aria-live="polite"></p>
-                <label for="job-number">Двузначный номер для Colab</label>
-                <input id="job-number" readonly spellcheck="false" aria-describedby="job-code-hint">
-                <p id="job-code-hint" class="check-card-hint">Вставьте этот номер (например, 17) в поле JOB_ID раздела 5 ноутбука.</p>
+                <input id="job-number" readonly spellcheck="false" aria-label="Номер задания">
                 <div class="job-buttons">
                   <button type="button" id="copy-job">Скопировать номер</button>
                   <button type="button" id="refresh-job">Обновить статус</button>
                 </div>
                 <p id="job-expiry" class="check-card-hint"></p>
                 <audio id="query-audio" controls preload="metadata" hidden></audio>
-                <details><summary>Для оператора демонстрации</summary>
-                  <p>Откройте ноутбук, подготовьте коллекцию и вручную запустите задание по этому номеру.</p>
-                  <a href="/api/v1/music-check/notebook" download>Скачать ноутбук для Colab</a>
-                </details>
               </section>
 
-              <!-- Блок с шаблонами -->
-              <div class="check-card">
-                <h2 class="check-card-title">Защити свою музыку: Готовые шаблоны договоров</h2>
 
-                <p id="templates-status" role="status" aria-live="polite"></p>
-                <div class="templates-grid" id="templates-list"></div>
-                <button id="more-templates" type="button" hidden>Ещё шаблоны</button>
-                <article id="template-preview" hidden></article>
-              </div>
             </div>
 
             <!-- Правая колонка: результат проверки -->
             <aside class="check-sidebar">
               <div class="check-result-card">
                 <h2 class="check-result-title">Результат проверки</h2>
-                <p class="check-result-hint" id="result-hint">Отправьте запись и передайте номер задания оператору. Результат появится после обработки.</p>
 
                 <div class="matches-list" id="matches-list">
                   <!-- Заполняется через JS -->
@@ -133,6 +115,6 @@
 
   <script src="/js/api.js" defer></script>
   <script src="/js/auth.js" defer></script>
-  <script src="/js/check.js?v=clews-demo-2" defer></script>
+  <script src="/js/check.js?v=clews-demo-5" defer></script>
 </body>
 </html>
