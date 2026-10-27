@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="/brand-mark.png">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/melawdy.css">
-  <link rel="stylesheet" href="/css/check.css?v=clews-demo-6">
+  <link rel="stylesheet" href="/css/check.css?v=clews-demo-8">
   <link rel="stylesheet" href="/css/account.css">
 </head>
 <body>
@@ -82,7 +82,7 @@
               </div>
 
               <section class="check-card" id="job-panel" hidden aria-label="Задание проверки">
-                <h2 class="check-card-title">Ваше задание</h2>
+                <h2 class="check-card-title">Ваш файл</h2>
                 <p id="job-filename"></p>
                 <p id="job-state" role="status" aria-live="polite"></p>
                 <input id="job-number" readonly spellcheck="false" aria-label="Номер задания">
@@ -112,6 +112,40 @@
               </div>
             </aside>
           </div>
+
+          <section class="check-interpretation" aria-label="Интерпретация результатов проверки">
+            <p class="interpretation-notice"><em>Полученный результат автоматической проверки носит информационный характер, не является юридическим заключением и не заменяет консультацию специалиста. Рекомендуем обратиться к юристу, специализирующемуся на защите интеллектуальной собственности.</em></p>
+
+            <article class="interpretation-card interpretation-card--high">
+              <h2>Значительное сходство</h2>
+              <p>Так бывает потому, что совпавший трек был в базе раньше, и совпадение указывает на плагиат в вашу сторону. В любом случае это самая серьёзная ситуация: сильное совпадение легко квалифицировать как нарушение авторского права.</p>
+              <p><strong>Что делать:</strong> зафиксировать доказательства (скриншоты, ссылки, даты публикации обоих треков), установить, чей релиз вышел раньше, и дальше — переговоры, жалоба на площадку или претензия.</p>
+              <ul class="interpretation-links">
+                <li><span aria-hidden="true">📖</span> <a href="https://lawmposer.ru/article/article-chto-delat-esli-ukrali-muzyku">Что делать, если вашу музыку украли: пошаговый план</a> — если совпавший трек вышел после вашего и вы предполагаете кражу.</li>
+                <li><span aria-hidden="true">📖</span> <a href="https://lawmposer.ru/article/anonimnyy-avtor-i-plagiat-muzyki">Музыка анонимного автора</a> — если совпавший трек загружен анонимно/под непонятным именем и нужно разобраться, кто автор и как доказывать плагиат.</li>
+              </ul>
+            </article>
+
+            <article class="interpretation-card interpretation-card--medium">
+              <h2>Частичное сходство</h2>
+              <p>Это значит, что какая-то часть трека звучит похоже: часть мелодии, строчка текста, узнаваемый бит или мотив. Чаще всего это следствие заимствования элементов: сэмпла, цитаты из чужой песни или каверного исполнения. Это не автоматический плагиат — всё зависит от того, как и на каких правах использован фрагмент.</p>
+              <p><strong>Что делать:</strong> проверить законность заимствования.</p>
+              <ul class="interpretation-links">
+                <li><span aria-hidden="true">📖</span> <a href="https://lawmposer.ru/article/guide-proverka-samplov-i-teksta">Проверка сэмплов и проверка текста</a> — если совпал фрагмент звучания или текста и вы не уверены, использовали ли чужой материал.</li>
+                <li><span aria-hidden="true">📖</span> <a href="https://lawmposer.ru/article/zakonnoe-citirovanie-muzyki-i-teksta-pesni">Когда цитирование песни законно</a> — если совпадение возникло из-за цитаты: узнайте, когда цитирование законно.</li>
+                <li><span aria-hidden="true">📖</span> <a href="https://lawmposer.ru/article/mozhno-li-vykladyvat-kavery-i-nuzhno-li-razreshenie">Можно ли выкладывать каверы и нужно ли разрешение</a> — если совпадение объясняется кавером и вы не оформляли разрешение.</li>
+              </ul>
+            </article>
+
+            <article class="interpretation-card interpretation-card--low">
+              <h2>Незначительное сходство</h2>
+              <p>Трек схож лишь отдельными типовыми элементами. Это норма для музыки: тысячи треков используют одни и те же прогрессии и шаблоны, и это не нарушение.</p>
+              <p>Если хотите и дальше исключать даже такие совпадения — стройте работу на проверенных источниках свободной музыки.</p>
+              <ul class="interpretation-links">
+                <li><span aria-hidden="true">📖</span> <a href="https://lawmposer.ru/article/svobodnaya-muzyka-gde-nayti-i-kak-zakonno-ispolzovat">Свободная музыка: где найти и как законно использовать</a> — где брать музыку, которую можно свободно использовать, и как использовать её законно.</li>
+              </ul>
+            </article>
+          </section>
         </div>
       </section>
     </main>
@@ -126,6 +160,6 @@
 
   <script src="/js/api.js" defer></script>
   <script src="/js/auth.js" defer></script>
-  <script src="/js/check.js?v=clews-demo-6" defer></script>
+  <script src="/js/check.js?v=clews-demo-8" defer></script>
 </body>
 </html>

@@ -141,29 +141,31 @@ test("reference fragment loads with owner authentication only on click and repla
 
 
 test("similarity percentages classify boundary values and keep original distances in reports", async () => {
-  const app = setup(); await app.ready();
   const values = [
-    { distance: 0, percent: "100", tier: "high", level: "Высокое" },
-    { distance: 0.75, percent: "75", tier: "high", level: "Высокое" },
-    { distance: 0.753, percent: "74,9", tier: "medium", level: "Среднее" },
-    { distance: 1.5, percent: "50", tier: "medium", level: "Среднее" },
+    { distance: 0, percent: "100", tier: "high", level: "Значительное" },
+    { distance: 0.75, percent: "75", tier: "high", level: "Значительное" },
+    { distance: 0.753, percent: "74,9", tier: "medium", level: "Частичное" },
+    { distance: 1.5, percent: "50", tier: "medium", level: "Частичное" },
     { distance: 1.503, percent: "49,9", tier: "low", level: "Незначительное" },
     { distance: 3, percent: "0", tier: "low", level: "Незначительное" },
     { distance: 6, percent: "-100", tier: "low", level: "Незначительное" },
   ];
-  app.finished.result.matches = values.map(({ distance }) => ({ ...app.finished.result.matches[0], distance, preview_available: false }));
-  const file = new Blob(["audio"]); file.name = "song.mp3";
-  app.node("#file-input").files = [file]; await app.node("#file-input").emit("change");
-  app.responses.push({ ...app.finished, status: "queued", result: null, access_token: "owner-secret" }, app.finished);
-  await app.node("#check-btn").emit("click");
-  await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(app.node("#matches-list").children.length, 5);
-  app.node("#matches-list").children.forEach((card, index) => {
-    const value = values[index];
-    assert.equal(card.className, `match-item match-item--${value.tier}`);
-    assert.equal(card.children[2].textContent, `Сходство: ${value.percent}% · ${value.level}`);
-    assert.equal(app.finished.result.matches[index].distance, value.distance);
-  });
+  for (let start = 0; start < values.length; start += 3) {
+    const app = setup(); await app.ready();
+    app.finished.result.matches = values.slice(start).map(({ distance }) => ({ ...app.finished.result.matches[0], distance, preview_available: false }));
+    const file = new Blob(["audio"]); file.name = "song.mp3";
+    app.node("#file-input").files = [file]; await app.node("#file-input").emit("change");
+    app.responses.push({ ...app.finished, status: "queued", result: null, access_token: "owner-secret" }, app.finished);
+    await app.node("#check-btn").emit("click");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(app.node("#matches-list").children.length, Math.min(3, values.length - start));
+    app.node("#matches-list").children.forEach((card, index) => {
+      const value = values[start + index];
+      assert.equal(card.className, `match-item match-item--${value.tier}`);
+      assert.equal(card.children[2].textContent, `Сходство: ${value.percent}% · ${value.level}`);
+      assert.equal(app.finished.result.matches[index].distance, value.distance);
+    });
+  }
 });
 
 

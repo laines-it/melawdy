@@ -209,14 +209,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       ? result.message || "Обработка не выполнена. Оператор может повторить запуск."
       : `Проверено записей: ${result.catalog_size}. Окно: ${result.window_seconds} с, шаг: ${result.hop_seconds} с.`;
     if (result.message && result.outcome !== "failed") summary.textContent += ` ${result.message}`;
-    result.matches.slice(0, 5).forEach((match, index) => {
+    result.matches.slice(0, 3).forEach((match, index) => {
       const card = element("article", ""); card.className = "match-item";
       const title = element("h3", match.reference); title.className = "match-item-title";
       const timing = element("p", `Ваша запись: ${clock(match.query_start)}–${clock(match.query_end)}. Найденная: ${clock(match.reference_start)}–${clock(match.reference_end)}.`);
       // A display index, not a calibrated probability; raw distance stays in JSON reports.
       const percent = Math.round((1 - match.distance / 3) * 100 * 10) / 10;
       const tier = percent >= 75 ? "high" : percent >= 50 ? "medium" : "low";
-      const level = { high: "Высокое", medium: "Среднее", low: "Незначительное" }[tier];
+      const level = { high: "Значительное", medium: "Частичное", low: "Незначительное" }[tier];
       card.className = `match-item match-item--${tier}`;
       const similarity = element("p", `Сходство: ${percent.toLocaleString("ru-RU")}% · ${level}`);
       similarity.className = "match-similarity";
