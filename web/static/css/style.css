@@ -693,3 +693,79 @@ body {
 .search-clear[hidden] {
   display: none !important;
 }
+
+/* ===== Секция контактов ===== */
+
+.about-contacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.about-contact-group {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.about-contact-group-title {
+  margin: 0 0 16px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1f2937;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #93ABD8; /* акцентный цвет сайта */
+}
+
+.about-contact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.about-contact-list li {
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.about-contact-list a {
+  color: #2563eb;
+  text-decoration: none;
+  word-break: break-all;
+  transition: color 0.15s ease;
+}
+
+.about-contact-list a:hover,
+.about-contact-list a:focus {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .about-contacts {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .about-contact-group {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-contact-group-title {
+    font-size: 1.05rem;
+  }
+
+  .about-contact-list li {
+    font-size: 0.92rem;
+  }
+}
