@@ -13,6 +13,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const summary = document.querySelector("#result-summary");
   const audio = document.querySelector("#query-audio");
   const download = document.querySelector("#download-result");
+  const recordStart = document.querySelector("#record-start");
+  const recordStop = document.querySelector("#record-stop");
+  const recordCancel = document.querySelector("#record-cancel");
+  const recordStatus = document.querySelector("#record-status");
+  const recordTime = document.querySelector("#record-time");
+  const recordPreview = document.querySelector("#record-preview");
+  const MIN_RECORD_SECONDS = 20, MAX_RECORD_SECONDS = 300;
+  const recordingFormat = typeof MediaRecorder !== "undefined" && navigator.mediaDevices?.getUserMedia && window.isSecureContext !== false
+    ? ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4;codecs=mp4a.40.2", "audio/mp4"]
+      .find((type) => MediaRecorder.isTypeSupported(type)) : null;
+  let capture = null, recordingURL = null, leaving = false;
   const STORAGE_KEY = "melawdy-clews-demo-job";
   const labels = { uploading: "Загрузка файла…", queued: "Ожидает ручного запуска оператором",
     processing: "Оператор запустил обработку", completed: "Обработка завершена", failed: "Обработка не выполнена" };
@@ -39,15 +50,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     catch { status.textContent += " Сохранение задания в браузере недоступно — оставьте страницу открытой."; }
   }
   function headers() { return { "X-Music-Job-Token": job.access_token }; }
-  function selectFile(candidate) {
-    if (busy || !capability?.available || !candidate) return;
-    if (!/\.(mp3|wav|flac|ogg|m4a|aac)$/i.test(candidate.name)) {
+  function selectFile(candidate, fromRecording = false) {
+    if (busy || capture || !capability?.available || !candidate) return;
+    if (!/\.(mp3|wav|flac|ogg|m4a|aac|webm)$/i.test(candidate.name)) {
       file = null; submit.disabled = true; selected.textContent = "";
-      status.textContent = "Выберите MP3, WAV, FLAC, OGG, M4A или AAC."; return;
+      status.textContent = "Выберите MP3, WAV, FLAC, OGG, M4A, AAC или WebM."; return;
     }
     if (!candidate.size || candidate.size > capability.max_upload_mb * 1024 * 1024) {
       file = null; submit.disabled = true; selected.textContent = "";
       status.textContent = `Файл должен быть непустым и не больше ${capability.max_upload_mb} МБ.`; return;
+    }
+    if (!fromRecording) {
+      clearRecordingPreview(); recordTime.hidden = true;
+      recordStart.textContent = "🎙 Записать с микрофона";
+      if (recordingFormat) recordStatus.textContent = "Запишите от 20 секунд до 5 минут музыки, затем отправьте запись на проверку.";
     }
     file = candidate;
     selected.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} МБ`;
@@ -56,13 +72,127 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   function previewFile(blob) {
     if (objectURL) URL.revokeObjectURL(objectURL);
-    const types = { mp3: "audio/mpeg", wav: "audio/wav", flac: "audio/flac", ogg: "audio/ogg", m4a: "audio/mp4", aac: "audio/aac" };
+    const types = { mp3: "audio/mpeg", wav: "audio/wav", flac: "audio/flac", ogg: "audio/ogg", m4a: "audio/mp4", aac: "audio/aac", webm: "audio/webm" };
     const extension = (job?.filename || file?.name || "").split(".").pop().toLowerCase();
     objectURL = URL.createObjectURL(new Blob([blob], { type: types[extension] || blob.type }));
     audio.src = objectURL;
     audio.hidden = false;
     clipEnd = undefined;
   }
+  function syncControls() {
+    const locked = busy || !!capture || !capability?.available;
+    choose.disabled = input.disabled = locked;
+    submit.disabled = locked || !file;
+    recordStart.disabled = locked || !recordingFormat;
+    recordStop.hidden = recordCancel.hidden = !capture;
+    recordStop.disabled = !capture?.recorder || capture.recorder.state !== "recording";
+  }
+  function clearRecordingPreview() {
+    recordPreview.pause(); recordPreview.hidden = true;
+    recordPreview.removeAttribute("src"); recordPreview.load();
+    if (recordingURL) URL.revokeObjectURL(recordingURL);
+    recordingURL = null;
+  }
+  function releaseCapture(current) {
+    clearInterval(current.interval); clearTimeout(current.timeout);
+    current.stream?.getTracks().forEach((track) => track.stop());
+  }
+  function stopRecording(current) {
+    if (capture !== current || !current.recorder || current.recorder.state !== "recording") return;
+    current.stoppedAt = Date.now();
+    current.recorder.stop();
+    recordStop.disabled = true;
+  }
+  function cancelRecording() {
+    const current = capture;
+    if (!current) return;
+    capture = null; current.cancelled = true;
+    if (current.recorder && current.recorder.state !== "inactive") current.recorder.stop();
+    releaseCapture(current); syncControls();
+    recordStatus.textContent = "Запись отменена.";
+    recordTime.hidden = true;
+  }
+  function finishRecording(current) {
+    releaseCapture(current);
+    if (capture !== current || current.cancelled || leaving) return;
+    capture = null; syncControls();
+    const seconds = ((current.stoppedAt || Date.now()) - current.startedAt) / 1000;
+    recordTime.textContent = clock(seconds);
+    if (current.error) { recordStatus.textContent = "Запись прервалась. Попробуйте записать ещё раз."; return; }
+    if (seconds < MIN_RECORD_SECONDS) {
+      recordStatus.textContent = "Запись короче 20 секунд. Запишите более длинный отрывок."; return;
+    }
+    if (seconds > MAX_RECORD_SECONDS + 1) {
+      recordStatus.textContent = "Запись превысила 5 минут. Запишите более короткий отрывок."; return;
+    }
+    if (!current.bytes || current.bytes > capability.max_upload_mb * 1024 ** 2) {
+      recordStatus.textContent = `Запись пустая или превышает ${capability.max_upload_mb} МБ. Запишите более короткий отрывок.`; return;
+    }
+    const mime = current.recorder.mimeType || recordingFormat;
+    const extension = { "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a" }[mime.split(";")[0]];
+    if (!extension) { recordStatus.textContent = "Браузер записал неподдерживаемый формат. Загрузите аудиофайл."; return; }
+    const recording = new File(current.chunks, `recording-${new Date().toISOString().replace(/[:.]/g, "-")}.${extension}`, { type: mime });
+    clearRecordingPreview();
+    recordingURL = URL.createObjectURL(recording);
+    recordPreview.src = recordingURL; recordPreview.hidden = false;
+    selectFile(recording, true);
+    recordStatus.textContent = "Запись готова. Прослушайте её и нажмите «Отправить на проверку».";
+    recordStart.textContent = "🎙 Записать ещё раз";
+  }
+  recordStart.addEventListener("click", async () => {
+    if (!recordingFormat || capture || busy || !capability?.available) return;
+    const current = { chunks: [], bytes: 0, stream: null, recorder: null };
+    capture = current; syncControls();
+    recordTime.hidden = true;
+    recordStatus.textContent = "Разрешите доступ к микрофону в браузере.";
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false,
+      });
+      if (capture !== current || current.cancelled || leaving) { stream.getTracks().forEach((track) => track.stop()); return; }
+      current.stream = stream;
+      current.recorder = new MediaRecorder(stream, { mimeType: recordingFormat, audioBitsPerSecond: 128000 });
+      current.recorder.addEventListener("dataavailable", (event) => {
+        if (capture !== current || current.cancelled) return;
+        if (event.data?.size) { current.chunks.push(event.data); current.bytes += event.data.size; }
+        if (current.bytes >= capability.max_upload_mb * 1024 ** 2 || Date.now() - current.startedAt >= MAX_RECORD_SECONDS * 1000) stopRecording(current);
+      });
+      current.recorder.addEventListener("stop", () => finishRecording(current));
+      current.recorder.addEventListener("error", () => {
+        current.error = true;
+        stopRecording(current);
+        finishRecording(current);
+      });
+      stream.getTracks().forEach((track) => track.addEventListener("ended", () => stopRecording(current)));
+      audio.pause(); recordPreview.pause(); previewPlayers.forEach((player) => player.pause());
+      current.startedAt = Date.now();
+      current.recorder.start(1000);
+      recordTime.hidden = false; recordTime.textContent = "00:00";
+      const tick = () => {
+        const seconds = (Date.now() - current.startedAt) / 1000;
+        recordTime.textContent = clock(seconds);
+        const message = seconds < MIN_RECORD_SECONDS
+          ? "Идёт запись… Запишите не менее 20 секунд музыки."
+          : "Идёт запись… Нажмите «Остановить запись», когда закончите.";
+        if (recordStatus.textContent !== message) recordStatus.textContent = message;
+      };
+      tick(); current.interval = setInterval(tick, 1000);
+      current.timeout = setTimeout(() => stopRecording(current), MAX_RECORD_SECONDS * 1000);
+      syncControls();
+    } catch (error) {
+      releaseCapture(current);
+      if (capture !== current) return;
+      capture = null; syncControls();
+      recordStatus.textContent = error.name === "NotAllowedError"
+        ? "Доступ к микрофону запрещён. Разрешите его в настройках сайта в браузере."
+        : error.name === "NotFoundError" ? "Микрофон не найден. Подключите его или загрузите аудиофайл."
+        : "Не удалось начать запись. Проверьте микрофон или загрузите аудиофайл.";
+    }
+  });
+  recordStop.addEventListener("click", () => { if (capture) stopRecording(capture); });
+  recordCancel.addEventListener("click", cancelRecording);
+  if (!recordingFormat) recordStatus.textContent = "Запись с микрофона недоступна. Откройте сайт по HTTPS в поддерживаемом браузере или загрузите файл.";
+
   function showJob() {
     jobPanel.hidden = false;
     jobNumber.value = job.code || job.id;
@@ -79,7 +209,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       ? result.message || "Обработка не выполнена. Оператор может повторить запуск."
       : `Проверено записей: ${result.catalog_size}. Окно: ${result.window_seconds} с, шаг: ${result.hop_seconds} с.`;
     if (result.message && result.outcome !== "failed") summary.textContent += ` ${result.message}`;
-    result.matches.forEach((match, index) => {
+    result.matches.slice(0, 5).forEach((match, index) => {
       const card = element("article", ""); card.className = "match-item";
       const title = element("h3", match.reference); title.className = "match-item-title";
       const timing = element("p", `Ваша запись: ${clock(match.query_start)}–${clock(match.query_end)}. Найденная: ${clock(match.reference_start)}–${clock(match.reference_end)}.`);
@@ -168,8 +298,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     catch { jobNumber.select(); status.textContent = "Выделенный номер можно скопировать вручную."; }
   });
   submit.addEventListener("click", async () => {
-    if (!file || busy) return;
-    busy = true; submit.disabled = choose.disabled = input.disabled = true;
+    if (!file || busy || capture) return;
+    busy = true; syncControls();
     stopPolling();
     status.textContent = "Загружаем файл…";
     try {
@@ -177,7 +307,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) } });
       job = next; remember(); previewFile(file); showJob(); updateJob();
     } catch (error) { status.textContent = error.message; if (job) timer = setTimeout(updateJob, 5000); }
-    finally { busy = false; submit.disabled = !file; choose.disabled = input.disabled = false; }
+    finally { busy = false; syncControls(); }
   });
   download.addEventListener("click", () => {
     const link = element("a", "");
@@ -191,7 +321,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     capability = (await request("public/capabilities")).music_check;
     status.textContent = capability.message;
     if (capability.available) {
-      input.disabled = choose.disabled = false;
+      syncControls();
       dropzone.setAttribute("aria-disabled", "false");
       document.querySelector("#upload-instructions").textContent = `Одна запись от 20 секунд до 30 минут, до ${capability.max_upload_mb} МБ.`;
       try { job = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { job = null; }
@@ -204,6 +334,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       } else { job = null; }
     }
   } catch (error) { status.textContent = error.message; }
-  window.addEventListener("pagehide", () => { stopPolling(); clearPreviews(); if (objectURL) URL.revokeObjectURL(objectURL); });
+  window.addEventListener("pageshow", () => { leaving = false; syncControls(); });
+  window.addEventListener("pagehide", () => { leaving = true; cancelRecording(); clearRecordingPreview(); stopPolling(); clearPreviews(); if (objectURL) URL.revokeObjectURL(objectURL); });
 
 });

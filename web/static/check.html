@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="/brand-mark.png">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/melawdy.css">
-  <link rel="stylesheet" href="/css/check.css?v=clews-demo-5">
+  <link rel="stylesheet" href="/css/check.css?v=clews-demo-6">
   <link rel="stylesheet" href="/css/account.css">
 </head>
 <body>
@@ -52,14 +52,25 @@
             <div class="check-main">
               <!-- Блок загрузки файла -->
               <div class="check-card">
-                <h2 class="check-card-title">Загрузите свою музыку</h2>
+                <h2 class="check-card-title">Загрузите или запишите музыку</h2>
 
                 <div class="upload-dropzone" id="upload-dropzone" aria-disabled="true">
-                  <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a,.aac" hidden disabled>
+                  <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a,.aac,.webm" hidden disabled>
                   <div class="upload-icon">♪</div>
                   <p class="upload-text">Выберите файл или перетащите его сюда</p>
                   <button type="button" class="upload-button" id="choose-files-btn" disabled>Выбрать файлы</button>
                 </div>
+
+                <section class="microphone-panel" aria-label="Запись с микрофона">
+                  <div class="microphone-actions">
+                    <button type="button" id="record-start" disabled>🎙 Записать с микрофона</button>
+                    <button type="button" id="record-stop" hidden disabled>Остановить запись</button>
+                    <button type="button" id="record-cancel" hidden>Отменить</button>
+                    <output id="record-time" aria-label="Длительность записи" hidden>00:00</output>
+                  </div>
+                  <p id="record-status" class="check-card-hint" role="status" aria-live="polite">Запишите от 20 секунд до 5 минут музыки, затем отправьте запись на проверку.</p>
+                  <audio id="record-preview" controls preload="metadata" hidden aria-label="Прослушать запись с микрофона"></audio>
+                </section>
 
                 <p id="upload-instructions" class="check-card-hint"></p>
                 <p id="selected-file"></p>
@@ -115,6 +126,6 @@
 
   <script src="/js/api.js" defer></script>
   <script src="/js/auth.js" defer></script>
-  <script src="/js/check.js?v=clews-demo-5" defer></script>
+  <script src="/js/check.js?v=clews-demo-6" defer></script>
 </body>
 </html>

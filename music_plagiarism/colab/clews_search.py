@@ -20,7 +20,7 @@ from omegaconf import OmegaConf
 
 SCHEMA = "melawdy-clews-colab-v1"
 REPO_COMMIT = "517de18676e08799b51c6597a0f2af61f7a70799"
-EXTENSIONS = {".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac"}
+EXTENSIONS = {".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".webm"}
 FIELDS = ["reference", "distance", "query_start", "query_end", "reference_start", "reference_end"]
 
 

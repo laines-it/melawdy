@@ -270,3 +270,14 @@ def test_existing_queue_schema_is_upgraded_without_losing_tokens(tmp_path, monke
     assert 10 <= int(job["code"]) <= 99
     assert job["filename"] == "old.mp3"
     assert music.Store().read(job_id, "owner")["code"] == job["code"]
+
+
+def test_browser_webm_recording_can_be_uploaded_and_retrieved_in_colab(demo):
+    client, settings = demo
+    created = upload(client, body=b"webm recording", name="microphone.webm")
+    assert created.status_code == 201
+    job = created.json()
+    response = client.post(f"/api/v1/music-check/worker/jobs/{job['code']}/claim", headers=operator(settings))
+    headers = {**operator(settings), "X-Claim-Token": response.json()["lease_token"]}
+    assert response.json()["filename"] == "microphone.webm"
+    assert client.get(f"/api/v1/music-check/worker/jobs/{job['id']}/audio", headers=headers).content == b"webm recording"

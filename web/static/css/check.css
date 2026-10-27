@@ -394,3 +394,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .match-item--high .match-similarity { color: #b42318; }
 .match-item--medium .match-similarity { color: #7c5400; }
 .match-item--low .match-similarity { color: #166534; }
+
+.microphone-panel { margin-top: 20px; padding-top: 16px; border-top: 1px solid #b3c2da; }
+.microphone-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.microphone-actions button { padding: 10px 14px; border: 1px solid #93abd8; border-radius: 8px; background: #d4e3f7; color: #0e0f12; cursor: pointer; }
+.microphone-actions button:disabled { opacity: .55; cursor: default; }
+#record-stop { color: #b42318; border-color: #b42318; background: #fff1f0; }
+#record-time { font-variant-numeric: tabular-nums; font-weight: 700; }
+#record-preview { width: 100%; margin-top: 10px; }

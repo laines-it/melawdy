@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend.config import get_settings
 
 router = APIRouter(prefix="/api/v1/music-check", tags=["music-check"])
-ALLOWED_EXTENSIONS = {".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac"}
+ALLOWED_EXTENSIONS = {".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".webm"}
 LEASE_SECONDS = 60 * 60
 MAX_PREVIEW_BYTES = 256 * 1024
 MAX_PREVIEWS = 10
@@ -288,7 +288,7 @@ async def create_job(request: Request, response: Response,
     name = unquote(x_file_name).replace("\\", "/").split("/")[-1]
     name = "".join(c for c in name if c.isprintable()).strip()
     if not name or len(name) > 255 or Path(name).suffix.lower() not in ALLOWED_EXTENSIONS:
-        raise HTTPException(422, "Выберите MP3, WAV, FLAC, OGG, M4A или AAC")
+        raise HTTPException(422, "Выберите MP3, WAV, FLAC, OGG, M4A, AAC или WebM")
     maximum = get_settings().music_check_max_upload_mb * 1024**2
     try:
         expected = int(request.headers.get("content-length", "0"))

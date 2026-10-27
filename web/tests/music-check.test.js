@@ -19,11 +19,23 @@ class Node {
   removeAttribute(name) { delete this[name]; }
 }
 
-function setup() {
+function setup({ microphone = false, permissionError = null, pendingPermission = false, mimeType = "audio/webm;codecs=opus", maxUploadMB = 32 } = {}) {
   const nodes = new Map();
   const node = (id) => { if (!nodes.has(id)) nodes.set(id, new Node()); return nodes.get(id); };
   const calls = [], timers = [], storage = new Map();
-  let ready;
+  let ready, now = 1000, resolvePermission;
+  const windowHandlers = {}, recorders = [], mediaRequests = [];
+  const track = { stopped: false, listeners: {}, stop() { this.stopped = true; }, addEventListener(name, fn) { this.listeners[name] = fn; } };
+  const stream = { getTracks: () => [track] };
+  class Recorder {
+    static isTypeSupported(type) { return type === mimeType; }
+    constructor(stream, options) { this.stream = stream; this.mimeType = options.mimeType; this.state = "inactive"; this.listeners = {}; recorders.push(this); }
+    addEventListener(name, fn) { this.listeners[name] = fn; }
+    start() { this.state = "recording"; }
+    data(blob) { this.listeners.dataavailable({ data: blob }); }
+    stop() { this.state = "inactive"; this.listeners.stop(); }
+  }
+  class ClockDate extends Date { static now() { return now; } }
   const finished = { id: "test-job", code: "17", filename: "song.mp3", status: "completed", expires_at: 2000000000,
     result: { outcome: "completed", catalog_size: 2, window_seconds: 20, hop_seconds: 5,
       matches: [{ reference: "<img onerror=alert(1)>", distance: .125,
@@ -31,24 +43,35 @@ function setup() {
   const responses = [];
   const context = vm.createContext({
     console, Blob, URL: { createObjectURL: () => "blob:demo", revokeObjectURL() {} },
-    navigator: { clipboard: { writeText: async () => {} } },
+    Date: ClockDate,
+    File: class extends Blob { constructor(parts, name, options) { super(parts, options); this.name = name; } },
+    ...(microphone ? { MediaRecorder: Recorder } : {}),
+    navigator: { ...(microphone ? { mediaDevices: { getUserMedia: async (constraints) => {
+      mediaRequests.push(constraints);
+      if (permissionError) throw { name: permissionError };
+      if (pendingPermission) return await new Promise((resolve) => { resolvePermission = () => resolve(stream); });
+      return stream;
+    } } } : {}), clipboard: { writeText: async () => {} } },
     localStorage: { getItem: (key) => storage.get(key) || null,
       setItem: (key, val) => storage.set(key, val), removeItem: (key) => storage.delete(key) },
-    setTimeout: (fn) => { timers.push(fn); return timers.length; }, clearTimeout() {},
+    setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; }, clearTimeout() {},
+    setInterval: () => 1, clearInterval() {},
     document: { querySelector: (id) => ["#result-hint", "#job-code-hint"].includes(id) ? null : node(id), createElement: () => new Node(),
       addEventListener: (event, fn) => { if (event === "DOMContentLoaded") ready = fn; } },
-    window: { addEventListener() {} },
+    window: { isSecureContext: true, addEventListener(name, fn) { windowHandlers[name] = fn; } },
     fetch: async (url, options) => {
       calls.push({ url, options });
       let body;
-      if (url.endsWith("public/capabilities")) body = { music_check: { available: true, max_upload_mb: 32, message: "Готово" } };
+      if (url.endsWith("public/capabilities")) body = { music_check: { available: true, max_upload_mb: maxUploadMB, message: "Готово" } };
       else if (url.includes("public/templates")) body = [];
       else { body = responses.shift(); assert.ok(body, `Unexpected request ${url}`); }
       return { ok: true, status: 200, json: async () => body, blob: async () => body };
     },
   });
   for (const name of ["api.js", "check.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "../static/js", name), "utf8"), context);
-  return { node, calls, timers, storage, responses, finished, ready: () => ready() };
+  return { node, calls, timers, storage, responses, finished, ready: () => ready(),
+    media: { track, recorders, requests: mediaRequests, advance: (seconds) => { now += seconds * 1000; },
+      resolve: () => resolvePermission(), hide: () => windowHandlers.pagehide() } };
 }
 
 test("upload is binary; polling displays actual matches as text and keeps owner token private", async () => {
@@ -134,10 +157,105 @@ test("similarity percentages classify boundary values and keep original distance
   app.responses.push({ ...app.finished, status: "queued", result: null, access_token: "owner-secret" }, app.finished);
   await app.node("#check-btn").emit("click");
   await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(app.node("#matches-list").children.length, 5);
   app.node("#matches-list").children.forEach((card, index) => {
     const value = values[index];
     assert.equal(card.className, `match-item match-item--${value.tier}`);
     assert.equal(card.children[2].textContent, `Сходство: ${value.percent}% · ${value.level}`);
     assert.equal(app.finished.result.matches[index].distance, value.distance);
   });
+});
+
+
+test("microphone creates a preview and uploads supported WebM only after explicit submission", async () => {
+  const app = setup({ microphone: true }); await app.ready();
+  assert.equal(app.node("#record-start").disabled, false);
+  await app.node("#record-start").emit("click");
+  assert.equal(app.node("#check-btn").disabled, true);
+  assert.equal(app.node("#choose-files-btn").disabled, true);
+  assert.equal(app.media.requests[0].video, false);
+  assert.equal(app.media.requests[0].audio.noiseSuppression, false);
+  app.media.advance(21);
+  app.media.recorders[0].data(new Blob(["microphone audio"]));
+  await app.node("#record-stop").emit("click");
+  assert.equal(app.media.track.stopped, true);
+  assert.equal(app.node("#record-preview").hidden, false);
+  assert.equal(app.node("#check-btn").disabled, false);
+  assert.equal(app.calls.some((call) => call.url.endsWith("music-check/jobs")), false);
+  app.responses.push({ ...app.finished, status: "queued", result: null, access_token: "owner" }, app.finished);
+  await app.node("#check-btn").emit("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  const request = app.calls.find((call) => call.url.endsWith("music-check/jobs"));
+  assert.match(request.options.body.name, /^recording-.*\.webm$/);
+  assert.equal(request.options.body.type, "audio/webm;codecs=opus");
+  assert.equal(await request.options.body.text(), "microphone audio");
+});
+
+test("Safari-style MP4 recording keeps the correct audio container and m4a extension", async () => {
+  const app = setup({ microphone: true, mimeType: "audio/mp4" }); await app.ready();
+  await app.node("#record-start").emit("click"); app.media.advance(21);
+  app.media.recorders[0].data(new Blob(["mp4 audio"]));
+  await app.node("#record-stop").emit("click");
+  assert.match(app.node("#selected-file").textContent, /\.m4a/);
+  assert.equal(app.node("#check-btn").disabled, false);
+});
+
+test("microphone permission denial and missing support preserve ordinary file uploads", async () => {
+  const denied = setup({ microphone: true, permissionError: "NotAllowedError" }); await denied.ready();
+  await denied.node("#record-start").emit("click");
+  assert.match(denied.node("#record-status").textContent, /Доступ к микрофону запрещён/);
+  assert.equal(denied.node("#choose-files-btn").disabled, false);
+  assert.equal(denied.node("#record-start").disabled, false);
+  const unsupported = setup(); await unsupported.ready();
+  assert.equal(unsupported.node("#record-start").disabled, true);
+  assert.equal(unsupported.node("#choose-files-btn").disabled, false);
+});
+
+test("short recordings are rejected and microphone tracks stop", async () => {
+  const app = setup({ microphone: true }); await app.ready();
+  await app.node("#record-start").emit("click"); app.media.advance(8);
+  app.media.recorders[0].data(new Blob(["short"]));
+  await app.node("#record-stop").emit("click");
+  assert.match(app.node("#record-status").textContent, /короче 20 секунд/);
+  assert.equal(app.node("#check-btn").disabled, true);
+  assert.equal(app.media.track.stopped, true);
+});
+
+test("cancelling a pending permission request stops tracks if access arrives later", async () => {
+  const app = setup({ microphone: true, pendingPermission: true }); await app.ready();
+  const request = app.node("#record-start").emit("click");
+  await app.node("#record-cancel").emit("click");
+  app.media.resolve(); await request;
+  assert.equal(app.media.track.stopped, true);
+  assert.equal(app.media.recorders.length, 0);
+  assert.equal(app.node("#record-start").disabled, false);
+  assert.equal(app.node("#check-btn").disabled, true);
+});
+
+test("leaving the page cancels recording without uploading audio", async () => {
+  const app = setup({ microphone: true }); await app.ready();
+  await app.node("#record-start").emit("click");
+  app.media.hide();
+  assert.equal(app.media.track.stopped, true);
+  assert.equal(app.media.recorders[0].state, "inactive");
+  assert.equal(app.calls.some((call) => call.url.endsWith("music-check/jobs")), false);
+});
+
+test("recording stops at the size limit and oversized audio cannot be submitted", async () => {
+  const app = setup({ microphone: true, maxUploadMB: 1 }); await app.ready();
+  await app.node("#record-start").emit("click"); app.media.advance(21);
+  app.media.recorders[0].data(new Blob([new Uint8Array(1024 * 1024 + 1)]));
+  assert.equal(app.media.track.stopped, true);
+  assert.equal(app.node("#check-btn").disabled, true);
+  assert.match(app.node("#record-status").textContent, /превышает 1 МБ/);
+});
+
+test("recording automatically stops after five minutes and can be submitted", async () => {
+  const app = setup({ microphone: true }); await app.ready();
+  await app.node("#record-start").emit("click");
+  app.media.recorders[0].data(new Blob(["recorded audio"]));
+  app.media.advance(300);
+  app.timers.find((timer) => timer.ms === 300000).fn();
+  assert.equal(app.media.track.stopped, true);
+  assert.equal(app.node("#check-btn").disabled, false);
 });
