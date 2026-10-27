@@ -382,3 +382,7 @@
 .match-item p { margin: 4px 0; font-size: 14px; }
 .upload-dropzone[aria-disabled="true"] { opacity: .65; cursor: default; }
 button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #2D64CB; outline-offset: 3px; }
+
+.match-item audio { display: block; width: 100%; margin-top: 12px; }
+.match-item audio[hidden] { display: none; }
+.match-item button { margin: 6px 8px 0 0; }

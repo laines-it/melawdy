@@ -170,3 +170,103 @@ def test_notebooks_are_self_contained_and_do_not_poll_operator_jobs(demo):
         if cell["cell_type"] == "code":
             compile(cell["source"], "colab-cell", "exec")
             assert cell["outputs"] == []
+
+
+def test_short_code_is_unique_and_claim_resolves_private_id(demo):
+    client, settings = demo
+    first, second = upload(client).json(), upload(client).json()
+    assert 10 <= int(first["code"]) <= 99
+    assert len(first["code"]) == 2
+    assert first["code"] != second["code"]
+    response = client.post(f"/api/v1/music-check/worker/jobs/{first['code']}/claim", headers=operator(settings))
+    assert response.status_code == 200
+    assert response.json()["id"] == first["id"]
+    assert response.json()["code"] == first["code"]
+    # A short number grants no private browser access.
+    assert client.get(f"/api/v1/music-check/jobs/{first['code']}", headers=owner(first)).status_code == 422
+    assert client.post("/api/v1/music-check/worker/jobs/invalid/claim", headers=operator(settings)).status_code == 422
+
+
+def test_codes_are_reused_only_after_expiry_and_cannot_target_old_audio(demo):
+    client, settings = demo
+    settings.music_check_max_jobs = 1000
+    jobs = [upload(client).json() for _ in range(90)]
+    assert len({job["code"] for job in jobs}) == 90
+    assert upload(client).status_code == 429
+    old = jobs[0]
+    with music.Store().connect() as conn:
+        conn.execute("UPDATE jobs SET expires=? WHERE id=?", (time.time() - 1, old["id"]))
+    new = upload(client, body=b"new song").json()
+    assert new["code"] == old["code"] and new["id"] != old["id"]
+    assert client.get(f"/api/v1/music-check/jobs/{old['id']}/audio", headers=owner(old)).status_code == 410
+    response = client.post(f"/api/v1/music-check/worker/jobs/{new['code']}/claim", headers=operator(settings))
+    assert response.json()["id"] == new["id"]
+
+
+def put_preview(client, job, headers, body=b"ID3demo fragment", index=0):
+    return client.put(f"/api/v1/music-check/worker/jobs/{job['id']}/matches/{index}/audio",
+                      headers={**headers, "Content-Type": "audio/mpeg"}, content=body)
+
+
+def test_reference_preview_is_private_bounded_and_removed_on_expiry(demo):
+    client, settings = demo
+    job = upload(client).json()
+    headers = claim(client, settings, job)
+    assert put_preview(client, job, {}).status_code == 401
+    assert put_preview(client, job, headers, body=b"not MP3").status_code == 415
+    assert put_preview(client, job, headers, body=b"ID3" + b"x" * (256 * 1024)).status_code == 413
+    assert put_preview(client, job, headers, index=10).status_code == 422
+    assert put_preview(client, job, headers).status_code == 200
+    audio_url = f"/api/v1/music-check/jobs/{job['id']}/matches/0/audio"
+    assert client.get(audio_url, headers=owner(job)).status_code == 404
+    base = f"/api/v1/music-check/worker/jobs/{job['id']}"
+    assert client.put(base + "/result", headers=headers, json=result()).status_code == 200
+    status = client.get(f"/api/v1/music-check/jobs/{job['id']}", headers=owner(job)).json()
+    assert status["result"]["matches"][0]["preview_available"] is True
+    assert client.get(audio_url).status_code == 404
+    assert client.get(audio_url, headers={"X-Music-Job-Token": "wrong"}).status_code == 404
+    preview = client.get(audio_url, headers=owner(job))
+    assert preview.status_code == 200 and preview.content == b"ID3demo fragment"
+    assert preview.headers["content-type"] == "audio/mpeg"
+    assert preview.headers["cache-control"] == "no-store"
+    assert client.get(audio_url, headers={**owner(job), "Range": "bytes=0-2"}).content == b"ID3"
+    with music.Store().connect() as conn:
+        conn.execute("UPDATE jobs SET expires=? WHERE id=?", (time.time() - 1, job["id"]))
+    assert client.get(audio_url, headers=owner(job)).status_code == 410
+    assert not list(Path(settings.music_check_data_dir).glob("*.preview.mp3"))
+
+
+def test_retry_revokes_preview_uploads_and_releases_storage(demo):
+    client, settings = demo
+    job = upload(client).json()
+    old = claim(client, settings, job)
+    assert put_preview(client, job, old).status_code == 200
+    store = music.Store()
+    with store.connect() as conn:
+        conn.execute("UPDATE jobs SET lease_until=0 WHERE id=?", (job["id"],))
+    new = claim(client, settings, job)
+    assert not list(store.root.glob("*.preview.mp3"))
+    assert put_preview(client, job, old).status_code == 409
+    assert put_preview(client, job, new).status_code == 200
+    # Total quota includes preview bytes; replacing a clip counts only its new size.
+    with store.connect() as conn:
+        conn.execute("UPDATE jobs SET size=? WHERE id=?", (settings.music_check_storage_mb * 1024**2 - 16, job["id"]))
+    assert put_preview(client, job, new).status_code == 200
+    assert put_preview(client, job, new, body=b"ID3" + b"x" * 20).status_code == 429
+    assert put_preview(client, job, new, index=1).status_code == 429
+    assert not list(store.root.glob("*.partial"))
+
+
+def test_existing_queue_schema_is_upgraded_without_losing_tokens(tmp_path, monkeypatch):
+    import sqlite3
+    from uuid import uuid4
+    job_id = str(uuid4())
+    with sqlite3.connect(tmp_path / "jobs.sqlite3") as conn:
+        conn.execute("CREATE TABLE jobs (id TEXT PRIMARY KEY, token_hash TEXT NOT NULL, name TEXT NOT NULL, status TEXT NOT NULL, created REAL NOT NULL, expires REAL NOT NULL, size INTEGER NOT NULL, sha256 TEXT, lease_hash TEXT, lease_until REAL, result TEXT)")
+        conn.execute("INSERT INTO jobs VALUES (?,?,'old.mp3','queued',?,?,4,?,NULL,NULL,NULL)",
+                     (job_id, music.digest("owner"), time.time(), time.time() + 3600, "a" * 64))
+    monkeypatch.setattr(music, "get_settings", lambda: Settings(_env_file=None, music_check_data_dir=str(tmp_path)))
+    job = music.Store().read(job_id, "owner")
+    assert 10 <= int(job["code"]) <= 99
+    assert job["filename"] == "old.mp3"
+    assert music.Store().read(job_id, "owner")["code"] == job["code"]

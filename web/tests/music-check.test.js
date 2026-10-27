@@ -13,6 +13,10 @@ class Node {
   setAttribute(name, value) { this[name] = value; }
   select() {}
   click() {}
+  pause() { this.paused = true; }
+  async play() { this.paused = false; await this.emit("play"); }
+  load() {}
+  removeAttribute(name) { delete this[name]; }
 }
 
 function setup() {
@@ -20,10 +24,10 @@ function setup() {
   const node = (id) => { if (!nodes.has(id)) nodes.set(id, new Node()); return nodes.get(id); };
   const calls = [], timers = [], storage = new Map();
   let ready;
-  const finished = { id: "test-job", filename: "song.mp3", status: "completed", expires_at: 2000000000,
+  const finished = { id: "test-job", code: "17", filename: "song.mp3", status: "completed", expires_at: 2000000000,
     result: { outcome: "completed", catalog_size: 2, window_seconds: 20, hop_seconds: 5,
       matches: [{ reference: "<img onerror=alert(1)>", distance: .125,
-        query_start: 5, query_end: 25, reference_start: 10, reference_end: 30 }] } };
+        query_start: 5, query_end: 25, reference_start: 10, reference_end: 30, preview_available: true }] } };
   const responses = [];
   const context = vm.createContext({
     console, Blob, URL: { createObjectURL: () => "blob:demo", revokeObjectURL() {} },
@@ -40,7 +44,7 @@ function setup() {
       if (url.endsWith("public/capabilities")) body = { music_check: { available: true, max_upload_mb: 32, message: "Готово" } };
       else if (url.includes("public/templates")) body = [];
       else { body = responses.shift(); assert.ok(body, `Unexpected request ${url}`); }
-      return { ok: true, status: 200, json: async () => body };
+      return { ok: true, status: 200, json: async () => body, blob: async () => body };
     },
   });
   for (const name of ["api.js", "check.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "../static/js", name), "utf8"), context);
@@ -67,7 +71,7 @@ test("upload is binary; polling displays actual matches as text and keeps owner 
   const match = app.node("#matches-list").children[0];
   assert.equal(match.children[0].textContent, "<img onerror=alert(1)>");
   assert.match(app.node("#result-summary").textContent, /Проверено записей: 2/);
-  assert.equal(app.node("#job-number").value, "test-job");
+  assert.equal(app.node("#job-number").value, "17");
 });
 
 test("unsupported and oversized files never create jobs", async () => {
@@ -79,4 +83,35 @@ test("unsupported and oversized files never create jobs", async () => {
   await app.node("#file-input").emit("change");
   assert.match(app.node("#upload-status").textContent, /не больше 32/);
   assert.ok(app.calls.every((call) => !call.url.endsWith("music-check/jobs")));
+});
+
+
+test("reference fragment loads with owner authentication only on click and replays from cache", async () => {
+  const app = setup(); await app.ready();
+  const file = new Blob(["audio"]); file.name = "song.mp3";
+  app.node("#file-input").files = [file]; await app.node("#file-input").emit("change");
+  app.responses.push({ ...app.finished, status: "queued", result: null, access_token: "owner-secret" }, app.finished);
+  await app.node("#check-btn").emit("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.ok(!app.calls.some((call) => call.url.endsWith("/matches/0/audio")));
+  const card = app.node("#matches-list").children[0];
+  const button = card.children.find((child) => child.textContent === "Послушать найденный отрывок");
+  assert.ok(button);
+  const player = card.children.at(-1);
+  app.responses.push(new Blob(["ID3clip"], { type: "audio/mpeg" }));
+  await button.emit("click");
+  const call = app.calls.find((call) => call.url.endsWith("/matches/0/audio"));
+  assert.equal(call.options.headers["X-Music-Job-Token"], "owner-secret");
+  assert.equal(player.hidden, false); assert.equal(player.paused, false);
+  assert.equal(app.node("#query-audio").paused, true);
+  player.currentTime = 7;
+  await button.emit("click");
+  assert.equal(player.currentTime, 0);
+  assert.equal(app.calls.filter((call) => call.url.endsWith("/matches/0/audio")).length, 1);
+  await card.children[3].emit("click");
+  assert.equal(player.paused, true);
+  assert.equal(app.node("#query-audio").currentTime, 5);
+  app.node("#query-audio").currentTime = 25;
+  await app.node("#query-audio").emit("timeupdate");
+  assert.equal(app.node("#query-audio").paused, true);
 });

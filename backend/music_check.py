@@ -11,7 +11,7 @@ from typing import Annotated, Literal
 from urllib.parse import unquote
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Path as PathParam, Request, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -20,6 +20,8 @@ from backend.config import get_settings
 router = APIRouter(prefix="/api/v1/music-check", tags=["music-check"])
 ALLOWED_EXTENSIONS = {".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac"}
 LEASE_SECONDS = 60 * 60
+MAX_PREVIEW_BYTES = 256 * 1024
+MAX_PREVIEWS = 10
 
 
 def digest(value: str) -> str:
@@ -95,12 +97,24 @@ class Store:
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.db = self.root / "jobs.sqlite3"
         with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             conn.execute("""CREATE TABLE IF NOT EXISTS jobs (
                 id TEXT PRIMARY KEY, token_hash TEXT NOT NULL, name TEXT NOT NULL,
                 status TEXT NOT NULL, created REAL NOT NULL, expires REAL NOT NULL,
                 size INTEGER NOT NULL, sha256 TEXT, lease_hash TEXT, lease_until REAL,
                 result TEXT
             )""")
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(jobs)")}
+            for name, definition in (("code", "TEXT"), ("previews", "TEXT NOT NULL DEFAULT '{}'"),
+                                     ("preview_bytes", "INTEGER NOT NULL DEFAULT 0")):
+                if name not in columns:
+                    conn.execute(f"ALTER TABLE jobs ADD COLUMN {name} {definition}")
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS jobs_code ON jobs(code) WHERE code IS NOT NULL")
+            # Backfill only during migration, not on every status poll.
+            if "code" not in columns:
+                active = conn.execute("SELECT id FROM jobs WHERE expires > ? ORDER BY created", (time.time(),)).fetchall()
+                for row, number in zip(active, range(10, 100)):
+                    conn.execute("UPDATE jobs SET code=? WHERE id=?", (str(number), row["id"]))
         self.cleanup()
 
     @contextmanager
@@ -116,26 +130,38 @@ class Store:
     def path(self, job_id):
         return self.root / (str(job_id) + ".audio")
 
+    def clear_previews(self, row):
+        for preview in json.loads(row["previews"]).values():
+            (self.root / preview["file"]).unlink(missing_ok=True)
+
     def cleanup(self):
         now = time.time()
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            rows = conn.execute("SELECT id FROM jobs WHERE expires <= ? AND status != 'expired'", (now,)).fetchall()
+            rows = conn.execute("SELECT * FROM jobs WHERE expires <= ? AND status != 'expired'", (now,)).fetchall()
             for row in rows:
+                self.clear_previews(row)
                 self.path(row["id"]).unlink(missing_ok=True)
                 self.path(row["id"]).with_suffix(".partial").unlink(missing_ok=True)
-            conn.execute("UPDATE jobs SET status='expired', size=0, result=NULL, lease_hash=NULL WHERE expires <= ?", (now,))
+                for partial in self.root.glob(f"{row['id']}.*.partial"):
+                    partial.unlink(missing_ok=True)
+            conn.execute("UPDATE jobs SET status='expired', size=0, result=NULL, lease_hash=NULL, code=NULL, previews='{}', preview_bytes=0 WHERE expires <= ?", (now,))
             conn.execute("DELETE FROM jobs WHERE expires < ?", (now - 7 * 86400,))
 
     def reserve(self, name, size):
         job_id, token, now = str(uuid4()), secrets.token_urlsafe(32), time.time()
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            count, total = conn.execute("SELECT count(*), coalesce(sum(size), 0) FROM jobs WHERE expires > ?", (now,)).fetchone()
+            count, total = conn.execute("SELECT count(*), coalesce(sum(size + preview_bytes), 0) FROM jobs WHERE expires > ?", (now,)).fetchone()
             if count >= self.settings.music_check_max_jobs or total + size > self.settings.music_check_storage_mb * 1024**2:
                 raise HTTPException(429, "Очередь демонстрации заполнена. Попробуйте позже")
-            conn.execute("INSERT INTO jobs(id,token_hash,name,status,created,expires,size) VALUES(?,?,?,'uploading',?,?,?)",
-                         (job_id, digest(token), name, now, now + self.settings.music_check_ttl_hours * 3600, size))
+            used = {row[0] for row in conn.execute("SELECT code FROM jobs WHERE code IS NOT NULL")}
+            free = [str(n) for n in range(10, 100) if str(n) not in used]
+            if not free:
+                raise HTTPException(429, "Все двузначные номера заняты. Попробуйте позже")
+            code = secrets.choice(free)
+            conn.execute("INSERT INTO jobs(id,token_hash,name,status,created,expires,size,code) VALUES(?,?,?,'uploading',?,?,?,?)",
+                         (job_id, digest(token), name, now, now + self.settings.music_check_ttl_hours * 3600, size, code))
         return job_id, token
 
     def abort(self, job_id):
@@ -161,22 +187,37 @@ class Store:
 
     @staticmethod
     def public(row):
-        return dict(id=row["id"], filename=row["name"], status=row["status"],
-                    expires_at=row["expires"], created_at=row["created"],
-                    result=json.loads(row["result"]) if row["result"] else None)
+        result = json.loads(row["result"]) if row["result"] else None
+        if result:
+            previews = json.loads(row["previews"])
+            for index, match in enumerate(result["matches"]):
+                match["preview_available"] = str(index) in previews
+        return dict(id=row["id"], code=row["code"], filename=row["name"], status=row["status"],
+                    expires_at=row["expires"], created_at=row["created"], result=result)
 
     def claim(self, job_id):
         lease = secrets.token_urlsafe(32)
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
+            if len(job_id) == 2 and job_id.isascii() and job_id.isdigit():
+                found = conn.execute("SELECT id FROM jobs WHERE code=? AND expires>?", (job_id, time.time())).fetchone()
+                if found is None:
+                    raise HTTPException(404, "Задание с таким номером не найдено")
+                job_id = found["id"]
+            else:
+                try:
+                    job_id = str(UUID(job_id))
+                except ValueError:
+                    raise HTTPException(422, "Укажите двузначный номер задания")
             row = self.row(conn, job_id)
             if row["status"] in {"completed", "uploading"}:
                 raise HTTPException(409, "Задание завершено или файл ещё загружается")
             if row["status"] == "processing" and row["lease_until"] > time.time():
                 raise HTTPException(409, "Задание уже обрабатывается; повторный запуск возможен через час")
-            conn.execute("UPDATE jobs SET status='processing', lease_hash=?, lease_until=?, result=NULL WHERE id=?",
+            self.clear_previews(row)
+            conn.execute("UPDATE jobs SET status='processing', lease_hash=?, lease_until=?, result=NULL, previews='{}', preview_bytes=0 WHERE id=?",
                          (digest(lease), time.time() + LEASE_SECONDS, str(job_id)))
-            return dict(id=str(job_id), filename=row["name"], sha256=row["sha256"],
+            return dict(id=str(job_id), code=row["code"], filename=row["name"], sha256=row["sha256"],
                         size=row["size"], lease_token=lease, lease_seconds=LEASE_SECONDS)
 
     def check_lease(self, row, token):
@@ -191,6 +232,33 @@ class Store:
             self.check_lease(row, lease)
             return self.path(job_id), row["name"]
 
+    def save_preview(self, job_id, lease, index, temporary, size):
+        with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = self.row(conn, job_id)
+            self.check_lease(row, lease)
+            previews = json.loads(row["previews"])
+            previous = previews.get(str(index), {}).get("size", 0)
+            total = conn.execute("SELECT coalesce(sum(size + preview_bytes), 0) FROM jobs WHERE expires > ?", (time.time(),)).fetchone()[0]
+            if total - previous + size > self.settings.music_check_storage_mb * 1024**2:
+                raise HTTPException(429, "Недостаточно места для найденного отрывка")
+            target = self.root / f"{job_id}.{digest(lease)}.{index}.preview.mp3"
+            temporary.replace(target)
+            previews[str(index)] = {"file": target.name, "size": size}
+            conn.execute("UPDATE jobs SET previews=?, preview_bytes=? WHERE id=?",
+                         (json.dumps(previews), row["preview_bytes"] - previous + size, str(job_id)))
+
+    def preview(self, job_id, token, index):
+        job = self.read(job_id, token)
+        if not job["result"] or job["status"] != "completed" or index >= len(job["result"]["matches"]):
+            raise HTTPException(404, "Найденный отрывок недоступен")
+        with self.connect() as conn:
+            row = self.row(conn, job_id)
+            preview = json.loads(row["previews"]).get(str(index))
+            if not preview:
+                raise HTTPException(404, "Найденный отрывок недоступен")
+            return self.root / preview["file"]
+
     def complete(self, job_id, lease, result):
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -198,6 +266,9 @@ class Store:
             self.check_lease(row, lease)
             if not hmac.compare_digest(result.query_sha256, row["sha256"]):
                 raise HTTPException(422, "Результат относится к другому аудиофайлу")
+            if result.outcome == "failed":
+                self.clear_previews(row)
+                conn.execute("UPDATE jobs SET previews='{}', preview_bytes=0 WHERE id=?", (str(job_id),))
             conn.execute("UPDATE jobs SET status=?, result=?, lease_hash=NULL WHERE id=?",
                          (result.outcome, result.model_dump_json(), str(job_id)))
         return {"status": result.outcome}
@@ -265,7 +336,7 @@ def own_audio(job_id: UUID, x_music_job_token: Annotated[str, Header()] = ""):
 
 
 @router.post("/worker/jobs/{job_id}/claim", dependencies=[Depends(worker)])
-def claim_job(job_id: UUID, response: Response):
+def claim_job(job_id: str, response: Response):
     response.headers["Cache-Control"] = "no-store"
     return Store().claim(job_id)
 
@@ -281,3 +352,46 @@ def worker_audio(job_id: UUID, x_claim_token: Annotated[str, Header()] = ""):
 def upload_result(job_id: UUID, payload: Result,
                   x_claim_token: Annotated[str, Header()] = ""):
     return Store().complete(job_id, x_claim_token, payload)
+
+
+@router.put("/worker/jobs/{job_id}/matches/{index}/audio", dependencies=[Depends(worker)])
+async def upload_preview(job_id: UUID, index: Annotated[int, PathParam(ge=0, lt=MAX_PREVIEWS)],
+                         request: Request, x_claim_token: Annotated[str, Header()] = ""):
+    store = Store()
+    with store.connect() as conn:
+        store.check_lease(store.row(conn, job_id), x_claim_token)
+    try:
+        expected = int(request.headers.get("content-length", "0"))
+    except ValueError:
+        raise HTTPException(400, "Некорректный размер отрывка")
+    if not 0 < expected <= MAX_PREVIEW_BYTES:
+        raise HTTPException(413, "Отрывок должен быть не больше 256 КиБ")
+    if request.headers.get("content-type", "").split(";")[0] != "audio/mpeg":
+        raise HTTPException(415, "Нужен MP3-отрывок")
+    temporary = store.root / f"{job_id}.{uuid4()}.partial"
+    received = 0
+    try:
+        with temporary.open("xb") as out:
+            async for chunk in request.stream():
+                received += len(chunk)
+                if received > expected:
+                    raise HTTPException(413, "Превышен заявленный размер отрывка")
+                out.write(chunk)
+        if received != expected:
+            raise HTTPException(400, "Отрывок загружен не полностью")
+        with temporary.open("rb") as stream:
+            signature = stream.read(3)
+        if not (signature == b"ID3" or len(signature) >= 2 and signature[0] == 255 and signature[1] & 224 == 224):
+            raise HTTPException(415, "Нужен MP3-отрывок")
+        store.save_preview(job_id, x_claim_token, index, temporary, received)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return {"status": "uploaded"}
+
+
+@router.get("/jobs/{job_id}/matches/{index}/audio", dependencies=[Depends(enabled)])
+def match_audio(job_id: UUID, index: Annotated[int, PathParam(ge=0, lt=MAX_PREVIEWS)],
+                x_music_job_token: Annotated[str, Header()] = ""):
+    path = Store().preview(job_id, x_music_job_token, index)
+    return FileResponse(path, filename=f"match-{index + 1}.mp3", media_type="audio/mpeg",
+                        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})

@@ -18,6 +18,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const labels = { uploading: "Загрузка файла…", queued: "Ожидает ручного запуска оператором",
     processing: "Оператор запустил обработку", completed: "Обработка завершена", failed: "Обработка не выполнена" };
   let capability, file, job, timer, objectURL, clipEnd, busy = false, pollErrors = 0;
+  let renderVersion = 0;
+  const previewPlayers = [], previewURLs = [];
+  function clearPreviews() {
+    renderVersion++;
+    previewPlayers.splice(0).forEach((player) => { player.pause(); player.removeAttribute("src"); player.load(); });
+    previewURLs.splice(0).forEach((url) => URL.revokeObjectURL(url));
+  }
 
   function element(tag, text) {
     const node = document.createElement(tag);
@@ -59,10 +66,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   function showJob() {
     jobPanel.hidden = false;
-    jobNumber.value = job.id;
+    jobNumber.value = job.code || job.id;
     document.querySelector("#job-state").textContent = labels[job.status] || job.status;
     document.querySelector("#job-filename").textContent = job.filename || "";
     document.querySelector("#job-expiry").textContent = `Файл и результат хранятся до ${new Date(job.expires_at * 1000).toLocaleString("ru-RU")}.`;
+    clearPreviews();
     matches.replaceChildren();
     download.hidden = !job.result;
     summary.textContent = "";
@@ -78,17 +86,52 @@ document.addEventListener("DOMContentLoaded", async () => {
       : "Ближайшие фрагменты из проверенной коллекции. Меньшее расстояние означает большее сходство; ближайший кандидат может быть несходным.";
     summary.textContent = `Проверено записей: ${result.catalog_size}. Окно: ${result.window_seconds} с, шаг: ${result.hop_seconds} с.`;
     if (result.message && result.outcome !== "failed") summary.textContent += ` ${result.message}`;
-    result.matches.forEach((match) => {
+    result.matches.forEach((match, index) => {
       const card = element("article", ""); card.className = "match-item";
       const title = element("h3", match.reference); title.className = "match-item-title";
       const timing = element("p", `Ваша запись: ${clock(match.query_start)}–${clock(match.query_end)}. Найденная: ${clock(match.reference_start)}–${clock(match.reference_end)}.`);
       const distance = element("p", `Расстояние CLEWS: ${match.distance.toFixed(6)}`);
-      const play = element("button", "Послушать этот участок моей записи"); play.type = "button";
+      const play = element("button", "Послушать мой отрывок"); play.type = "button";
       play.addEventListener("click", () => {
+        previewPlayers.forEach((player) => player.pause());
         audio.currentTime = match.query_start; clipEnd = match.query_end;
         audio.play().catch(() => { status.textContent = "Браузер не воспроизводит этот формат. Скачайте исходный файл или используйте MP3."; });
       });
-      card.append(title, timing, distance, play); matches.append(card);
+      card.append(title, timing, distance, play);
+      if (match.preview_available) {
+        const referenceAudio = element("audio", "");
+        referenceAudio.controls = true; referenceAudio.preload = "none"; referenceAudio.hidden = true;
+        referenceAudio.setAttribute("aria-label", `Найденный отрывок: ${match.reference}`);
+        const listen = element("button", "Послушать найденный отрывок"); listen.type = "button";
+        const previewStatus = element("p", ""); previewStatus.setAttribute("role", "status");
+        const version = renderVersion;
+        previewPlayers.push(referenceAudio);
+        referenceAudio.addEventListener("play", () => {
+          audio.pause(); clipEnd = undefined;
+          previewPlayers.forEach((player) => { if (player !== referenceAudio) player.pause(); });
+        });
+        listen.addEventListener("click", async () => {
+          listen.disabled = true; previewStatus.textContent = "Загружаем найденный отрывок…";
+          try {
+            if (!referenceAudio.src) {
+              const blob = await request(`music-check/jobs/${job.id}/matches/${index}/audio`,
+                { headers: headers(), responseType: "blob" });
+              if (version !== renderVersion) return;
+              const url = URL.createObjectURL(new Blob([blob], { type: "audio/mpeg" }));
+              previewURLs.push(url); referenceAudio.src = url;
+            }
+            referenceAudio.hidden = false; referenceAudio.currentTime = 0;
+            await referenceAudio.play(); previewStatus.textContent = "";
+          } catch (error) {
+            previewStatus.textContent = error.message || "Не удалось воспроизвести отрывок. Используйте плеер ниже.";
+          } finally { listen.disabled = false; }
+        });
+        referenceAudio.addEventListener("error", () => { previewStatus.textContent = "Браузер не смог воспроизвести MP3-отрывок."; });
+        card.append(listen, previewStatus, referenceAudio);
+      } else {
+        card.append(element("p", "Аудио найденного отрывка не передано. Для прослушивания повторите проверку в обновлённом ноутбуке."));
+      }
+      matches.append(card);
     });
     if (result.outcome === "completed" && !result.matches.length) matches.append(element("p", "Сходные фрагменты не возвращены. Это не вывод об отсутствии заимствований."));
   }
@@ -122,7 +165,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   audio.addEventListener("timeupdate", () => { if (clipEnd !== undefined && audio.currentTime >= clipEnd) { audio.pause(); clipEnd = undefined; } });
   refresh.addEventListener("click", updateJob);
   document.querySelector("#copy-job").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(job.id); status.textContent = "Номер задания скопирован."; }
+    try { await navigator.clipboard.writeText(job.code || job.id); status.textContent = "Номер задания скопирован."; }
     catch { jobNumber.select(); status.textContent = "Выделенный номер можно скопировать вручную."; }
   });
   submit.addEventListener("click", async () => {
@@ -162,7 +205,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       } else { job = null; }
     }
   } catch (error) { status.textContent = error.message; }
-  window.addEventListener("pagehide", () => { stopPolling(); if (objectURL) URL.revokeObjectURL(objectURL); });
+  window.addEventListener("pagehide", () => { stopPolling(); clearPreviews(); if (objectURL) URL.revokeObjectURL(objectURL); });
 
   const list = document.querySelector("#templates-list"), more = document.querySelector("#more-templates");
   let offset = 0;
