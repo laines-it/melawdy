@@ -226,73 +226,68 @@
 .calculator-info-block {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 24px;
   margin-bottom: 30px;
 }
 
 .info-card-custom {
-  width: 20%;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
   background: #F9ECFF;
   border: 1px solid #F355FB;
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+.info-image-custom {
+  flex: 0 0 120px;
+  width: 120px;
+  height: auto;
+  max-height: 140px;
+  object-fit: contain;
+  float: none;
+  padding: 0;
   border-radius: 10px;
+  display: block;
 }
 
 .info-card-custom-text {
-  width: 50%;
-  margin-left: 50%;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  margin: 0;
 }
 
 .info-card-custom h3 {
-  width: 100%;
+  width: auto;
   font-family: 'Inter', sans-serif;
   font-weight: 800;
   font-size: 14px;
-  padding-top: 15%;
-  line-height: 1.2;
-  color: #0E0F12;
-  margin: 0 0 12px;
-}
-
-.info-card-custom p {
-  width: 100%;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  line-height: 1.2;
+  padding-top: 0;
+  line-height: 1.3;
   color: #0E0F12;
   margin: 0 0 8px;
 }
 
-.info-link {
-  color: #93ABD8;
-  text-decoration: underline;
-  font-weight: 600;
+.info-card-custom p {
+  width: auto;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #0E0F12;
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
 }
 
-.info-image-custom {
-  width: 45%;
-  height: 40%;
-  border-radius: 10px;
-  display: grid;
-  float: left;
-  padding: 5%;
-  min-height: 131px;
-}
-
-.info-image-custom img {
-  display: grid;
-  align-items: left;
-  width: 80%;
-  height: 100%;
-  object-fit: contain;
-}
-
-/* Кнопка сохранения */
 .calculator-actions {
   display: flex;
   flex: 0 0 auto;
   width: max-content;
+  align-items: center;
 }
 
 .button-save {
@@ -323,6 +318,8 @@
   cursor: default;
   transform: none;
   box-shadow: none;
+  position: absolute;
+  right: 0;
 }
 
 /* Адаптивность */

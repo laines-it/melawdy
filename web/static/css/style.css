@@ -481,59 +481,57 @@ body {
 }
 
 @media (max-width: 720px) {
+  .site-header {
+    min-height: auto;
+    height: auto;
+  }
+
   .header-inner {
     flex-wrap: wrap;
-    gap: 12px;
+    align-items: center;
+    gap: 10px 12px;
+    padding: 10px 16px;
   }
-  
+
+  .brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
   .brand-name {
-    font-size: 28px;
+    font-size: 26px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  
+
   .brand-mark {
-    width: 60px;
-    height: 50px;
-  }
-  
-  .services-grid,
-  .faq-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .hero-section {
-    padding: 40px 0 20px;
-  }
-  
-  .hero-inner {
-    padding: 0 20px;
-  }
-  
-  .hero-description {
-    font-size: 17px;
-  }
-  
-  .search-field {
-    min-height: 52px;
-    padding: 0 4px 0 16px;
-  }
-  
-  .search-submit {
     width: 44px;
-    height: 44px;
-    font-size: 22px;
+    height: 40px;
+    flex-shrink: 0;
   }
-  
-  .section-title {
-    font-size: 28px;
+
+  .header-actions {
+    flex: 0 0 auto;
+    gap: 10px;
   }
-  
-  .service-card {
-    min-height: 160px;
-    padding: 18px;
+
+  .search-toggle {
+    font-size: 24px;
+    top: 0;
   }
-  
-  .service-title {
-    font-size: 22px;
+
+  .button-login {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .user-chip {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 14px;
+    max-width: 140px;
   }
 }
 
@@ -541,7 +539,8 @@ body {
   position: static;
   background: #fefbf2;
   border-bottom: 1px solid var(--border-color);
-  height: 76px;
+  min-height: 76px;
+  height: auto;
   display: flex;
   align-items: center;
   backdrop-filter: none;
@@ -552,10 +551,13 @@ body {
   width: 100%;
   max-width: 1440px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 12px 24px;
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
 }
 
 .brand-name {
