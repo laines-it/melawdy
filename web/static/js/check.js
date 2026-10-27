@@ -323,7 +323,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (capability.available) {
       syncControls();
       dropzone.setAttribute("aria-disabled", "false");
-      document.querySelector("#upload-instructions").textContent = `Одна запись от 20 секунд до 30 минут, до ${capability.max_upload_mb} МБ.`;
+      document.querySelector("#upload-instructions").textContent = `Максимальный размер записи - ${capability.max_upload_mb} МБ.`;
       try { job = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { job = null; }
       if (job?.id && job?.access_token) {
         await updateJob();
