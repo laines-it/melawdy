@@ -35,12 +35,12 @@ html, body { margin: 0; padding: 0; }
 
 .article-page .site-main { flex: 1 0 auto; }
 
-/* --- Шапка: 100% ширины, без растягивания --- */
 .article-page .site-header {
   position: static;
   background: var(--surface);
   border-bottom: 1px solid var(--border-color);
-  height: 76px;
+  min-height: 76px;
+  height: auto;
   width: 100%;
   display: flex;
   align-items: center;
@@ -52,11 +52,12 @@ html, body { margin: 0; padding: 0; }
   width: 100%;
   max-width: 1440px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 12px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 20px;
+  flex-wrap: wrap;
   box-sizing: border-box;
 }
 
@@ -477,6 +478,8 @@ html, body { margin: 0; padding: 0; }
     gap: 12px;
   }
   .article-page .main-nav { display: none; }
+  .article-page .brand-name { font-size: 26px; }
+  .article-page .brand-mark { width: 44px; height: 40px; }
   .article-shell { padding: 20px 16px 40px; }
   .article-page .site-footer { padding: 20px 16px; }
   .article-chunks { font-size: 17px; text-align: left; }
@@ -485,9 +488,9 @@ html, body { margin: 0; padding: 0; }
 }
 
 .article-chunks a {
-  color: inherit;               /* цвет как у текста */
-  text-decoration: underline;   /* подчёркивание */
-  text-decoration-color: #93ABD8; /* синеватое подчёркивание */
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: #93ABD8;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
   font-family: inherit;
