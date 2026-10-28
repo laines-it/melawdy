@@ -17,6 +17,14 @@ body {
   color: var(--zp-text);
 }
 
+html, body {
+  overflow-x: hidden;
+}
+
+.page-shell {
+  overflow-x: clip;
+}
+
 .page-shell {
   background: var(--zp-bg);
 }
@@ -453,10 +461,11 @@ body {
 
 @media (max-width: 720px) {
   .hero-section {
+    background-size: cover;
     background-position: center bottom;
-    background-size: auto 100%;
     min-height: auto;
     padding: 40px 0 20px;
+    overflow: hidden;
   }
 
   .hero-image {
@@ -478,6 +487,20 @@ body {
     max-width: 100%;
     padding-right: 0;
   }
+
+  .services-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .service-card {
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .service-title {
+    font-size: 21px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -494,16 +517,17 @@ body {
   }
 
   .brand {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
+    overflow: visible;
   }
 
   .brand-name {
-    font-size: 26px;
+    font-size: 22px;
     line-height: 1.1;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .brand-mark {

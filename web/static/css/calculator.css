@@ -239,6 +239,7 @@
   align-items: flex-start;
   gap: 16px;
   padding: 20px;
+  margin-bottom: 8px;
   background: #F9ECFF;
   border: 1px solid #F355FB;
   border-radius: 14px;
@@ -292,6 +293,7 @@
   max-width: 100%;
   align-items: center;
   margin-left: auto;
+  margin-top: 8px;
 }
 
 .button-save {
@@ -334,6 +336,9 @@
 
   .calculator-info-block {
     width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
   }
 
   .info-image-custom {
@@ -363,6 +368,7 @@
   .info-card-custom {
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: 0;
   }
 
   .info-image-custom {
@@ -376,6 +382,7 @@
   .calculator-actions {
     width: 100%;
     margin-left: 0;
+    margin-top: 4px;
   }
 
   .button-save {
@@ -383,5 +390,6 @@
     font-size: 18px;
     padding: 14px 20px;
     white-space: normal;
+    margin-top: 16px;
   }
 }
