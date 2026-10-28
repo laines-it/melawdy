@@ -227,12 +227,14 @@
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
+  justify-content: space-between;
   gap: 24px;
   margin-bottom: 30px;
 }
 
 .info-card-custom {
   min-width: 0;
+  max-width: 100%;
   display: flex;
   align-items: flex-start;
   gap: 16px;
@@ -287,12 +289,14 @@
   display: flex;
   flex: 0 0 auto;
   width: max-content;
+  max-width: 100%;
   align-items: center;
+  margin-left: auto;
 }
 
 .button-save {
   width: max-content;
-  white-space: nowrap;
+  white-space: normal;
   font-family: 'Manrope', sans-serif;
   font-weight: 600;
   font-size: 24px;
@@ -356,8 +360,28 @@
     font-size: 32px;
   }
 
+  .info-card-custom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .info-image-custom {
+    flex: none;
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  .calculator-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
   .button-save {
-    font-size: 20px;
-    padding: 16px 24px;
+    width: 100%;
+    font-size: 18px;
+    padding: 14px 20px;
+    white-space: normal;
   }
 }
