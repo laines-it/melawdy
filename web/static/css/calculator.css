@@ -234,12 +234,12 @@
 
 .info-card-custom {
   min-width: 0;
-  max-width: 100%;
+  max-width: 340px;
   display: flex;
   align-items: flex-start;
   gap: 16px;
   padding: 20px;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
   background: #F9ECFF;
   border: 1px solid #F355FB;
   border-radius: 14px;
@@ -368,7 +368,6 @@
   .info-card-custom {
     flex-direction: column;
     align-items: stretch;
-    margin-bottom: 0;
   }
 
   .info-image-custom {
