@@ -169,7 +169,7 @@ html, body {
 .hero-title {
   font-family: var(--zp-font-serif);
   font-weight: 700;
-  font-size: clamp(60px, 8vw, 60px);
+  font-size: clamp(50px, 6vw, 50px);
   line-height: 1.1;
   color: var(--zp-text);
   margin: 0 0 8px;
